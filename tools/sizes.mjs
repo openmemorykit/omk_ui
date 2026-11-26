@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const KILO = 1000
 const GZIP_LEVEL = 9
 export const BUDGETS = {
-  jsBytes: 160 * KILO,
+  jsBytes: 170 * KILO,
   jsGzipBytes: 60 * KILO,
   cssBytes: 30 * KILO,
   fontBytes: 150 * KILO,

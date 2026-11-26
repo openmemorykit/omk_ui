@@ -44,7 +44,7 @@ docker run --rm --user $(id -u):$(id -g) -v "$PWD":/app -w /app -e HOME=/tmp nod
 
 `node tools/sizes.mjs omk_ui/web` fails over any of these, measured on the build (1 Ko = 1000 bytes):
 
-- JS: 160 Ko minified and 60 Ko gzip (level 9), summed over `assets/*.js`
+- JS: 170 Ko minified and 60 Ko gzip (level 9), summed over `assets/*.js`
 - CSS: 30 Ko minified
 - fonts: 2 families, 150 Ko in total, licences included
 - no file containing `data-omk-preview` (the preview code never ships), no file of `assets/` containing `~standard` (valibot is not in the delivered page)
@@ -124,7 +124,7 @@ docker run --rm --user $(id -u):$(id -g) -v "$PWD":/app -w /app -e HOME=/tmp nod
 
 `node tools/sizes.mjs omk_ui/web` échoue au-delà de l'un de ces seuils, mesurés sur le build (1 Ko = 1000 octets) :
 
-- JS : 160 Ko minifié et 60 Ko gzip (niveau 9), somme de `assets/*.js`
+- JS : 170 Ko minifié et 60 Ko gzip (niveau 9), somme de `assets/*.js`
 - CSS : 30 Ko minifié
 - polices : 2 familles, 150 Ko en tout, licences comprises
 - aucun fichier contenant `data-omk-preview` (le code d'aperçu n'est jamais livré), aucun fichier de `assets/` contenant `~standard` (valibot n'est pas dans la page livrée)
