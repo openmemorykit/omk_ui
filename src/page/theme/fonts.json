@@ -1,0 +1,21 @@
+{
+  "sofiaSansSemiCondensed": {
+    "cssName": "Sofia Sans Semi Condensed",
+    "package": "@fontsource/sofia-sans-semi-condensed",
+    "weights": {
+      "500": "sofia-sans-semi-condensed-latin-500-normal.woff2",
+      "600": "sofia-sans-semi-condensed-latin-600-normal.woff2",
+      "700": "sofia-sans-semi-condensed-latin-700-normal.woff2",
+      "800": "sofia-sans-semi-condensed-latin-800-normal.woff2"
+    }
+  },
+  "archivoNarrow": {
+    "cssName": "Archivo Narrow",
+    "package": "@fontsource/archivo-narrow",
+    "weights": {
+      "500": "archivo-narrow-latin-500-normal.woff2",
+      "600": "archivo-narrow-latin-600-normal.woff2",
+      "700": "archivo-narrow-latin-700-normal.woff2"
+    }
+  }
+}
