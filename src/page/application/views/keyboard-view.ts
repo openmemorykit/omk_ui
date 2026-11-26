@@ -9,6 +9,7 @@ export interface KeyView {
   readonly action: KeyAction
   readonly text: string
   readonly label: string
+  readonly accessibleLabel: string
   readonly focused: boolean
   readonly active: boolean
 }
@@ -67,6 +68,10 @@ function labelOf(key: VirtualKey, layer: VirtualKeyboardLayer, text: string, tra
   }
 }
 
+function accessibleLabelOf(key: VirtualKey, label: string, translate: Translate): string {
+  return key.action === KeyAction.Shift ? translate('ui.keyboard.shift') : label
+}
+
 function keyViews(row: readonly VirtualKey[], rowIndex: number, layer: VirtualKeyboardLayer, translate: Translate): readonly KeyView[] {
   const { keyboard } = layer
   let start = FIRST
@@ -74,13 +79,15 @@ function keyViews(row: readonly VirtualKey[], rowIndex: number, layer: VirtualKe
     const unit = start
     start += key.units
     const text = key.action === KeyAction.Character ? characterOf(key, keyboard.shift) : NO_TEXT
+    const label = labelOf(key, layer, text, translate)
     return Object.freeze({
       row: rowIndex,
       unit,
       units: key.units,
       action: key.action,
       text,
-      label: labelOf(key, layer, text, translate),
+      label,
+      accessibleLabel: accessibleLabelOf(key, label, translate),
       focused: rowIndex === keyboard.row && keyboard.unit >= unit && keyboard.unit < unit + key.units,
       active: key.action === KeyAction.Shift && keyboard.shift,
     })
@@ -101,7 +108,7 @@ export function keyboardView(layer: VirtualKeyboardLayer, language: KeyboardLang
     cursor: length,
     length,
     maxLength: keyboard.maxLength,
-    counterText: `${String(length)} / ${String(keyboard.maxLength)}`,
+    counterText: translate('ui.keyboard.counter', { count: length, max: keyboard.maxLength }),
     atLimit: length >= keyboard.maxLength,
   })
 }

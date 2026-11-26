@@ -33,7 +33,9 @@ function stateOf(frame: Frame, errorCount: number): SubmitState {
 
 function messageOf(state: SubmitState, frame: Frame, translate: Translate): string | null {
   if (state === SubmitState.NoReply) return translate('ui.form.noReply')
-  return state === SubmitState.Rejected ? frame.form?.message ?? null : null
+  if (state !== SubmitState.Rejected) return null
+  const message = frame.form?.message ?? null
+  return message === null && frame.form?.rejectedWithoutDetail === true ? translate('ui.form.rejected') : message
 }
 
 export function formSubmitView(frame: Frame, translate: Translate): FormSubmitView {

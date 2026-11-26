@@ -66,6 +66,14 @@ describe('keyboardView layout', () => {
     expect(label(KeyAction.Shift)).toBe('⇧')
   })
 
+  it('gives every key an accessible label, the shift key a spoken one', () => {
+    const keys = flat(view())
+    const spoken = (action: KeyAction): string | undefined => keys.find((key) => key.action === action)?.accessibleLabel
+    expect(spoken(KeyAction.Shift)).toBe('Majuscule')
+    expect(spoken(KeyAction.Erase)).toBe('Effacer')
+    expect(keys.every((key) => key.accessibleLabel.length > 0)).toBe(true)
+  })
+
   it('labels the layer key with the layer it leads to, wrapping around', () => {
     const layerKey = (layer: KeyboardLayer): string | undefined => flat(view({ layer })).find((key) => key.action === KeyAction.Layer)?.label
     expect(layerKey(KeyboardLayer.Letters)).toBe('Accents et chiffres')

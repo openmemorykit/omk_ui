@@ -66,7 +66,9 @@ describe('vocabulary coverage', () => {
     ['PadGlyph', vocabulary('ui.glyph.pad', PadGlyph)],
     ['KeyGlyph', vocabulary('ui.glyph.key', KeyGlyph)],
     ['abandonText', ['ui.abandonText.title', 'ui.abandonText.text', 'ui.abandonText.confirm', 'ui.abandonText.cancel']],
-    ['form', ['ui.form.errorCount', 'ui.form.noReply', 'ui.form.counter']],
+    ['form', ['ui.form.errorCount', 'ui.form.noReply', 'ui.form.rejected', 'ui.form.counter']],
+    ['prompt', ['ui.prompt.hold']],
+    ['keyboard', ['ui.keyboard.shift', 'ui.keyboard.counter']],
     ['confirm defaults', ['ui.confirm.confirm', 'ui.confirm.cancel']],
   ]
 
