@@ -11,15 +11,24 @@ const GREEN_WEIGHT = 0.7152
 const BLUE_WEIGHT = 0.0722
 const CONTRAST_OFFSET = 0.05
 
-function linearChannel(hexPair: string): number {
-  const channel = parseInt(hexPair, HEX_RADIX) / CHANNEL_MAX
+function linearChannel(channelValue: number): number {
+  const channel = channelValue / CHANNEL_MAX
   return channel <= LINEAR_THRESHOLD ? channel / LINEAR_DIVISOR : ((channel + GAMMA_OFFSET) / GAMMA_DIVISOR) ** GAMMA_EXPONENT
 }
 
-export function relativeLuminance(hexColor: string): number {
+export type HexChannels = readonly [number, number, number]
+
+export function parseHexChannels(hexColor: string): HexChannels | null {
   const match = HEX_COLOR.exec(hexColor)
-  if (match === null) return 0
+  if (match === null) return null
   const [, red, green, blue] = match as unknown as readonly [string, string, string, string]
+  return [parseInt(red, HEX_RADIX), parseInt(green, HEX_RADIX), parseInt(blue, HEX_RADIX)]
+}
+
+export function relativeLuminance(hexColor: string): number {
+  const channels = parseHexChannels(hexColor)
+  if (channels === null) return 0
+  const [red, green, blue] = channels
   return RED_WEIGHT * linearChannel(red) + GREEN_WEIGHT * linearChannel(green) + BLUE_WEIGHT * linearChannel(blue)
 }
 
