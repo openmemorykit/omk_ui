@@ -222,6 +222,7 @@ describe('PanelColumn slots', () => {
     const { wrapper } = mountColumn(withTop(panelsState(), { layers: [COVER] }), { layer: '<p id="layer">Layer</p>' })
     const layer = wrapper.find('.omk-column__layer')
     expect(layer.find('#layer').exists()).toBe(true)
+    expect(layer.classes()).toContain('omk-surface-raised')
     expect(layer.element.parentElement?.classList.contains('omk-column__body')).toBe(true)
     expect(wrapper.find('.omk-column__body').find('[role="listbox"]').exists()).toBe(true)
     expect(wrapper.find('.omk-column__body').find('.omk-foot').exists()).toBe(true)

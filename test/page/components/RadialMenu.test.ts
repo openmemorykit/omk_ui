@@ -5,7 +5,7 @@ import type { Dispatch } from '../../../src/page/application/ports'
 import RadialMenu from '../../../src/page/components/RadialMenu.vue'
 import { UI_CONTEXT, type UiContext } from '../../../src/page/components/use-ui'
 import { PageCommandType } from '../../../src/page/domain/page-commands'
-import { pointerVector, sectorCenterAngle } from '../../../src/page/domain/radial-geometry'
+import { pointerVector, RADIAL_SUBRING_OUTER, sectorCenterAngle } from '../../../src/page/domain/radial-geometry'
 import { createInitialState, RadialLevel } from '../../../src/page/domain/ui-state'
 import { Intent, IntentPhase } from '../../../src/protocol/intents'
 import { radialEntry, radialState, translate } from '../application/views/helpers'
@@ -19,6 +19,9 @@ const BOX = 848
 const HALF_BOX = 424
 const HOLE_OFFSET = 50
 const RING_OFFSET = 200
+const SUBRING_OFFSET = 350
+const HALF_TURN_DEGREES = 180
+const PAST_RING = 10
 const DOUBLE_SCALE = 2
 const DOUBLE_BOX = BOX * DOUBLE_SCALE
 const DOUBLE_OFFSET = RING_OFFSET * DOUBLE_SCALE
@@ -122,6 +125,56 @@ describe('RadialMenu', () => {
   it('confirms with exactly one press then one release on a click', async () => {
     const { wrapper, dispatch } = mountRadial()
     await wrapper.get('[role="menu"]').trigger('click')
+    expect(dispatch.mock.calls.map(([command]) => command)).toEqual([
+      { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Press, fromEscape: false },
+      { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Release, fromEscape: false },
+    ])
+  })
+
+  it('confirms nothing on a click in the central hole', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + HOLE_OFFSET, clientY: HALF_BOX })
+    dispatch.mockClear()
+    await wrapper.get('[role="menu"]').trigger('click', { clientX: HALF_BOX + HOLE_OFFSET, clientY: HALF_BOX })
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+
+  it('confirms nothing on a click in a corner of the square, outside the ring', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RING_OFFSET, clientY: HALF_BOX })
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: BOX - 1, clientY: 1 })
+    dispatch.mockClear()
+    await wrapper.get('[role="menu"]').trigger('click', { clientX: BOX - 1, clientY: 1 })
+    expect(dispatch).not.toHaveBeenCalled()
+  })
+
+  it('aims into the sub-ring from a parent sector at level 1', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    const angle = (sectorCenterAngle(PARENT, SECTORS) * Math.PI) / HALF_TURN_DEGREES
+    const clientX = HALF_BOX + SUBRING_OFFSET * Math.sin(angle)
+    const clientY = HALF_BOX - SUBRING_OFFSET * Math.cos(angle)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX, clientY })
+    const vector = pointerVector({ x: clientX, y: clientY }, { x: HALF_BOX, y: HALF_BOX }, 1)
+    expect(vector).not.toBeNull()
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: PageCommandType.PointerAim, vector })
+  })
+
+  it('bounds the aim to the sub-ring outer edge at level 1', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RADIAL_SUBRING_OUTER + PAST_RING, clientY: HALF_BOX })
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: PageCommandType.PointerAim, vector: null })
+  })
+
+  it('still confirms on a click over a sector', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RING_OFFSET, clientY: HALF_BOX })
+    dispatch.mockClear()
+    await wrapper.get('[role="menu"]').trigger('click', { clientX: HALF_BOX + RING_OFFSET, clientY: HALF_BOX })
     expect(dispatch.mock.calls.map(([command]) => command)).toEqual([
       { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Press, fromEscape: false },
       { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Release, fromEscape: false },

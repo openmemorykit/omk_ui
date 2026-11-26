@@ -16,8 +16,8 @@ const ringStyle = computed(() => ({ '--ring-ms': `${view.value?.ringMs ?? 0}ms` 
   <div v-if="view !== null" class="omk-prompt" data-surface="prompt" :data-column-side="columnSide">
     <span v-if="view.hold" :key="`${view.id}-${ringState}`" class="omk-prompt__ring" data-motion="essential" :data-state="ringState" :style="ringStyle">
       <span class="omk-prompt__track" />
-      <span class="omk-prompt__half omk-prompt__half--right"><span class="omk-prompt__arc" /></span>
-      <span class="omk-prompt__half omk-prompt__half--left"><span class="omk-prompt__arc" /></span>
+      <span class="omk-prompt__half omk-prompt__half--right"><span class="omk-prompt__arc" data-motion="essential" /></span>
+      <span class="omk-prompt__half omk-prompt__half--left"><span class="omk-prompt__arc" data-motion="essential" /></span>
       <Glyph class="omk-prompt__glyph" :glyph="view.glyph.glyph" :glyph-set="ui.state.value.glyphSet" :label="view.glyph.label" />
     </span>
     <Glyph v-else class="omk-prompt__glyph" :glyph="view.glyph.glyph" :glyph-set="ui.state.value.glyphSet" :label="view.glyph.label" />

@@ -6,6 +6,7 @@ import {
   pointerVector,
   RADIAL_HOLE_RADIUS,
   RADIAL_RING_OUTER,
+  RADIAL_SUBRING_OUTER,
   RADIAL_SUBRING_INNER,
   SUBRING_ENTRY_MAGNITUDE,
 } from '../../../src/page/domain/radial-geometry'
@@ -62,6 +63,16 @@ describe('pointerVector', () => {
     const beyond = pointerVector({ x: CENTER_X + BEYOND_RING, y: CENTER_Y }, center, 1)
     expect(beyond?.x).toBeCloseTo(BEYOND_RING / RADIAL_RING_OUTER, TEN)
     expect(beyond?.x).toBeGreaterThan(1)
+  })
+
+  it('aims at nothing beyond the outer radius of the drawn ring', () => {
+    const justOut = RADIAL_RING_OUTER + SMALL_ANGLE
+    expect(pointerVector({ x: CENTER_X + RADIAL_RING_OUTER, y: CENTER_Y }, center, 1, RADIAL_RING_OUTER)).not.toBeNull()
+    expect(pointerVector({ x: CENTER_X + justOut, y: CENTER_Y }, center, 1, RADIAL_RING_OUTER)).toBeNull()
+    expect(pointerVector({ x: CENTER_X + justOut, y: CENTER_Y }, center, 1)).not.toBeNull()
+    expect(pointerVector({ x: CENTER_X + RADIAL_SUBRING_OUTER + SMALL_ANGLE, y: CENTER_Y }, center, 1)).toBeNull()
+    expect(pointerVector({ x: CENTER_X + RADIAL_SUBRING_OUTER * TWO, y: CENTER_Y }, center, TWO)).not.toBeNull()
+    expect(pointerVector({ x: CENTER_X + RADIAL_SUBRING_OUTER, y: CENTER_Y + RADIAL_SUBRING_OUTER }, center, 1)).toBeNull()
   })
 
   it('keeps y negative toward the top', () => {

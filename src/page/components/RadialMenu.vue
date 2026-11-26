@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { radialView } from '../application/views/radial-view'
 import { PageCommandType } from '../domain/page-commands'
-import { CHILD_STEP_DEGREES, pointerVector, RADIAL_RING_OUTER, RADIAL_SUBRING_INNER } from '../domain/radial-geometry'
+import { CHILD_STEP_DEGREES, pointerVector, RADIAL_RING_OUTER, RADIAL_SUBRING_INNER, RADIAL_SUBRING_OUTER } from '../domain/radial-geometry'
 import { Intent, IntentPhase } from '../../protocol/intents'
 import { ICON_PATHS } from '../theme/icons'
 import RadialSector from './RadialSector.vue'
 import { useUi } from './use-ui'
 
 const RING_INNER = 140
-const SUBRING_OUTER = 424
 const NEEDLE_RADIUS = 137
 const FULL_TURN = 360
 const HALVES = 2
@@ -30,15 +29,20 @@ const needle = computed(() => {
   return `translate(${NEEDLE_RADIUS * Math.cos(radians)} ${NEEDLE_RADIUS * Math.sin(radians)}) rotate(${angle})`
 })
 
+let aimedNothing = false
+watch(() => view.value === null, () => { aimedNothing = false })
+
 function aim(event: PointerEvent): void {
   if (!(event.currentTarget instanceof Element)) return
   const box = event.currentTarget.getBoundingClientRect()
   const center = { x: box.left + box.width * MIDDLE, y: box.top + box.height * MIDDLE }
-  const vector = pointerVector({ x: event.clientX, y: event.clientY }, center, box.width / (SUBRING_OUTER * HALVES))
+  const vector = pointerVector({ x: event.clientX, y: event.clientY }, center, box.width / (RADIAL_SUBRING_OUTER * HALVES), RADIAL_SUBRING_OUTER)
+  aimedNothing = vector === null
   dispatch({ type: PageCommandType.PointerAim, vector })
 }
 
 function confirm(): void {
+  if (aimedNothing) return
   dispatch({ type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Press, fromEscape: false })
   dispatch({ type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Release, fromEscape: false })
 }
@@ -67,7 +71,7 @@ function confirm(): void {
           sub
           :view="child"
           :inner="RADIAL_SUBRING_INNER"
-          :outer="SUBRING_OUTER"
+          :outer="RADIAL_SUBRING_OUTER"
           :half="childHalf"
         />
         <g class="omk-radial__needle" :transform="needle"><path d="M0 -4L7 4H-7Z" /></g>
