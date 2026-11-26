@@ -26,6 +26,7 @@ function refilled(bucket: TokenBucket, settings: BucketSettings, now: number): T
 }
 
 export function takeTokens(bucket: TokenBucket, settings: BucketSettings, cost: number, now: number): TakeResult {
+  if (!Number.isFinite(cost) || cost < 0 || !Number.isFinite(now)) return { allowed: false, bucket }
   const current = refilled(bucket, settings, now)
   if (cost > current.tokens) return { allowed: false, bucket: current }
   return { allowed: true, bucket: { tokens: current.tokens - cost, refilledAt: current.refilledAt } }

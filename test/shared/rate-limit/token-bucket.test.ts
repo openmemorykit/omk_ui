@@ -6,6 +6,7 @@ const BYTES: BucketSettings = { capacity: 1_048_576, refillPerSecond: 1_048_576 
 const START = 10_000
 const SECOND = 1000
 const HALF_SECOND = 500
+const NEGATIVE_COST = -5
 const BURST = 60
 const OVER_BURST = 61
 const REFILL = 30
@@ -79,5 +80,38 @@ describe('token bucket', () => {
     const bucket = Object.freeze(fullBucket(CALLS, START))
     expect(() => takeTokens(bucket, CALLS, 1, START + 1)).not.toThrow()
     expect(bucket.tokens).toBe(CALLS.capacity)
+  })
+
+  describe('fails closed', () => {
+    it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, NEGATIVE_COST])('refuses the cost %s and returns the bucket intact', (cost) => {
+      const bucket = fullBucket(CALLS, START)
+      const result = takeTokens(bucket, CALLS, cost, START + SECOND)
+      expect(result.allowed).toBe(false)
+      expect(result.bucket).toBe(bucket)
+      expect(takeTokens(result.bucket, CALLS, 1, START).allowed).toBe(true)
+    })
+
+    it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])('refuses the clock %s and returns the bucket intact', (now) => {
+      const bucket = fullBucket(CALLS, START)
+      const result = takeTokens(bucket, CALLS, 1, now)
+      expect(result.allowed).toBe(false)
+      expect(result.bucket).toBe(bucket)
+      const later = takeTokens(result.bucket, CALLS, 1, START + SECOND)
+      expect(later.allowed).toBe(true)
+    })
+
+    it('keeps limiting after a poisoned call', () => {
+      const drained = takeMany(CALLS, BURST, START).bucket
+      const poisoned = takeTokens(drained, CALLS, Number.NaN, START).bucket
+      expect(takeTokens(poisoned, CALLS, 1, START).allowed).toBe(false)
+    })
+
+    it('never creates tokens when the clock goes backwards and forwards', () => {
+      const drained = takeMany(CALLS, BURST, START).bucket
+      const back = takeTokens(drained, CALLS, 0, START - SECOND * LONG_WAIT_SECONDS).bucket
+      const forward = takeTokens(back, CALLS, 0, START + SECOND).bucket
+      expect(forward.tokens).toBeLessThanOrEqual(REFILL)
+      expect(forward.tokens).toBeLessThanOrEqual(CALLS.capacity)
+    })
   })
 })
