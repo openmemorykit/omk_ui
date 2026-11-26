@@ -34,6 +34,7 @@ function action(state: UiState, frame: Frame, owned: OwnedPanel, item: ItemOf<ty
 }
 
 function link(state: UiState, frame: Frame, owned: OwnedPanel, item: ItemOf<typeof ItemKind.Link>): Transition {
+  if (frame.pendingItemId === item.id) return unchanged(state)
   const pending = withTopFrame(state, { ...frame, pendingItemId: item.id })
   return withEffects(pending, [replyEvent([selectedReply(owned, item.id)]), schedule(TimerKind.LinkPending, LINK_PENDING_MS)])
 }
