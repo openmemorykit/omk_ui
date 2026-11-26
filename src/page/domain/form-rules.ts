@@ -77,6 +77,7 @@ export function validateField(item: Item, value: FieldValue): FieldError | null 
 export function sentValue(item: Item, value: FieldValue): FieldValue {
   if (!isTextItem(item)) return value
   const text = textOf(item, value)
+  if (isBlank(text)) return EMPTY_TEXT
   return (item.rules ?? NO_RULES).reduce(
     (current, rule) => (rule.kind === RuleKind.Format && matchesFormat(rule.format, current) ? normalizeFormatted(rule.format, current) : current),
     text,

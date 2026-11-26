@@ -1,6 +1,6 @@
 import type { ValueOf } from '@openmemorykit/core/shared'
 import { FormOutcome, ItemKind, MAX_REPORTED_ERRORS, type FieldValue, type FormPanel, type FormResult, type Item } from '@openmemorykit/ui/contract'
-import { isFieldItem, sentValue, validateField, type FieldError, type FieldItem } from './form-rules'
+import { boundedText, isFieldItem, sentValue, validateField, type FieldError, type FieldItem } from './form-rules'
 
 export type { FieldError } from './form-rules'
 
@@ -102,9 +102,7 @@ export function checkField(state: FormState, item: Item): FormState {
   const error = validateField(item, current)
   const others = withoutKey(state.errors, item.id)
   if (error === null) return { ...state, errors: others }
-  const known = Object.entries(others)
-  if (known.length >= MAX_REPORTED_ERRORS) return state
-  return { ...state, errors: recordOf([...known, [item.id, error] as const]) }
+  return { ...state, errors: recordOf([...Object.entries(others), [item.id, error] as const]) }
 }
 
 function notSubmitted(state: FormState): SubmitOutcome {
@@ -129,12 +127,12 @@ export function submitForm(state: FormState, panel: FormPanel, now: number): Sub
     if (errors.length < MAX_REPORTED_ERRORS) errors.push([field.id, error])
   }
   const values = recordOf(fieldsOf(panel).map((field) => [field.id, currentValue(state, field)] as const))
-  const reset = { values, message: null, rejectedWithoutDetail: false, timedOut: false }
+  const reset = { values, message: null, rejectedWithoutDetail: false }
   if (invalidCount > NO_COUNT) {
     return { state: { ...state, ...reset, status: FormStatus.Editing, errors: recordOf(errors) }, submitted: null, invalidCount, firstInvalidId }
   }
   const submissionId = state.submissionId + NEXT
-  const next = { ...state, ...reset, status: FormStatus.Pending, errors: recordOf<FieldError>([]), submissionId, pendingSince: now }
+  const next = { ...state, ...reset, timedOut: false, status: FormStatus.Pending, errors: recordOf<FieldError>([]), submissionId, pendingSince: now }
   return { state: next, submitted: { submissionId, values: recordOf(sent) }, invalidCount, firstInvalidId }
 }
 
@@ -150,10 +148,10 @@ function appliedErrors(state: FormState, fieldErrors: Readonly<Record<string, st
 }
 
 function rejected(state: FormState, result: Extract<FormResult, { readonly outcome: typeof FormOutcome.Rejected }>): FormState {
-  const fieldErrors = result.fieldErrors ?? {}
-  const message = result.message ?? null
-  const bare = message === null && Object.keys(fieldErrors).length === NO_COUNT
-  return { ...settled(state), status: FormStatus.Rejected, errors: recordOf(appliedErrors(state, fieldErrors)), message, rejectedWithoutDetail: bare }
+  const errors = recordOf(appliedErrors(state, result.fieldErrors ?? {}))
+  const message = result.message === undefined || result.message.length === NO_COUNT ? null : result.message
+  const bare = message === null && Object.keys(errors).length === NO_COUNT
+  return { ...settled(state), status: FormStatus.Rejected, errors, message, rejectedWithoutDetail: bare }
 }
 
 export function resolveSubmission(state: FormState, submissionId: number, result: FormResult): ResolveResult {
@@ -171,9 +169,22 @@ export function expireForm(state: FormState, now: number): FormState {
   return { ...state, status: FormStatus.Editing, pendingSince: null, timedOut: true }
 }
 
+function mergedError(state: FormState, field: FieldItem, value: FieldValue): readonly (readonly [string, FieldError])[] {
+  if (!has(state.errors, field.id)) return []
+  const kept = state.errors[field.id]
+  if (kept === undefined) return []
+  if (kept.rule === null) return [[field.id, kept]]
+  const fresh = validateField(field, value)
+  return fresh === null ? [] : [[field.id, fresh]]
+}
+
 export function mergeFormOnUpdate(state: FormState, panel: FormPanel): FormState {
-  const fields = fieldsOf(panel)
-  const values = recordOf(fields.map((field) => [field.id, currentValue(state, field)] as const))
-  const errors = recordOf(Object.entries(state.errors).filter(([id]) => has(values, id)))
+  const merged = fieldsOf(panel).map((field) => {
+    const kept = currentValue(state, field)
+    const value = field.kind === ItemKind.Text && typeof kept === typeof field.value ? boundedText(field, kept as string) : kept
+    return { field, value }
+  })
+  const values = recordOf(merged.map(({ field, value }) => [field.id, value] as const))
+  const errors = recordOf(merged.flatMap(({ field, value }) => mergedError(state, field, value)))
   return { ...state, values, errors }
 }
