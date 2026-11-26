@@ -144,6 +144,15 @@ describe('form delay', () => {
     expect(next.state.stack.map((frame) => frame.form?.status ?? null)).toEqual([null, FormStatus.Editing, FormStatus.Pending])
   })
 
+  it('keeps the earliest deadline when a second form is sent later', () => {
+    const first = run(withPanels([OWNED_LIST_PANEL, VALID_FORM]), [click(FORM_SUBMIT_ROW_ID), pushPanel(SECOND_FORM, FORM_ID, PUSH_SEQ)]).state
+    const second = transition(first, click(FORM_SUBMIT_ROW_ID), NOW + LATER_MS)
+    expect(second.effects).toEqual([
+      submitted(SECOND_FORM.panel.id, { identifier: VALID_IDENTIFIER }),
+      schedule(TimerKind.FormTimeout, FORM_TIMEOUT_MS - LATER_MS),
+    ])
+  })
+
   it('does nothing without a pending form', () => {
     const state = opened()
     expect(transition(state, timerFired(TimerKind.FormTimeout), NOW + FORM_TIMEOUT_MS)).toEqual({ state, effects: [] })

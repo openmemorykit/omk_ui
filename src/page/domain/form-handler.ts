@@ -31,6 +31,14 @@ function refused(state: UiState, frame: Frame, owned: OwnedPanel, outcome: Submi
   return withEffects(next, [formErrorsEffect(owned.panel.id, outcome.invalidCount)])
 }
 
+function pendingDeadline(frame: Frame): number {
+  return (frame.form?.pendingSince ?? Infinity) + FORM_TIMEOUT_MS
+}
+
+function earliestDeadline(stack: readonly Frame[]): number {
+  return Math.min(...stack.map(pendingDeadline))
+}
+
 export function submitTopForm(state: UiState, now: number): Transition {
   const frame = topFrameOf(state)
   const owned = frame?.panel ?? null
@@ -38,34 +46,26 @@ export function submitTopForm(state: UiState, now: number): Transition {
   const outcome = submitForm(frame.form, owned.panel, now)
   if (outcome.submitted === null) return outcome.invalidCount === 0 ? unchanged(state) : refused(state, frame, owned, outcome)
   const next = withTopFrame(state, { ...frame, form: outcome.state })
-  return withEffects(next, [replyEvent([submittedReply(owned, outcome.submitted)]), schedule(TimerKind.FormTimeout, FORM_TIMEOUT_MS)])
+  return withEffects(next, [replyEvent([submittedReply(owned, outcome.submitted)]), schedule(TimerKind.FormTimeout, earliestDeadline(next.stack) - now)])
 }
 
-function expiredFrame(frame: Frame, now: number): Frame {
-  if (frame.form === null) return frame
-  const form = expireForm(frame.form, now)
-  return form === frame.form ? frame : { ...frame, form }
-}
+interface ExpiredFrame { readonly frame: Frame; readonly traces: readonly UiEffect[] }
 
-function timeoutTrace(frame: Frame): readonly UiEffect[] {
-  if (frame.panel === null || frame.form === null) return []
-  const data = { owner: frame.panel.owner, panelId: frame.panel.panel.id, submissionId: frame.form.submissionId }
-  return [sendToHost({ type: FromPage.Trace, kind: ReportKind.FormTimeout, data })]
-}
-
-function nextDeadline(stack: readonly Frame[]): number | null {
-  return stack.reduce<number | null>((earliest, frame) => {
-    const since = frame.form?.status === FormStatus.Pending ? frame.form.pendingSince : null
-    if (since === null) return earliest
-    const deadline = since + FORM_TIMEOUT_MS
-    return earliest === null || deadline < earliest ? deadline : earliest
-  }, null)
+function expiredFrame(frame: Frame, now: number): ExpiredFrame {
+  const kept: ExpiredFrame = { frame, traces: [] }
+  const { panel, form } = frame
+  if (panel === null || form === null) return kept
+  const expired = expireForm(form, now)
+  if (expired === form) return kept
+  const data = { owner: panel.owner, panelId: panel.panel.id, submissionId: expired.submissionId }
+  return { frame: { ...frame, form: expired }, traces: [sendToHost({ type: FromPage.Trace, kind: ReportKind.FormTimeout, data })] }
 }
 
 export function expireForms(state: UiState, now: number): Transition {
-  const stack = state.stack.map((frame) => expiredFrame(frame, now))
-  const traces = stack.flatMap((frame, index) => (frame === state.stack[index] ? [] : timeoutTrace(frame)))
-  const deadline = Number.isFinite(now) ? nextDeadline(stack) : null
+  const expired = state.stack.map((frame) => expiredFrame(frame, now))
+  const stack = expired.map((entry) => entry.frame)
+  const traces = expired.flatMap((entry) => entry.traces)
+  const deadline = Number.isFinite(now) ? earliestDeadline(stack) : Infinity
   const next = traces.length === 0 ? state : { ...state, stack }
-  return withEffects(next, deadline === null ? traces : traces.concat(schedule(TimerKind.FormTimeout, deadline - now)))
+  return withEffects(next, Number.isFinite(deadline) ? traces.concat(schedule(TimerKind.FormTimeout, deadline - now)) : traces)
 }
