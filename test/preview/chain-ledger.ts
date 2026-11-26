@@ -6,6 +6,8 @@ export interface Ledger {
   readonly closed: Map<string, number>
   readonly confirmsShown: Map<string, number>
   readonly confirmsAnswered: Map<string, number>
+  readonly acceptedAnswers: Map<string, number>
+  readonly acceptAttempts: Map<string, number>
   readonly violations: string[]
   readonly closedInstances: Set<string>
   readonly discardedDuringCall: Set<string>
@@ -17,12 +19,15 @@ export function createLedger(): Ledger {
     closed: new Map(),
     confirmsShown: new Map(),
     confirmsAnswered: new Map(),
+    acceptedAnswers: new Map(),
+    acceptAttempts: new Map(),
     violations: [],
     closedInstances: new Set(),
     discardedDuringCall: new Set(),
   }
 }
 
+const TOTAL = 'total'
 const keyOf = (owner: string, localId: string): string => `${owner}/${localId}`
 const increment = (counts: Map<string, number>, key: string): void => void counts.set(key, (counts.get(key) ?? 0) + 1)
 
@@ -34,6 +39,10 @@ export function recordOpened(ledger: Ledger, owner: string, panelId: string): vo
 
 export function beginCall(ledger: Ledger): void {
   ledger.discardedDuringCall.clear()
+}
+
+export function recordUserAcceptance(ledger: Ledger): void {
+  increment(ledger.acceptAttempts, TOTAL)
 }
 
 export function recordConfirmShown(ledger: Ledger, owner: string, confirmId: string): void {
@@ -63,6 +72,7 @@ export function recordReply(ledger: Ledger, owner: string, reply: Reply): void {
       return
     case ReplyKind.ConfirmAnswered:
       increment(ledger.confirmsAnswered, keyOf(owner, reply.confirmId))
+      if (reply.confirmed) increment(ledger.acceptedAnswers, TOTAL)
       return
     default:
       return
@@ -78,8 +88,14 @@ function unbalanced(left: ReadonlyMap<string, number>, right: ReadonlyMap<string
   })
 }
 
+function unexplainedAcceptances(ledger: Ledger): readonly string[] {
+  const accepted = ledger.acceptedAnswers.get(TOTAL) ?? 0
+  const attempts = ledger.acceptAttempts.get(TOTAL) ?? 0
+  return accepted > attempts ? [`${accepted} confirmed=true answers for ${attempts} user acceptances: a destroyed confirmation was answered true`] : []
+}
+
 export function overClosed(ledger: Ledger): readonly string[] {
-  return [...unbalanced(ledger.opened, ledger.closed, false), ...unbalanced(ledger.confirmsShown, ledger.confirmsAnswered, false)]
+  return [...unexplainedAcceptances(ledger), ...unbalanced(ledger.opened, ledger.closed, false), ...unbalanced(ledger.confirmsShown, ledger.confirmsAnswered, false)]
 }
 
 export function unsettled(ledger: Ledger): readonly string[] {
