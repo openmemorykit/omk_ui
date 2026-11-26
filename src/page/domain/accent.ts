@@ -1,4 +1,5 @@
-import { contrastRatio } from '../../shared/config/contrast'
+import { PANEL_BACKGROUND, THEME_DEFAULTS } from '../../shared/config/config-schema'
+import { contrastRatio, parseHexChannels, type HexChannels } from '../../shared/config/contrast'
 
 export interface AccentTokens {
   readonly accentInk: string
@@ -12,20 +13,20 @@ export const ACCENT_TEXT_MIN_CONTRAST = 4.5
 
 const INK_DARK = '#000000'
 const INK_LIGHT = '#FFFFFF'
-const HEX_COLOR = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/
 const HEX_RADIX = 16
 const CHANNEL_DIGITS = 2
 const LIGHTEN_STEP = 0.05
 const LIGHTEN_STEPS = 20
 const DIM_SHARE = 0.5
 
-type Channels = readonly [number, number, number]
+type Channels = HexChannels
 
 function parseChannels(color: string): Channels {
-  const match = HEX_COLOR.exec(color)
-  if (match === null) return [0, 0, 0]
-  const [, red, green, blue] = match as unknown as readonly [string, string, string, string]
-  return [parseInt(red, HEX_RADIX), parseInt(green, HEX_RADIX), parseInt(blue, HEX_RADIX)]
+  return parseHexChannels(color) ?? [0, 0, 0]
+}
+
+function validColor(color: string, fallback: string): string {
+  return parseHexChannels(color) === null ? fallback : color
 }
 
 function formatChannels(channels: Channels): string {
@@ -52,8 +53,9 @@ function lightenUntilReadable(accent: string, background: string): string {
   return candidate
 }
 
-export function deriveAccent(accent: string, panelBackground: string): AccentTokens {
-  const normalized = formatChannels(parseChannels(accent))
+export function deriveAccent(accent: string, panelBackgroundInput: string): AccentTokens {
+  const normalized = formatChannels(parseChannels(validColor(accent, THEME_DEFAULTS.accent)))
+  const panelBackground = validColor(panelBackgroundInput, PANEL_BACKGROUND)
   const accentInk = pickInk(normalized)
   return {
     accentInk,

@@ -6,6 +6,7 @@ export const COLUMN_WIDTH = 480
 export const COLUMN_MAX_WIDTH_SHARE = 0.4
 
 export function computeScale(width: number, height: number, serverScale: number): number {
+  if (![width, height, serverScale].every(Number.isFinite)) return SCALE_FLOOR
   const raw = (height / BASE_HEIGHT) * serverScale
   const radialCap = (RADIAL_MAX_HEIGHT_SHARE * height) / RADIAL_DIAMETER
   const columnCap = (COLUMN_MAX_WIDTH_SHARE * width) / COLUMN_WIDTH

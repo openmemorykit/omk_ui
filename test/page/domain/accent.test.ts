@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ACCENT_TEXT_MIN_CONTRAST, deriveAccent } from '../../../src/page/domain/accent'
 import { contrastRatio } from '../../../src/shared/config/contrast'
-import { PANEL_BACKGROUND } from '../../../src/shared/config/config-schema'
+import { PANEL_BACKGROUND, THEME_DEFAULTS } from '../../../src/shared/config/config-schema'
 
 const HEX_PATTERN = /^#[0-9A-F]{6}$/
 const DARK_ACCENT = '#6A55E0'
@@ -77,5 +77,13 @@ describe('deriveAccent', () => {
 
   it('normalizes lowercase input', () => {
     expect(deriveAccent('#8f7bff', PANEL_BACKGROUND).focusBackground).toBe(DEFAULT_ACCENT)
+  })
+
+  it.each(['', 'red', '#12345', '#GGGGGG', 'rgb(0,0,0)'])('falls back to the default accent for %j', (invalid) => {
+    expect(deriveAccent(invalid, PANEL_BACKGROUND)).toEqual(deriveAccent(THEME_DEFAULTS.accent, PANEL_BACKGROUND))
+  })
+
+  it('falls back to the default panel background when it is invalid', () => {
+    expect(deriveAccent(DEFAULT_ACCENT, 'nope')).toEqual(deriveAccent(DEFAULT_ACCENT, PANEL_BACKGROUND))
   })
 })

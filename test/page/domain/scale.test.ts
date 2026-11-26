@@ -41,4 +41,17 @@ describe('computeScale', () => {
   it('lets the floor win over the cap', () => {
     expect(computeScale(SMALL.width, SMALL.height, SMALL.serverScale)).toBe(SCALE_FLOOR)
   })
+
+  describe('non-finite inputs', () => {
+    const base = { width: 1920, height: 1080, serverScale: 1 }
+    const BAD_VALUES = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
+    const FIELDS = ['width', 'height', 'serverScale'] as const
+
+    for (const field of FIELDS) {
+      it.each(BAD_VALUES)(`returns the floor when ${field} is %f`, (bad) => {
+        const input = { ...base, [field]: bad }
+        expect(computeScale(input.width, input.height, input.serverScale)).toBe(SCALE_FLOOR)
+      })
+    }
+  })
 })
