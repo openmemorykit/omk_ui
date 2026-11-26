@@ -36,7 +36,21 @@ const WORST_INPUTS: Readonly<Record<TextFormat, readonly string[]>> = {
   ],
 }
 
+const MEGABYTE_WORST_INPUTS: Readonly<Record<TextFormat, readonly string[]>> = {
+  [TextFormat.Digits]: ['0'.repeat(MEGABYTE) + 'x', 'x' + '0'.repeat(MEGABYTE)],
+  [TextFormat.Hex]: ['a'.repeat(MEGABYTE) + 'g', 'g' + 'a'.repeat(MEGABYTE)],
+  [TextFormat.Slug]: ['a'.repeat(MEGABYTE) + '!', '-' + 'a'.repeat(MEGABYTE)],
+  [TextFormat.PlayerIdentifier]: ['a'.repeat(MEGABYTE) + ':b', 'a'.repeat(IDENTIFIER_TYPE_MAX) + ':' + 'b'.repeat(MEGABYTE) + '!'],
+}
+
 const FORMATS = Object.values(TextFormat)
+
+function timedMatch(format: TextFormat, value: string): { readonly matched: boolean; readonly elapsedMs: number } {
+  matchesFormat(format, value)
+  const start = performance.now()
+  const matched = matchesFormat(format, value)
+  return { matched, elapsedMs: performance.now() - start }
+}
 
 function averageMs(action: () => void): number {
   action()
@@ -127,17 +141,23 @@ describe('worst cases', () => {
     })
 
     it(`refuses 1 MB of hostile text for ${format}`, () => {
-      const value = SCRIPT_TAG.repeat(MEGABYTE / SCRIPT_TAG.length)
-      const start = performance.now()
-      expect(matchesFormat(format, value)).toBe(false)
-      expect(performance.now() - start).toBeLessThan(MEGABYTE_BUDGET_MS)
+      const { matched, elapsedMs } = timedMatch(format, SCRIPT_TAG.repeat(MEGABYTE / SCRIPT_TAG.length))
+      expect(matched).toBe(false)
+      expect(elapsedMs).toBeLessThan(MEGABYTE_BUDGET_MS)
+    })
+
+    it(`refuses 1 MB that is valid up to the last character for ${format}`, () => {
+      MEGABYTE_WORST_INPUTS[format].forEach((value) => {
+        const { matched, elapsedMs } = timedMatch(format, value)
+        expect([value.length > MEGABYTE, matched]).toEqual([true, false])
+        expect(elapsedMs).toBeLessThan(MEGABYTE_BUDGET_MS)
+      })
     })
 
     it(`refuses 100 000 color markers for ${format}`, () => {
-      const value = '~r~'.repeat(MARKER_COUNT) + '^1'.repeat(MARKER_COUNT)
-      const start = performance.now()
-      expect(matchesFormat(format, value)).toBe(false)
-      expect(performance.now() - start).toBeLessThan(MEGABYTE_BUDGET_MS)
+      const { matched, elapsedMs } = timedMatch(format, '~r~'.repeat(MARKER_COUNT) + '^1'.repeat(MARKER_COUNT))
+      expect(matched).toBe(false)
+      expect(elapsedMs).toBeLessThan(MEGABYTE_BUDGET_MS)
     })
   })
 })
