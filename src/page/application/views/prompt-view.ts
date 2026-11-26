@@ -19,6 +19,7 @@ export interface HoldPromptView {
   readonly id: string
   readonly label: string
   readonly hold: boolean
+  readonly holdLabel: string
   readonly holdMs: number
   readonly state: PromptState | null
   readonly ringMs: number
@@ -54,6 +55,7 @@ export function promptView(state: UiState, translate: Translate): HoldPromptView
     id: prompt.prompt.id,
     label: prompt.prompt.label,
     hold: prompt.prompt.mode === PromptMode.Hold,
+    holdLabel: translate('ui.prompt.hold'),
     holdMs,
     state: progress,
     ringMs: ringMs(progress, state.prompt.holdMs > NO_RING ? state.prompt.holdMs : holdMs),

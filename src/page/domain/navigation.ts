@@ -118,13 +118,12 @@ function refreshFrame(frame: Frame, owned: OwnedPanel): Frame {
   const { items } = owned.panel
   const itemsById: ReadonlyMap<string, Item> = new Map(items.map((item) => [item.id, item] as const))
   const focusItemId = isSubmitRow(owned.panel, frame.focusItemId) ? FORM_SUBMIT_ROW_ID : nearestFocusable(items, frame.panel?.panel.items ?? [], frame.focusItemId)
-  const pendingItemId = frame.pendingItemId !== null && itemsById.has(frame.pendingItemId) ? frame.pendingItemId : null
   return {
     panel: owned,
     focusItemId,
     layers: frame.layers.filter((layer) => layerSurvives(layer, itemsById)),
     form: refreshedForm(frame.form, owned.panel),
-    pendingItemId,
+    pendingItemId: null,
     visibleStart: rowWindowStart(owned.panel, focusItemId, frame.visibleStart),
   }
 }

@@ -31,6 +31,10 @@ describe('promptView', () => {
     expect(view).toMatchObject({ hold: true, state: null, ringMs: 0, holdMs: HOLD_MS })
   })
 
+  it('carries the translated hold label', () => {
+    expect(promptView(stateWith(PromptMode.Hold, null, HOLD_MS), translate)?.holdLabel).toBe('t:ui.prompt.hold')
+  })
+
   it('uses the default hold duration when the prompt gives none', () => {
     expect(promptView(stateWith(PromptMode.Hold, null), translate)?.holdMs).toBe(PROMPT_HOLD_DEFAULT_MS)
   })

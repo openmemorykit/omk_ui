@@ -67,7 +67,7 @@ describe('formSubmitView', () => {
 
   it('shows a bare refusal without message', () => {
     const frame = withForm((form) => ({ ...form, status: FormStatus.Rejected, rejectedWithoutDetail: true }))
-    expect(formSubmitView(frame, translate)).toMatchObject({ state: SubmitState.Rejected, message: null })
+    expect(formSubmitView(frame, translate)).toMatchObject({ state: SubmitState.Rejected, message: 'Refusé par le serveur' })
   })
 
   it('says there was no reply after the timeout', () => {
