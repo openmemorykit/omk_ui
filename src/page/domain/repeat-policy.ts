@@ -10,7 +10,7 @@ const REPEATABLE_INTENTS: ReadonlySet<Intent> = new Set<Intent>([Intent.Up, Inte
 export interface HeldIntent {
   readonly intent: Intent
   readonly pressedAt: number
-  readonly nextRepeatAt: number | null
+  readonly nextRepeatAt: number
 }
 export type HeldIntents = readonly HeldIntent[]
 
@@ -31,19 +31,16 @@ export function releaseHeld(held: HeldIntents, intent: Intent): HeldIntents {
 }
 
 export function nextRepeatAt(held: HeldIntents): number | null {
-  return held.reduce<number | null>((earliest, entry) => {
-    if (entry.nextRepeatAt === null) return earliest
-    return earliest === null || entry.nextRepeatAt < earliest ? entry.nextRepeatAt : earliest
-  }, null)
+  return held.length === 0 ? null : Math.min(...held.map((entry) => entry.nextRepeatAt))
 }
 
 interface Step {
-  readonly entry: HeldIntent | null
+  readonly entry: HeldIntent
   readonly repeats: number
 }
 
 function stepEntry(entry: HeldIntent, now: number): Step {
-  if (entry.nextRepeatAt === null || now < entry.nextRepeatAt) return { entry, repeats: 0 }
+  if (now < entry.nextRepeatAt) return { entry, repeats: 0 }
   const due = Math.floor((now - entry.nextRepeatAt) / REPEAT_INTERVAL_MS) + 1
   const repeats = Math.min(due, REPEAT_MAX_PER_CALL)
   const next = repeats === due ? entry.nextRepeatAt + due * REPEAT_INTERVAL_MS : now + REPEAT_INTERVAL_MS
@@ -62,7 +59,7 @@ export function dueRepeats(held: HeldIntents, now: number): DueRepeats {
     }
     const step = stepEntry(entry, now)
     for (let count = 0; count < step.repeats; count += 1) repeats.push(entry.intent)
-    if (step.entry !== null) kept.push(step.entry)
+    kept.push(step.entry)
   }
   return { held: kept, repeats, stopped }
 }
