@@ -135,6 +135,13 @@ describe('JSON value schema', () => {
     expect(v.safeParse(JsonValueSchema, [input]).success).toBe(false)
   })
 
+  it.each(['toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf', 'toLocaleString', 'propertyIsEnumerable', '__defineGetter__', 'prototype'])('refuses the own key %s that would shadow or be dropped', (key) => {
+    const input: unknown = JSON.parse(`{"${key}": 1, "ok": 2}`)
+    expect(v.safeParse(JsonValueSchema, input).success).toBe(false)
+    expect(v.safeParse(JsonObjectSchema, input).success).toBe(false)
+    expect(v.safeParse(JsonValueSchema, { nested: [input] }).success).toBe(false)
+  })
+
   it('reports TooLarge for the first container beyond the depth and WrongType for other objects', () => {
     const tooDeep = v.safeParse(JsonValueSchema, nestArrays(JSON_MAX_DEPTH + 1, 1))
     expect(tooDeep.issues?.[0]?.message).toBe(JsonIssue.TooLarge)

@@ -23,7 +23,8 @@ function scalarSchema(input: unknown): v.GenericSchema<unknown, JsonValue> {
   return scalarByType[typeof input] ?? WrongTypeSchema
 }
 
-const FORBIDDEN_KEYS = ['__proto__', 'constructor'] as const
+const PROTOTYPE_PROPERTY = 'prototype'
+const FORBIDDEN_KEYS: readonly string[] = Object.freeze([...Object.getOwnPropertyNames(Object.prototype), PROTOTYPE_PROPERTY])
 
 function isPlainObject(input: unknown): input is object {
   if (typeof input !== 'object' || input === null) return false

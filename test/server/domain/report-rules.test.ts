@@ -140,6 +140,11 @@ describe('report rules: envelope', () => {
     expect(readReport(raw, TRACED, IDLE).decision).toBe(ReportDecision.Invalid)
   })
 
+  it.each(['toString', 'valueOf'])('refuses an own %s key inside data', (key) => {
+    const raw: unknown = JSON.parse(`{"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{"${key}":1}}`)
+    expect(readReport(raw, TRACED, IDLE).decision).toBe(ReportDecision.Invalid)
+  })
+
   it('returns a copy, not the received object', () => {
     const reading = readReport(pageError, TRACED, IDLE)
     expect(reading.decision === ReportDecision.Accepted && reading.report !== pageError).toBe(true)
