@@ -2,10 +2,9 @@ import { listOf } from '@openmemorykit/ui/contract'
 import * as v from 'valibot'
 import { CameraViewMode, SKIPPABLE_CAMERA_MODES } from './camera-view-mode'
 import { contrastRatio } from './contrast'
+import { FontFamily, PANEL_BACKGROUND, PanelSide, THEME_DEFAULTS } from './theme-defaults'
 
-export const PanelSide = { Left: 'left', Right: 'right' } as const
-export const FontFamily = { SofiaSansSemiCondensed: 'sofiaSansSemiCondensed', ArchivoNarrow: 'archivoNarrow' } as const
-export const PANEL_BACKGROUND = '#14141A'
+export { FontFamily, PANEL_BACKGROUND, PanelSide, THEME_DEFAULTS }
 export const MIN_FOCUS_CONTRAST = 3
 
 const ACCENT_LENGTH = 7
@@ -22,14 +21,6 @@ const LOGO_PATTERN = /^[a-z0-9_-]{1,64}\.(png|webp)$/
 
 const EMPTY_MODES: readonly CameraViewMode[] = Object.freeze([])
 
-export const THEME_DEFAULTS = Object.freeze({
-  accent: '#8F7BFF',
-  side: PanelSide.Left,
-  scale: 1,
-  font: FontFamily.SofiaSansSemiCondensed,
-  logo: null as string | null,
-  monogram: 'N',
-})
 export const INPUT_DEFAULTS = Object.freeze({
   padHoldMs: 300,
   padHoldGesture: true,
