@@ -1,0 +1,107 @@
+:root {
+  --accent: #8F7BFF;
+  --ink: #F4F2F9;
+  --ink-2: #C6C1D6;
+  --ink-3: #ABA6C2;
+  --panel-rgb: 12 11 19;
+  --panel-alpha: 1;
+  --dim-veil: rgb(var(--panel-rgb) / 0.75);
+  --info: #5CB8FF;
+  --success: #3DDC97;
+  --warning: #FFC23D;
+  --error: #FF6464;
+  --font-ui: 'Sofia Sans Semi Condensed', 'Arial Narrow', sans-serif;
+  --font-head: 'Sofia Sans Semi Condensed', 'Arial Narrow', sans-serif;
+  --fast: 90ms;
+  --exit: 80ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --spin-duration: 800ms;
+
+  --accent-ink: #000000;
+  --accent-dim: #2D274E;
+  --accent-text: #8F7BFF;
+  --focus-bg: #8F7BFF;
+  --focus-ink: #000000;
+
+  --panel-deep-rgb: 5 5 10;
+  --panel-raised-rgb: 22 20 34;
+  --panel: rgb(var(--panel-rgb) / var(--panel-alpha));
+  --panel-deep: rgb(var(--panel-deep-rgb) / var(--panel-alpha));
+  --panel-raised: rgb(var(--panel-raised-rgb) / var(--panel-alpha));
+  --ink-faint: #6B6780;
+  --well: #07060C;
+  --line: #2B2938;
+  --chip: #1B1828;
+  --keycap: #1A1825;
+  --key: #262433;
+  --control-off: #2E2C3A;
+  --error-wash: #24141B;
+  --error-ink: #1C0606;
+  --tone-ink: #0B0A12;
+  --shadow-surface: 0 1.125rem 2.5rem rgb(0 0 0 / 0.55);
+  --shadow-toast: 0 0.625rem 1.5rem rgb(0 0 0 / 0.4);
+
+  --font-weight-body: 500;
+  --font-weight-strong: 600;
+  --font-weight-bold: 700;
+  --font-weight-heavy: 800;
+  --leading-tight: 1;
+  --leading-text: 1.35;
+  --tracking-caps: 0.06em;
+  --tracking-title: 0.01em;
+
+  --text-min: 1.125rem;
+  --text-secondary: 1.125rem;
+  --text-emphasis: 1.1875rem;
+  --text-field: 1.25rem;
+  --text-row: 1.3125rem;
+  --text-glyph: 1.125rem;
+  --text-monogram: 1.875rem;
+  --text-layer-title: 1.875rem;
+  --text-radial-name: 2rem;
+  --text-title: 2.5rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.375rem;
+  --space-3: 0.5rem;
+  --space-4: 0.75rem;
+  --space-5: 0.875rem;
+  --space-6: 1rem;
+  --space-7: 1.5rem;
+
+  --row-height: 2.75rem;
+  --visible-rows: 10;
+  --column-width: 30rem;
+  --column-edge: 4.5rem;
+  --banner-height: 5.25rem;
+  --bar-height: 2.5rem;
+  --foot-height: 2.125rem;
+  --description-height: 4.375rem;
+  --toast-width: 26.25rem;
+  --icon-size: 1.375rem;
+  --icon-small: 1.125rem;
+  --glyph-size: 1.875rem;
+  --glyph-wide: 2.125rem;
+  --monogram-size: 2.875rem;
+  --badge-height: 1.875rem;
+  --badge-dot: 0.5625rem;
+  --switch-width: 2.75rem;
+  --switch-height: 1.5rem;
+  --switch-knob: 1rem;
+  --switch-travel: 1.25rem;
+  --stroke: 0.125rem;
+  --stroke-key: 0.25rem;
+  --focus-ring: 0.1875rem;
+
+  --radius-surface: 0;
+  --radius-key: 0.1875rem;
+  --radius-shoulder: 0.5rem 0.5rem 0.1875rem 0.1875rem;
+  --radius-menu: 0.875rem;
+  --radius-round: 50%;
+
+  --radial-hole: 8.25rem;
+  --radial-ring-inner: 8.75rem;
+  --radial-ring-outer: 19.875rem;
+  --radial-subring-inner: 20.625rem;
+  --radial-subring-outer: 26.5rem;
+}
