@@ -20,9 +20,10 @@ export default defineConfig(({ mode }) => {
       target: 'chrome103',
       outDir: preview ? '.preview-dist' : 'omk_ui/web',
       assetsDir: 'assets',
+      modulePreload: { polyfill: false },
       emptyOutDir: true,
       rolldownOptions: {
-        treeshake: { moduleSideEffects: SIDE_EFFECT_FREE.map((test) => ({ test, sideEffects: false })) },
+        treeshake: { propertyReadSideEffects: false, unknownGlobalSideEffects: false, moduleSideEffects: SIDE_EFFECT_FREE.map((test) => ({ test, sideEffects: false })) },
       },
     },
   }
