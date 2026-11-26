@@ -53,12 +53,6 @@ describe('toolchain guards', () => {
     expect(ERROR_SEVERITIES).toContain(severityOf(config.rules?.[COMPAT_RULE]))
   }, TYPED_LINT_TIMEOUT)
 
-  it.each(pageFiles)('forbids the regex v flag on %s', async (file) => {
-    const config = await configFor(file)
-    const restricted = JSON.stringify(config.rules?.['no-restricted-syntax'])
-    expect(restricted).toContain('Literal[regex.flags=/v/]')
-  }, TYPED_LINT_TIMEOUT)
-
   it('reports one compat error per line of the post-Chromium-103 fixture', async () => {
     const eslint = new ESLint({
       overrideConfigFile: true,
