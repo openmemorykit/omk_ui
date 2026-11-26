@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
-import { runChecks } from './capture/checks.mjs'
+import { RADIAL_SELECTOR, runChecks } from './capture/checks.mjs'
 import { buildMatrix, captureUrl } from './capture/matrix.mjs'
 import { serveStatic } from './capture/serve.mjs'
 
@@ -19,7 +19,7 @@ function readOptions(argv) {
   return { root: resolve(options.root ?? DEFAULT_ROOT), out: resolve(options.out ?? DEFAULT_OUT), only: options.only ?? '' }
 }
 
-function surveyPage() {
+function surveyPage(radialSelector) {
   const SKIPPED = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT'])
   const ESSENTIAL = '[data-motion="essential"], .omk-spinner'
   const MS_PER_SECOND = 1000
@@ -78,14 +78,8 @@ function surveyPage() {
     const rect = element.getBoundingClientRect()
     return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
   }
-  const radialParts = ['radial-ring', 'radial-center'].map((name) => document.querySelector(`[data-surface="${name}"]`)).filter((element) => element !== null)
-  const radialBoxes = radialParts.map(boxOf)
-  const radial = radialBoxes.length === 0 ? null : {
-    left: Math.min(...radialBoxes.map((box) => box.left)),
-    top: Math.min(...radialBoxes.map((box) => box.top)),
-    right: Math.max(...radialBoxes.map((box) => box.right)),
-    bottom: Math.max(...radialBoxes.map((box) => box.bottom)),
-  }
+  const radialElement = document.querySelector(radialSelector)
+  const radial = radialElement === null ? null : boxOf(radialElement)
   const columnElement = document.querySelector('[data-surface="column"]')
   const column = columnElement === null ? null : {
     dimmed: columnElement.hasAttribute('data-dimmed'),
@@ -146,7 +140,7 @@ async function capturePage(browser, base, out, capture) {
     ready = await page.waitForFunction(() => document.documentElement.dataset.captureReady === 'true', undefined, { timeout: remaining(), polling: 'raf' }).then(() => true, () => false)
     if (ready) {
       await page.evaluate(settleAnimations)
-      survey = await page.evaluate(surveyPage)
+      survey = await page.evaluate(surveyPage, RADIAL_SELECTOR)
     }
   } catch (error) {
     failures.push({ check: 'capture-error', message: String(error instanceof Error ? error.message : error).split('\n')[0] })

@@ -1,3 +1,4 @@
+export const RADIAL_SELECTOR: string
 export interface Failure { readonly check: string; readonly message: string }
 export interface Box { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number }
 export interface SurveyText {
