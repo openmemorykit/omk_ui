@@ -16,7 +16,6 @@ const THREE = 3
 const POISON = -5
 const OWNER = 'omk_shop'
 const OTHER_OWNER = 'omk_bank'
-const MANY_OWNERS = 50_000
 const ADMISSIONS = 100_000
 const TIME_BUDGET_MS = 3000
 const NON_FINITE = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
@@ -176,15 +175,24 @@ describe('call limiter', () => {
     expect(limiter.admit('one_too_many', CallFamily.Other, SMALL, START)).toBeNull()
   })
 
-  it('stays constant per admission with many known owners', () => {
-    const fill = (limiter: CallLimiter): void => {
-      for (let index = 0; index < MANY_OWNERS; index += 1) limiter.admit(`owner_${String(index % MAX_TRACKED_OWNERS)}`, CallFamily.Other, 1, START)
+  it('admits a known owner in constant time with a full table', () => {
+    const KNOWN = 'owner_0'
+    const prepared = (): CallLimiter => {
+      const limiter = new CallLimiter()
+      for (let index = 0; index < MAX_TRACKED_OWNERS; index += 1) limiter.admit(`owner_${String(index)}`, CallFamily.Other, 1, START)
+      return limiter
     }
-    fill(new CallLimiter())
-    const limiter = new CallLimiter()
-    fill(limiter)
-    const started = Date.now()
-    for (let index = 0; index < ADMISSIONS; index += 1) limiter.admit(OWNER, CallFamily.Other, 1, START + index)
-    expect(Date.now() - started).toBeLessThan(TIME_BUDGET_MS)
+    const measure = (limiter: CallLimiter): number => {
+      let refused = 0
+      const started = Date.now()
+      for (let index = 0; index < ADMISSIONS; index += 1) if (limiter.admit(KNOWN, CallFamily.Other, 1, START + index * SECOND) !== null) refused += 1
+      expect(refused).toBe(0)
+      return Date.now() - started
+    }
+    measure(prepared())
+    const full = prepared()
+    expect(full.trackedOwners).toBe(MAX_TRACKED_OWNERS)
+    expect(measure(full)).toBeLessThan(TIME_BUDGET_MS)
+    expect(full.trackedOwners).toBe(MAX_TRACKED_OWNERS)
   })
 })

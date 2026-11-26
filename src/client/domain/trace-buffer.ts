@@ -94,6 +94,11 @@ function utf8Bytes(text: string): number {
   return bytes
 }
 
+function deepFrozen<Value>(value: Value): Value {
+  if (typeof value === 'object' && value !== null) Object.values(value).forEach(deepFrozen)
+  return Object.freeze(value)
+}
+
 interface Snapshot {
   readonly line: TraceLine
   readonly bytes: number
@@ -104,7 +109,7 @@ function snapshotOf(line: TraceLine): Snapshot | null {
     if (!Number.isFinite(line.at) || typeof line.kind !== 'string' || !acceptable(line.data, 0, new Budget(line.kind.length))) return null
     const text = JSON.stringify({ at: line.at, kind: line.kind, data: line.data })
     const bytes = utf8Bytes(text)
-    return bytes > TRACE_LINE_MAX_BYTES ? null : { line: Object.freeze(JSON.parse(text) as TraceLine), bytes }
+    return bytes > TRACE_LINE_MAX_BYTES ? null : { line: deepFrozen(JSON.parse(text) as TraceLine), bytes }
   } catch {
     return null
   }

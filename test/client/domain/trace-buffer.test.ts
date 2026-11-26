@@ -179,6 +179,12 @@ describe('trace buffer: byte bound', () => {
     expect(evicted.totalBytes).toBeGreaterThan(0)
   })
 
+  it('freezes the kept line in depth', () => {
+    const kept = appendTrace(EMPTY_TRACE, line(1, { inner: { list: [1] } })).lines[0]
+    expect(Object.isFrozen(kept?.data)).toBe(true)
+    expect(Object.isFrozen((kept?.data.inner as JsonObject).list)).toBe(true)
+  })
+
   it('holds the byte bound with many small lines then lines of 2000 bytes', () => {
     const small = filled(SMALL_LINES, (index) => line(index, { index }))
     const buffer = Array.from({ length: BIG_LINE_COUNT }).reduce<TraceBuffer>((current, _unused, index) => appendTrace(current, line(index, { index: -index - 1, text: 'x'.repeat(TWO_KB) })), small)
