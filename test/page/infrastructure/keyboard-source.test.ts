@@ -61,6 +61,32 @@ describe('keyboard source', () => {
     expect(backward.defaultPrevented).toBe(true)
   })
 
+  it.each(['ArrowDown', 'Enter', 'Space', 'KeyW'])('prevents the native action of %s once it became an intent outside a text field', (code) => {
+    expect(fire('keydown', { code }).defaultPrevented).toBe(true)
+  })
+
+  it('leaves a key without intent to the browser', () => {
+    expect(fire('keydown', { code: 'KeyZ', key: 'z' }).defaultPrevented).toBe(false)
+  })
+
+  it('leaves editing keys alone inside a text field', () => {
+    state = { ...BASE, textFieldFocused: true }
+    expect(fire('keydown', { code: 'ArrowLeft' }).defaultPrevented).toBe(false)
+    expect(fire('keydown', { code: 'Enter' }).defaultPrevented).toBe(false)
+  })
+
+  it('does not take over the push-to-talk key', () => {
+    expect(fire('keydown', { code: 'F1' }).defaultPrevented).toBe(false)
+  })
+
+  it('does not click a focused button twice on Enter', () => {
+    const button = document.createElement('button')
+    document.body.append(button)
+    button.focus()
+    expect(fire('keydown', { code: 'Enter' }).defaultPrevented).toBe(true)
+    button.remove()
+  })
+
   it('prevents Tab even in a text field and on repeat', () => {
     state = { ...BASE, textFieldFocused: true }
     fire('keydown', { code: 'Tab' })

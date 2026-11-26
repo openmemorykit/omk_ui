@@ -31,6 +31,7 @@ export function createKeyboardSource(target: Window, dispatch: Dispatch, read: (
       dispatch({ type: PageCommandType.LocalModality })
       return
     }
+    if (!state.textFieldFocused) event.preventDefault()
     pressed.set(event.code, outcome.intent)
     sendIntent(outcome.intent, IntentPhase.Press, event.code === KeyCode.Escape)
   }
