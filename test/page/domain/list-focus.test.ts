@@ -129,6 +129,12 @@ describe('nearestFocusable', () => {
     expect(nearestFocusable([PLAYERS_SECTION, alpha, bravo], [alpha, zulu, bravo], 'z')).toBe('b')
   })
 
+  it('skips a survivor that stopped being focusable', () => {
+    const [alpha, zulu, bravo, charlie] = [link('a'), link('z'), link('b'), link('c')]
+    const bravoSection: Item = { kind: ItemKind.Section, id: 'b', label: 'Now a section' }
+    expect(nearestFocusable([alpha, bravoSection, charlie], [alpha, zulu, bravo, charlie], 'z')).toBe('c')
+  })
+
   it('takes the last survivor before when nothing survives after', () => {
     const [alpha, bravo, charlie, delta, echo] = [link('a'), link('b'), link('c'), link('d'), link('e')]
     expect(nearestFocusable([alpha, bravo], [alpha, bravo, charlie, delta, echo], 'e')).toBe('b')

@@ -185,7 +185,7 @@ describe('aimedChild', () => {
   })
 
   it('returns null for non integer indexes and counts', () => {
-    expect(aimedChild({ x: 0, y: -1 }, ONE_AND_HALF, FOUR, THREE)).toBeNull()
+    expect(aimedChild(vectorAt(sectorCenterAngle(ONE_AND_HALF, FOUR), MAGNITUDE), ONE_AND_HALF, FOUR, THREE)).toBeNull()
     expect(aimedChild({ x: 0, y: -1 }, 0, TWO_AND_HALF, THREE)).toBeNull()
     expect(aimedChild({ x: 0, y: -1 }, 0, FOUR, TWO_AND_HALF)).toBeNull()
     expect(aimedChild({ x: 0, y: -1 }, 0, 0, THREE)).toBeNull()
