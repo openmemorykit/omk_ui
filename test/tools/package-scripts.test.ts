@@ -29,3 +29,13 @@ describe('check script', () => {
     expect(scripts['release']).toBe('npm run check && node tools/release.mjs')
   })
 })
+
+describe('capture script', () => {
+  it('runs the capture tool', () => {
+    expect(scripts['capture']).toBe('node tools/capture.mjs')
+  })
+
+  it('stays outside the check chain because captures are not part of CI', () => {
+    expect(scripts['check']).not.toContain('capture')
+  })
+})
