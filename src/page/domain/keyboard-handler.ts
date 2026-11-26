@@ -17,10 +17,10 @@ interface KeyboardContext { readonly frame: Frame; readonly layer: VirtualKeyboa
 export const TYPED_TEXT_SCAN_UNITS = 2000
 
 export const ABANDON_TEXT_CONTENT: ConfirmContent = Object.freeze({
-  title: 'abandonText.title',
-  text: 'abandonText.text',
-  confirmLabel: 'abandonText.confirm',
-  cancelLabel: 'abandonText.cancel',
+  title: 'ui.abandonText.title',
+  text: 'ui.abandonText.text',
+  confirmLabel: 'ui.abandonText.confirm',
+  cancelLabel: 'ui.abandonText.cancel',
   danger: true,
 })
 
