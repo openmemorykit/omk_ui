@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { InputSource, Intent, IntentPhase, Modality } from '../../../src/protocol/intents'
-import type { IntentEvent, StickEvent } from '../../../src/protocol/intents'
+import { Intent, IntentPhase } from '../../../src/protocol/intents'
+import type { StickEvent } from '../../../src/protocol/intents'
 import {
   comparePadSnapshot,
   PAD_INTENTS,
@@ -11,7 +11,8 @@ import {
   STICK_CHANGE_THRESHOLD,
   STICK_DEADZONE,
 } from '../../../src/client/domain/pad-snapshot'
-import type { PadContext, PadReading, PadSnapshotState } from '../../../src/client/domain/pad-snapshot'
+import type { PadReading } from '../../../src/client/domain/pad-snapshot'
+import { GAMEPAD_CLOSED, GAMEPAD_RADIAL, KEYBOARD, NEUTRAL, pad, reading, run } from './pad-helpers'
 
 const PINNED_DEADZONE = 0.2
 const PINNED_CHANGE = 0.02
@@ -20,42 +21,8 @@ const PINNED_RELEASE = 0.4
 const CONTROL_COUNT = 12
 const UNKNOWN_CONTROL = 9999
 const OUT_OF_RANGE = 5
-const NEUTRAL: StickEvent = { x: 0, y: 0 }
-const GAMEPAD_CLOSED: PadContext = { modality: Modality.Gamepad, radialOpen: false }
-const GAMEPAD_RADIAL: PadContext = { modality: Modality.Gamepad, radialOpen: true }
-const KEYBOARD: PadContext = { modality: Modality.KeyboardMouse, radialOpen: true }
 
-function reading(held: readonly PadControl[], stick: StickEvent = NEUTRAL): PadReading {
-  return { held: new Set(held), stick }
-}
 
-function pad(intent: Intent, phase: IntentPhase): IntentEvent {
-  return { intent, phase, source: InputSource.Pad }
-}
-
-interface RunResult {
-  readonly state: PadSnapshotState
-  readonly intents: readonly IntentEvent[]
-  readonly sticks: readonly (StickEvent | null)[]
-}
-
-function run(
-  context: PadContext,
-  readings: readonly PadReading[],
-  start: PadSnapshotState = primePadSnapshot(reading([])),
-): RunResult {
-  return readings.reduce(
-    (accumulated, current) => {
-      const comparison = comparePadSnapshot(accumulated.state, current, context)
-      return {
-        state: comparison.state,
-        intents: [...accumulated.intents, ...comparison.intents],
-        sticks: [...accumulated.sticks, comparison.stick],
-      }
-    },
-    { state: start, intents: [] as readonly IntentEvent[], sticks: [] as readonly (StickEvent | null)[] },
-  )
-}
 
 describe('PAD_INTENTS', () => {
   it('lists the 12 controls once each with the intents of the table', () => {
@@ -255,6 +222,11 @@ describe('hostile stick values', () => {
   it('clamps an infinite deflection to the unit square', () => {
     const result = run(GAMEPAD_RADIAL, [reading([], { x: Infinity, y: -Infinity })])
     expect(result.sticks).toEqual([{ x: 1, y: -1 }])
+  })
+
+  it('treats non numeric components as zero', () => {
+    const stick = { x: undefined, y: 0.9 } as unknown as StickEvent
+    expect(run(GAMEPAD_RADIAL, [reading([], stick)]).sticks).toEqual([{ x: 0, y: 0.9 }])
   })
 
   it('treats NaN as a neutral stick', () => {

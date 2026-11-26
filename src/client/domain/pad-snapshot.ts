@@ -53,6 +53,7 @@ export interface PadSnapshotState {
   readonly held: ReadonlySet<PadControl>
   readonly lastSentStick: StickEvent
   readonly stickDirections: ReadonlySet<Intent>
+  readonly suppressedDirections: ReadonlySet<Intent>
 }
 
 export interface PadContext {
@@ -67,8 +68,9 @@ export interface PadComparison {
 }
 
 function clampAxis(value: number): number {
-  if (Number.isNaN(value)) return 0
-  return Math.max(-STICK_LIMIT, Math.min(STICK_LIMIT, value)) + 0
+  const axis = Number(value)
+  if (Number.isNaN(axis)) return 0
+  return Math.max(-STICK_LIMIT, Math.min(STICK_LIMIT, axis)) + 0
 }
 
 function sanitizeStick(stick: StickEvent): StickEvent {
@@ -107,31 +109,30 @@ function vectorChanged(next: StickEvent, last: StickEvent): boolean {
   return Math.abs(next.x - last.x) > STICK_CHANGE_THRESHOLD || Math.abs(next.y - last.y) > STICK_CHANGE_THRESHOLD
 }
 
-function transitions(
-  previous: ReadonlySet<Intent>,
-  next: ReadonlySet<Intent>,
-  order: readonly Intent[],
-): readonly IntentEvent[] {
-  return order.flatMap((intent) => {
+function heldIntents(held: ReadonlySet<PadControl>, directions: ReadonlySet<Intent>): ReadonlySet<Intent> {
+  return new Set([
+    ...PAD_INTENTS.filter(([control]) => held.has(control)).map(([, intent]) => intent),
+    ...directions,
+  ])
+}
+
+function transitions(previous: ReadonlySet<Intent>, next: ReadonlySet<Intent>): readonly IntentEvent[] {
+  return PAD_INTENTS.flatMap(([, intent]) => {
     if (previous.has(intent) === next.has(intent)) return []
     return [{ intent, phase: next.has(intent) ? IntentPhase.Press : IntentPhase.Release, source: InputSource.Pad }]
   })
 }
 
-function buttonTransitions(previous: ReadonlySet<PadControl>, next: ReadonlySet<PadControl>): readonly IntentEvent[] {
-  return PAD_INTENTS.flatMap(([control, intent]) => {
-    if (previous.has(control) === next.has(control)) return []
-    return [{ intent, phase: next.has(control) ? IntentPhase.Press : IntentPhase.Release, source: InputSource.Pad }]
-  })
+function withoutSuppressed(directions: ReadonlySet<Intent>, suppressed: ReadonlySet<Intent>): ReadonlySet<Intent> {
+  return new Set([...directions].filter((intent) => !suppressed.has(intent)))
 }
-
-const STICK_INTENT_ORDER: readonly Intent[] = [Intent.Up, Intent.Down, Intent.Left, Intent.Right]
 
 export function primePadSnapshot(reading: PadReading): PadSnapshotState {
   return {
     held: readHeld(reading.held),
     lastSentStick: NEUTRAL_STICK,
-    stickDirections: stickCross(sanitizeStick(reading.stick), new Set()),
+    stickDirections: new Set(),
+    suppressedDirections: stickCross(sanitizeStick(reading.stick), new Set()),
   }
 }
 
@@ -139,20 +140,27 @@ export function comparePadSnapshot(state: PadSnapshotState, reading: PadReading,
   if (context.modality !== Modality.Gamepad) return { state: primePadSnapshot(reading), intents: [], stick: null }
   const stick = sanitizeStick(reading.stick)
   const held = readHeld(reading.held)
-  const buttons = buttonTransitions(state.held, held)
+  const deflected = stickCross(stick, new Set([...state.stickDirections, ...state.suppressedDirections]))
+  const before = heldIntents(state.held, state.stickDirections)
   if (!context.radialOpen) {
-    const stickDirections = stickCross(stick, state.stickDirections)
+    const stickDirections = withoutSuppressed(deflected, state.suppressedDirections)
+    const suppressedDirections = new Set([...deflected].filter((intent) => state.suppressedDirections.has(intent)))
     return {
-      state: { held, lastSentStick: NEUTRAL_STICK, stickDirections },
-      intents: [...buttons, ...transitions(state.stickDirections, stickDirections, STICK_INTENT_ORDER)],
+      state: { held, lastSentStick: NEUTRAL_STICK, stickDirections, suppressedDirections },
+      intents: transitions(before, heldIntents(held, stickDirections)),
       stick: null,
     }
   }
   const aim = aimVector(stick)
   const sent = vectorChanged(aim, state.lastSentStick)
   return {
-    state: { held, lastSentStick: sent ? aim : state.lastSentStick, stickDirections: new Set() },
-    intents: [...buttons, ...transitions(state.stickDirections, new Set(), STICK_INTENT_ORDER)],
+    state: {
+      held,
+      lastSentStick: sent ? aim : state.lastSentStick,
+      stickDirections: new Set(),
+      suppressedDirections: deflected,
+    },
+    intents: transitions(before, heldIntents(held, new Set())),
     stick: sent ? aim : null,
   }
 }
