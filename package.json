@@ -13,9 +13,9 @@
     "lint": "eslint .",
     "typecheck": "node tools/typecheck.mjs",
     "test": "vitest run --coverage",
-    "build": "vite build",
-    "build:preview": "vite build --mode preview",
-    "dev:preview": "vite --mode preview",
+    "build": "node tools/fonts.mjs && vite build",
+    "build:preview": "node tools/fonts.mjs && vite build --mode preview",
+    "dev:preview": "node tools/fonts.mjs && vite --mode preview",
     "check": "npm run lint && npm run typecheck && npm test && npm run build && node tools/version.mjs"
   },
   "dependencies": {
