@@ -24,8 +24,7 @@ function submittedReply(owned: OwnedPanel, submitted: NonNullable<SubmitOutcome[
   return { owner: owned.owner, reply: { kind: ReplyKind.FormSubmitted, panelId: owned.panel.id, submissionId: submitted.submissionId, values: submitted.values } }
 }
 
-function refused(state: UiState, frame: Frame, owned: OwnedPanel, outcome: SubmitOutcome): Transition {
-  const focusItemId = outcome.firstInvalidId ?? frame.focusItemId
+function refused(state: UiState, frame: Frame, owned: OwnedPanel, outcome: SubmitOutcome, focusItemId: string): Transition {
   const visibleStart = rowWindowStart(owned.panel, focusItemId, frame.visibleStart)
   const next = withTopFrame(state, { ...frame, form: outcome.state, focusItemId, visibleStart })
   return withEffects(next, [formErrorsEffect(owned.panel.id, Object.keys(outcome.state.errors).length)])
@@ -44,7 +43,7 @@ export function submitTopForm(state: UiState, now: number): Transition {
   const owned = frame?.panel ?? null
   if (frame === undefined || owned === null || frame.form === null || owned.panel.kind !== PanelKind.Form) return unchanged(state)
   const outcome = submitForm(frame.form, owned.panel, now)
-  if (outcome.submitted === null) return outcome.invalidCount === 0 ? unchanged(state) : refused(state, frame, owned, outcome)
+  if (outcome.submitted === null) return outcome.firstInvalidId === null ? unchanged(state) : refused(state, frame, owned, outcome, outcome.firstInvalidId)
   const next = withTopFrame(state, { ...frame, form: outcome.state })
   return withEffects(next, [replyEvent([submittedReply(owned, outcome.submitted)]), schedule(TimerKind.FormTimeout, earliestDeadline(next.stack) - now)])
 }

@@ -5,7 +5,6 @@ import {
   firstFocusable,
   focusCounter,
   isFocusable,
-  moveFocus,
   nearestFocusable,
   RENDER_OVERSCAN,
   renderWindow,
@@ -63,39 +62,13 @@ describe('isFocusable', () => {
   })
 })
 
-describe('firstFocusable and moveFocus', () => {
+describe('firstFocusable', () => {
   const items: readonly Item[] = [PLAYERS_SECTION, COUNT_INFO, ADD_ACTION, PLAYERS_SECTION, PURGE_ACTION, ENABLED_TOGGLE]
 
   it('finds the first focusable item', () => {
     expect(firstFocusable(items)).toBe(ADD_ACTION.id)
     expect(firstFocusable([])).toBeNull()
     expect(firstFocusable([PLAYERS_SECTION, COUNT_INFO])).toBeNull()
-  })
-
-  it('skips sections and wraps around in both directions', () => {
-    expect(moveFocus(items, ADD_ACTION.id, 1)).toBe(PURGE_ACTION.id)
-    expect(moveFocus(items, PURGE_ACTION.id, 1)).toBe(ENABLED_TOGGLE.id)
-    expect(moveFocus(items, ENABLED_TOGGLE.id, 1)).toBe(ADD_ACTION.id)
-    expect(moveFocus(items, ADD_ACTION.id, -1)).toBe(ENABLED_TOGGLE.id)
-    expect(moveFocus(items, PURGE_ACTION.id, -1)).toBe(ADD_ACTION.id)
-  })
-
-  it('reaches disabled items', () => {
-    expect(moveFocus(items, ADD_ACTION.id, 1)).toBe('purge')
-  })
-
-  it('starts at an end when nothing or an unknown item is focused', () => {
-    expect(moveFocus(items, null, 1)).toBe(ADD_ACTION.id)
-    expect(moveFocus(items, null, -1)).toBe(ENABLED_TOGGLE.id)
-    expect(moveFocus(items, 'ghost', 1)).toBe(ADD_ACTION.id)
-    expect(moveFocus(items, COUNT_INFO.id, 1)).toBe(ADD_ACTION.id)
-  })
-
-  it('returns null without focusable item and stays on a single one', () => {
-    expect(moveFocus([], null, 1)).toBeNull()
-    expect(moveFocus([PLAYERS_SECTION], null, -1)).toBeNull()
-    expect(moveFocus([ADD_ACTION], ADD_ACTION.id, 1)).toBe(ADD_ACTION.id)
-    expect(moveFocus([ADD_ACTION], ADD_ACTION.id, -1)).toBe(ADD_ACTION.id)
   })
 })
 

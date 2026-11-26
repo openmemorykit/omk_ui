@@ -142,6 +142,14 @@ describe('pushToast', () => {
 })
 
 describe('expireToasts', () => {
+  it('expires at once a visible toast that has no start time', () => {
+    const [shown] = pushToast(EMPTY_TOASTS, owned({ durationMs: CUSTOM_MS }), NOW).visible
+    if (shown === undefined) throw new Error('toast expected')
+    const unstarted: ToastQueue = { ...EMPTY_TOASTS, visible: [{ ...shown, shownAt: null }] }
+    expect(expireToasts(unstarted, CUSTOM_MS).visible).toEqual([])
+    expect(nextToastExpiry(unstarted)).toBe(CUSTOM_MS)
+  })
+
   it('keeps toasts before their end and removes them at their end', () => {
     const queue = pushAll([owned({ durationMs: SECOND_MS })])
     expect(expireToasts(queue, NOW + SECOND_MS - 1).visible).toHaveLength(1)
