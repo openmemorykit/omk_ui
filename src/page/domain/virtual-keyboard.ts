@@ -118,6 +118,15 @@ export function moveKeyboardFocus(state: KeyboardState, direction: Intent): Keyb
   }
 }
 
+export function focusKeyAt(state: KeyboardState, row: number, unit: number): KeyboardState | null {
+  const keys = Number.isInteger(row) && row >= FIRST_INDEX ? rowsOf(state)[row] : undefined
+  if (keys === undefined || !Number.isInteger(unit) || unit < FIRST_INDEX) return null
+  const starts = keyStarts(keys)
+  const index = starts.findIndex((start, position) => unit >= start && unit < start + (keys[position]?.units ?? NO_MOVE))
+  const start = starts[index]
+  return index === NOT_FOUND || start === undefined ? null : { ...state, row, unit: start }
+}
+
 export function focusedKey(state: KeyboardState): VirtualKey {
   const row = rowOf(state)
   return row[keyIndexAt(row, state.unit)] ?? FALLBACK_KEY
