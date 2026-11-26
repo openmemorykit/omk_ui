@@ -6,6 +6,7 @@ import { ToPage } from '../../../src/protocol/to-page'
 import { TO_PAGE_SAMPLES } from '../../fixtures/messages'
 import { OWNED_REMOVE_CONFIRM } from '../../fixtures/owned'
 import { trackListeners, type ListenerLedger } from '../infrastructure/ledger'
+import appSource from '../../../src/page/App.vue?raw'
 import { FULL_HD, mountScripted, ROOT_SELECTOR, type MountedPage, type ScriptedHost } from './rig'
 
 createApp({ render: () => null }).unmount()
@@ -125,6 +126,21 @@ describe('legend placement', () => {
     expect(page.container.querySelectorAll('[data-surface="legend"]')).toHaveLength(1)
     expect(page.container.querySelector('.omk-radial-layer [data-surface="legend"]')).not.toBeNull()
     expect(page.container.querySelector('.omk-column__legend')?.children).toHaveLength(0)
+  })
+
+  it('floats the radial legend, centred above the radial, instead of a full-width strip', async () => {
+    page = mountScripted()
+    page.host.emit(BOOT)
+    page.host.emit({ type: ToPage.OpenRadial })
+    await settle()
+    const placement = page.container.querySelector('.omk-radial-layer [data-surface="legend"]')?.closest('.omk-app__radial-legend')
+    expect(placement).not.toBeNull()
+    expect(placement?.parentElement?.classList.contains('omk-radial-layer')).toBe(true)
+    const rule = /\.omk-app__radial-legend\s*\{([^}]*)\}/.exec(appSource)?.[1] ?? ''
+    expect(rule).toMatch(/position:\s*absolute/)
+    expect(rule).toMatch(/left:\s*50%/)
+    expect(rule).toMatch(/transform:\s*translateX\(-50%\)/)
+    expect(rule).toMatch(/top:\s*var\(--space-/)
   })
 })
 

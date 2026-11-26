@@ -86,7 +86,7 @@ watch(() => props.view.value, place, { flush: 'post' })
             @mousedown="keepFocus"
             @click="press(key)"
           >
-            {{ key.label }}
+            <span class="omk-key__label" :class="{ 'omk-key__label--long': key.label.length > 1 }">{{ key.label }}</span>
           </button>
         </div>
       </div>
@@ -171,5 +171,17 @@ watch(() => props.view.value, place, { flush: 'post' })
   border: 0;
   border-radius: 0;
   font-family: var(--font-ui);
+}
+
+.omk-key__label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omk-key__label--long {
+  font-size: var(--text-min);
 }
 </style>

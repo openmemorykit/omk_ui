@@ -21,6 +21,8 @@ const PERCENT = 100
 const DAY = 'day'
 const CONSOLE_ERROR_TYPES = new Set(['error', 'pageerror'])
 
+export const RADIAL_SELECTOR = '.omk-radial'
+
 const failure = (check, message) => ({ check, message })
 
 function parseAlpha(raw) {

@@ -24,6 +24,11 @@ const baseline = (): Entry[] => [
 const errorsOf = (files: Entry[]): string[] => checkSizes(files).errors
 
 describe('tools/sizes', () => {
+  it('budgets 170 Ko of raw JS and 60 Ko of gzip JS', () => {
+    expect(BUDGETS.jsBytes).toBe(170 * KILO)
+    expect(BUDGETS.jsGzipBytes).toBe(60 * KILO)
+  })
+
   it('accepts a build inside every budget and prints one line per measure', () => {
     const result = checkSizes(baseline())
     expect(result.errors).toEqual([])

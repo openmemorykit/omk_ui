@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   checkColumnVeil,
@@ -7,6 +8,7 @@ import {
   checkEssentialMotion,
   checkHorizontalOverflow,
   checkRadialFits,
+  RADIAL_SELECTOR,
   checkReady,
   checkSurfaces,
   checkTextSize,
@@ -81,6 +83,16 @@ describe('checkHorizontalOverflow', () => {
 
 describe('checkRadialFits', () => {
   const hd = { width: 1280, height: 720 }
+
+  it('rejects a 900 px radial in a 720 px window', () => {
+    expect(checksOf(checkRadialFits(survey({ viewport: hd, radial: { left: 190, top: -90, right: 1090, bottom: 810 } })))).toEqual(['radial-in-window'])
+  })
+
+  it('measures the box that carries the radial, never its ring and centre parts', () => {
+    expect(RADIAL_SELECTOR).toBe('.omk-radial')
+    expect(readFileSync('src/page/components/RadialMenu.vue', 'utf8')).toMatch(/<div class="omk-radial [^"]*" role="menu"/)
+    expect(readFileSync('tools/capture.mjs', 'utf8')).not.toMatch(/radial-ring', 'radial-center'/)
+  })
 
   it('accepts no radial and a radial inside the window', () => {
     expect(checkRadialFits(survey({ viewport: hd }))).toEqual([])
