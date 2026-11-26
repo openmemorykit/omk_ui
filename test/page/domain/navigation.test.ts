@@ -76,7 +76,7 @@ describe('pushPanelFrame', () => {
   it('discards a push of an identifier already in the stack', () => {
     const { state, replies } = pushPanelFrame(listAndAdd(), OWNED_LIST_PANEL, ADD_ID, SEQ_NEXT)
     expect(stackIds(state)).toEqual([LIST_ID, ADD_ID])
-    expect(closedReplies(replies)).toEqual([{ kind: ReplyKind.PanelClosed, panelId: LIST_ID, reason: CloseReason.Discarded }])
+    expect(replies).toEqual([{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: LIST_ID, reason: CloseReason.Discarded } }])
   })
 
   it('refuses a ninth frame and tells its owner to drop its handlers', () => {
@@ -92,7 +92,7 @@ describe('pushPanelFrame', () => {
     const confirmOnly = showConfirmLayer(createInitialState(), OWNED_REMOVE_CONFIRM, SEQ_OPEN)
     const { state, replies } = pushPanelFrame(confirmOnly, OWNED_ADD_PANEL, LIST_ID, SEQ_PUSH)
     expect(state.stack).toBe(confirmOnly.stack)
-    expect(closedReplies(replies)[0]?.reason).toBe(CloseReason.Discarded)
+    expect(replies).toEqual([{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: ADD_ID, reason: CloseReason.Discarded } }])
   })
 })
 
@@ -216,7 +216,7 @@ describe('popTopFrame and closeAllFrames', () => {
   it('pops the top frame with Back and leaves an empty stack untouched', () => {
     const { state, replies } = popTopFrame(listAndAdd())
     expect(stackIds(state)).toEqual([LIST_ID])
-    expect(closedReplies(replies)).toEqual([{ kind: ReplyKind.PanelClosed, panelId: ADD_ID, reason: CloseReason.Back }])
+    expect(replies).toEqual([{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: ADD_ID, reason: CloseReason.Back } }])
     const empty = createInitialState()
     expect(popTopFrame(empty)).toEqual({ state: empty, replies: [] })
   })

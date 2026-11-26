@@ -9,6 +9,9 @@ import { FixtureOwner, OWNED_ADD_PANEL, OWNED_LIST_PANEL } from '../../fixtures/
 import { OWNED_REPLIES, PAGE_REPLIES } from '../../fixtures/replies'
 import { SHARED_STACK_OWNED, SHARED_STACK_SEQ, SHARED_STACK_SNAPSHOT } from '../../fixtures/stack'
 
+const LONG_REPLY_COUNT = 50_000
+const LONG_REPLY_BUDGET_MS = 250
+
 type EventMessage = FromPageMessageOf<typeof FromPage.Event>
 
 function asEvent(message: FromPageMessage): EventMessage {
@@ -67,6 +70,16 @@ describe('pageEvent', () => {
     const answer = whitelist(PAGE_REPLIES[ReplyKind.ConfirmAnswered])
     const refusal = whitelist({ ...PAGE_REPLIES[ReplyKind.ConfirmAnswered], confirmed: false })
     expect(asEvent(pageEvent(null, [refusal, answer, refusal])).event.replies).toEqual([refusal])
+  })
+
+  it('filters a long reply list in linear time and freezes it', () => {
+    const replies = Array.from({ length: LONG_REPLY_COUNT }, (_, index) => closed(`whitelist/panel-${String(index)}`, CloseReason.CloseAll))
+    pageEvent(null, replies)
+    const startedAt = Date.now()
+    const kept = asEvent(pageEvent(null, replies)).event.replies
+    expect(Date.now() - startedAt).toBeLessThan(LONG_REPLY_BUDGET_MS)
+    expect(kept).toEqual(replies)
+    expect(Object.isFrozen(kept)).toBe(true)
   })
 
   it('keeps replies of other instances after a PanelClosed', () => {

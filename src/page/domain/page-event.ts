@@ -3,9 +3,6 @@ import { FromPage, type FromPageMessage } from '../../protocol/from-page'
 import type { OwnedReply, StackEntry, StackSnapshot } from '../../protocol/stack'
 import type { Frame, UiState } from './ui-state'
 
-interface ReplyFilter { readonly kept: readonly OwnedReply[]; readonly settledKeys: ReadonlySet<string> }
-
-const EMPTY_FILTER: ReplyFilter = { kept: [], settledKeys: new Set<string>() }
 const PANEL_KEY_PREFIX = 'panel:'
 const CONFIRM_KEY_PREFIX = 'confirm:'
 
@@ -33,14 +30,18 @@ function instanceKey(reply: Reply): string | null {
 
 const isSettling = (reply: Reply): boolean => reply.kind === ReplyKind.PanelClosed || reply.kind === ReplyKind.ConfirmAnswered
 
-function keepUntilSettled(filter: ReplyFilter, owned: OwnedReply): ReplyFilter {
-  const key = instanceKey(owned.reply)
-  if (key === null) return { ...filter, kept: filter.kept.concat(owned) }
-  if (filter.settledKeys.has(key)) return filter
-  const settledKeys = isSettling(owned.reply) ? new Set([...filter.settledKeys, key]) : filter.settledKeys
-  return { kept: filter.kept.concat(owned), settledKeys }
+function keptReplies(replies: readonly OwnedReply[]): readonly OwnedReply[] {
+  const settledKeys = new Set<string>()
+  const kept: OwnedReply[] = []
+  for (const owned of replies) {
+    const key = instanceKey(owned.reply)
+    if (key !== null && settledKeys.has(key)) continue
+    if (key !== null && isSettling(owned.reply)) settledKeys.add(key)
+    kept.push(owned)
+  }
+  return Object.freeze(kept)
 }
 
 export function pageEvent(stackChanged: StackSnapshot | null, replies: readonly OwnedReply[]): FromPageMessage {
-  return { type: FromPage.Event, event: { stack: stackChanged, replies: replies.reduce(keepUntilSettled, EMPTY_FILTER).kept } }
+  return { type: FromPage.Event, event: { stack: stackChanged, replies: keptReplies(replies) } }
 }

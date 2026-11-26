@@ -19,10 +19,18 @@ const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
 const isUsableItem = (item: unknown): boolean => isRecord(item) && typeof item.id === 'string'
 const isPanelKind = (kind: unknown): boolean => kind === PanelKind.Menu || kind === PanelKind.Form
 
-function isUsablePanel(owned: unknown): owned is OwnedPanel {
-  if (!isRecord(owned) || typeof owned.owner !== 'string' || !isRecord(owned.panel)) return false
-  const { id, kind, items } = owned.panel
-  return typeof id === 'string' && isPanelKind(kind) && Array.isArray(items) && items.length <= PANEL_MAX_ITEMS && items.every(isUsableItem)
+function isAddressablePanel(owned: unknown): owned is OwnedPanel {
+  if (!isRecord(owned) || typeof owned.owner !== 'string' || !isRecord(owned.panel) || typeof owned.panel.id !== 'string') return false
+  return splitNamespacedId(owned.panel.id)?.owner === owned.owner
+}
+
+function hasUsableContent(owned: OwnedPanel): boolean {
+  const { kind, items } = owned.panel as unknown as Readonly<Record<string, unknown>>
+  return isPanelKind(kind) && Array.isArray(items) && items.length <= PANEL_MAX_ITEMS && items.every(isUsableItem)
+}
+
+function discardedReply(owned: OwnedPanel): readonly OwnedReply[] {
+  return [{ owner: owned.owner, reply: { kind: ReplyKind.PanelClosed, panelId: owned.panel.id, reason: CloseReason.Discarded } }]
 }
 
 const topOf = (stack: readonly Frame[]): Frame | undefined => stack[stack.length - 1]
@@ -80,22 +88,21 @@ function closingReplies(frames: readonly Frame[], reason: CloseReason): readonly
 
 export function openPanelFrame(state: UiState, panel: OwnedPanel, commandSeq: number): StackChange {
   const applied = withCommandSeq(state, commandSeq)
-  if (!isUsablePanel(panel)) return { state: applied, replies: NO_REPLIES }
+  if (!isAddressablePanel(panel)) return { state: applied, replies: NO_REPLIES }
+  if (!hasUsableContent(panel)) return { state: applied, replies: discardedReply(panel) }
   return { state: { ...applied, stack: [createFrame(panel)] }, replies: closingReplies(state.stack, CloseReason.ClosedByOwner) }
 }
 
 function canPush(stack: readonly Frame[], panel: OwnedPanel, parentId: string): boolean {
   const top = topOf(stack)
-  if (top === undefined || panelIdOf(top) !== parentId || stack.length >= STACK_MAX_DEPTH) return false
+  if (top === undefined || top.panel?.owner !== panel.owner || panelIdOf(top) !== parentId || stack.length >= STACK_MAX_DEPTH) return false
   return !stack.some((frame) => panelIdOf(frame) === panel.panel.id)
 }
 
 export function pushPanelFrame(state: UiState, panel: OwnedPanel, parentId: string, commandSeq: number): StackChange {
   const applied = withCommandSeq(state, commandSeq)
-  if (!isUsablePanel(panel)) return { state: applied, replies: NO_REPLIES }
-  if (!canPush(state.stack, panel, parentId)) {
-    return { state: applied, replies: [{ owner: panel.owner, reply: { kind: ReplyKind.PanelClosed, panelId: panel.panel.id, reason: CloseReason.Discarded } }] }
-  }
+  if (!isAddressablePanel(panel)) return { state: applied, replies: NO_REPLIES }
+  if (!hasUsableContent(panel) || !canPush(state.stack, panel, parentId)) return { state: applied, replies: discardedReply(panel) }
   const parents = state.stack.map((frame, index) => (index === state.stack.length - 1 ? { ...frame, pendingItemId: null } : frame))
   return { state: { ...applied, stack: parents.concat(createFrame(panel)) }, replies: NO_REPLIES }
 }
@@ -127,7 +134,7 @@ function refreshFrame(frame: Frame, owned: OwnedPanel): Frame {
 }
 
 export function updatePanelFrame(state: UiState, panel: OwnedPanel): UiState {
-  if (!isUsablePanel(panel)) return state
+  if (!isAddressablePanel(panel) || !hasUsableContent(panel)) return state
   const index = state.stack.findIndex((frame) => frame.panel !== null && frame.panel.owner === panel.owner && frame.panel.panel.id === panel.panel.id)
   if (index === NOT_FOUND) return state
   return { ...state, stack: state.stack.map((frame, position) => (position === index ? refreshFrame(frame, panel) : frame)) }

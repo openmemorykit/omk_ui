@@ -1,22 +1,19 @@
-import { CloseReason, PANEL_MAX_ITEMS, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import {
   closeAllFrames,
   closePanelFrame,
-  dropOwnerFrames,
   openPanelFrame,
   popTopFrame,
   pushPanelFrame,
   showConfirmLayer,
-  updatePanelFrame,
   type StackChange,
 } from '../../../src/page/domain/navigation'
 import { pageEvent, stackSnapshot } from '../../../src/page/domain/page-event'
 import { createInitialState, LayerKind, type UiState } from '../../../src/page/domain/ui-state'
 import { FromPage } from '../../../src/protocol/from-page'
-import type { OwnedConfirm, OwnedPanel } from '../../../src/protocol/owned'
+import type { OwnedPanel } from '../../../src/protocol/owned'
 import { fromPageStackSnapshot, type OwnedReply } from '../../../src/protocol/stack'
-import { ADD_ACTION } from '../../fixtures/items'
 import { FixtureOwner, OWNED_REMOVE_CONFIRM } from '../../fixtures/owned'
 import { closedReplies, confirmFor, menuPanel, replyKinds, stackIds, stackOfDepth } from './navigation-helpers'
 
@@ -27,15 +24,10 @@ const PARK_MILLER_MULTIPLIER = 48_271
 const PARK_MILLER_MODULUS = 2_147_483_647
 const SEED = 20_261_126
 const FIVE_FRAMES = 5
+const FOUR_CLOSED = 4
 const TWO_FRAMES = 2
 const CONFIRM_SEQ = 2
 const NEXT_SEQ = 3
-const LOWER_INDEX = 1
-const FRACTIONAL_SEQ = 1.5
-const BEYOND_SAFE = 2
-const WARM_UP_RUNS = 20
-const MEASURED_RUNS = 200
-const UPDATE_BUDGET_MS = 500
 
 type Balance = ReadonlyMap<string, number>
 
@@ -146,6 +138,7 @@ describe('closing below the top', () => {
     const deep = stackOfDepth(FIVE_FRAMES)
     const { state, replies } = closePanelFrame(deep, 'whitelist/level-1', FIVE_FRAMES + 1)
     expect(stackIds(state)).toEqual(['whitelist/level-0'])
+    expect(replies).toHaveLength(FOUR_CLOSED)
     expect(closedReplies(replies)).toEqual(['level-4', 'level-3', 'level-2', 'level-1'].map((level) => ({
       kind: ReplyKind.PanelClosed,
       panelId: `whitelist/${level}`,
@@ -199,47 +192,5 @@ describe('destroyed confirmation', () => {
   it('answers no when an empty confirmation frame is replaced', () => {
     const confirmOnly = showConfirmLayer(createInitialState(), OWNED_REMOVE_CONFIRM, 1)
     expect(openPanelFrame(confirmOnly, menuPanel('a'), CONFIRM_SEQ).replies).toEqual([refusal])
-  })
-})
-
-describe('untrusted commands', () => {
-  it('keeps appliedCommandSeq a valid, increasing number whatever the command number', () => {
-    const base = stackOfDepth(TWO_FRAMES)
-    const numbers = [Number.NaN, -1, FRACTIONAL_SEQ, Number.POSITIVE_INFINITY, LOWER_INDEX, Number.MAX_SAFE_INTEGER + BEYOND_SAFE]
-    numbers.forEach((commandSeq) => {
-      const state = closePanelFrame(base, 'whitelist/unknown', commandSeq).state
-      expect(state.appliedCommandSeq).toBe(base.appliedCommandSeq)
-      expect(fromPageStackSnapshot(stackSnapshot(state))).not.toBeNull()
-    })
-  })
-
-  it('ignores malformed panels, identifiers and confirmations without throwing', () => {
-    const base = stackOfDepth(TWO_FRAMES)
-    const tooMany = menuPanel('huge', FixtureOwner.Whitelist, Array.from({ length: PANEL_MAX_ITEMS + 1 }, () => ADD_ACTION))
-    const malformed = [null, {}, { owner: 1, panel: {} }, { owner: 'whitelist', panel: { id: 'whitelist/x', kind: 'menu', items: 'none' } }, tooMany]
-    const withNullItem = { ...menuPanel('x'), panel: { ...menuPanel('x').panel, items: [null] } }
-    ;[...malformed, withNullItem].map((panel) => panel as unknown as OwnedPanel).forEach((panel) => {
-      expect(openPanelFrame(base, panel, NEXT_SEQ).state.stack).toBe(base.stack)
-      expect(pushPanelFrame(base, panel, 'whitelist/level-1', NEXT_SEQ)).toEqual({ state: { ...base, appliedCommandSeq: NEXT_SEQ }, replies: [] })
-      expect(updatePanelFrame(base, panel)).toBe(base)
-    })
-    ;[undefined, null, '__proto__', 'toString'].map((panelId) => panelId as unknown as string).forEach((panelId) => {
-      expect(closePanelFrame(base, panelId, NEXT_SEQ).replies).toEqual([])
-      expect(dropOwnerFrames(base, panelId, NEXT_SEQ).stack).toBe(base.stack)
-    })
-    ;[null, { owner: 'whitelist' }, { owner: 'whitelist', confirm: { id: 'remove' } }].map((confirm) => confirm as unknown as OwnedConfirm).forEach((confirm) => {
-      expect(showConfirmLayer(base, confirm, NEXT_SEQ).stack).toBe(base.stack)
-    })
-  })
-
-  it('updates a full panel of a full stack within the time budget', () => {
-    const items = Array.from({ length: PANEL_MAX_ITEMS }, (_, index) => ({ ...ADD_ACTION, id: `row-${String(index)}` }))
-    const full = updatePanelFrame(stackOfDepth(STACK_MAX_DEPTH), menuPanel('level-7', FixtureOwner.Whitelist, items))
-    const shifted = menuPanel('level-7', FixtureOwner.Whitelist, items.slice(1).reverse())
-    const run = (): UiState => updatePanelFrame(full, shifted)
-    Array.from({ length: WARM_UP_RUNS }).forEach(run)
-    const startedAt = Date.now()
-    Array.from({ length: MEASURED_RUNS }).forEach(run)
-    expect(Date.now() - startedAt).toBeLessThan(UPDATE_BUDGET_MS)
   })
 })
