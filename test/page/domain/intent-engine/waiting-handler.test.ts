@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import { PageCommandType, TimerKind } from '../../../../src/page/domain/page-commands'
-import { UiEffectType } from '../../../../src/page/domain/ui-effects'
+import { Announcement, UiEffectType } from '../../../../src/page/domain/ui-effects'
 import type { UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
 import { Intent } from '../../../../src/protocol/intents'
@@ -39,8 +39,16 @@ describe('Waiting', () => {
   it('ends with the opening of a panel and cancels its timer', () => {
     const next = transition(waiting(), openPanel(OWNED_LIST_PANEL, NEXT_SEQ), NOW)
     expect(next.state.mode).toBe(UiMode.Panels)
-    expect(next.effects).toContainEqual(CANCEL_WAITING)
-    expect(sentOf(next.effects, FromPage.ModeChanged)).toEqual([{ type: FromPage.ModeChanged, mode: UiMode.Panels }])
+    expect(next.effects).toEqual([
+      {
+        type: UiEffectType.SendToHost,
+        message: { type: FromPage.Event, event: { stack: { appliedCommandSeq: NEXT_SEQ, entries: [{ panelId: OWNED_LIST_PANEL.panel.id, owner: OWNED_LIST_PANEL.owner }] }, replies: [] } },
+      },
+      { type: UiEffectType.MeasurePaint, panelId: OWNED_LIST_PANEL.panel.id },
+      { type: UiEffectType.Announce, announcement: Announcement.PanelOpened, params: { panelId: OWNED_LIST_PANEL.panel.id, title: OWNED_LIST_PANEL.panel.title } },
+      CANCEL_WAITING,
+      { type: UiEffectType.SendToHost, message: { type: FromPage.ModeChanged, mode: UiMode.Panels } },
+    ])
   })
 
   it('ends at its timeout and returns the focus', () => {
@@ -59,6 +67,6 @@ describe('Waiting', () => {
   it('cancels its timer when the radial is reopened', () => {
     const next = transition(waiting(), OPEN_RADIAL, NOW)
     expect(next.state.mode).toBe(UiMode.Radial)
-    expect(next.effects).toContainEqual(CANCEL_WAITING)
+    expect(next.effects).toEqual([CANCEL_WAITING, { type: UiEffectType.SendToHost, message: { type: FromPage.ModeChanged, mode: UiMode.Radial } }])
   })
 })

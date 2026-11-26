@@ -1,4 +1,4 @@
-import { CloseReason } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { BACK_HOLD_MS } from '../../../../src/page/domain/hold-detector'
 import { transition } from '../../../../src/page/domain/intent-engine'
@@ -9,7 +9,8 @@ import { RadialLevel, type UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
 import { Intent, IntentPhase } from '../../../../src/protocol/intents'
 import { UiMode } from '../../../../src/protocol/page-vocabulary'
-import { OWNED_ADD_PANEL, OWNED_GARAGE_RADIAL_ENTRY, OWNED_LIST_PANEL, OWNED_WHITELIST_RADIAL_ENTRY } from '../../../fixtures/owned'
+import { FixtureOwner, OWNED_ADD_PANEL, OWNED_GARAGE_RADIAL_ENTRY, OWNED_LIST_PANEL, OWNED_WHITELIST_RADIAL_ENTRY } from '../../../fixtures/owned'
+import { menuPanel } from '../navigation-helpers'
 import { clientIntent, closedPanels, events, initial, NOW, OPEN_RADIAL, press, radialEntries, release, run, sentOf, timerFired, withPanels } from './engine-helpers'
 
 const FIRST_SEQ = 4
@@ -83,7 +84,10 @@ describe('held back', () => {
   it('schedules the hold check when back is pressed, and only then', () => {
     const held = transition(radialOverPanels(), press(Intent.Back), NOW)
     expect(held.state.mode).toBe(UiMode.Panels)
-    expect(held.effects).toContainEqual({ type: UiEffectType.Schedule, timer: TimerKind.BackHold, delayMs: BACK_HOLD_MS })
+    expect(held.effects).toEqual([
+      { type: UiEffectType.Schedule, timer: TimerKind.BackHold, delayMs: BACK_HOLD_MS },
+      { type: UiEffectType.SendToHost, message: { type: FromPage.ModeChanged, mode: UiMode.Panels } },
+    ])
     const confirmed = transition(radialOverPanels(), press(Intent.Confirm), NOW)
     expect(confirmed.effects).toEqual([])
   })
@@ -105,6 +109,40 @@ describe('held back', () => {
     expect(closedPanels(next.effects).map((reply) => reply.reason)).toEqual([CloseReason.CloseAll, CloseReason.CloseAll])
     expect(events(next.effects)).toHaveLength(1)
     expect(sentOf(next.effects, FromPage.ModeChanged)).toEqual([{ type: FromPage.ModeChanged, mode: UiMode.Idle }])
+  })
+
+  it('closes a stack of three from Panels when back is still held after 600 ms', () => {
+    const three = withPanels([OWNED_LIST_PANEL, OWNED_ADD_PANEL, menuPanel('third')])
+    const pressed = transition(three, press(Intent.Back), NOW)
+    expect(pressed.effects).toEqual([{ type: UiEffectType.Schedule, timer: TimerKind.BackHold, delayMs: BACK_HOLD_MS }])
+    const next = transition(pressed.state, timerFired(TimerKind.BackHold), NOW + BACK_HOLD_MS)
+    expect(next.state.stack).toEqual([])
+    expect(next.effects).toEqual([
+      {
+        type: UiEffectType.SendToHost,
+        message: {
+          type: FromPage.Event,
+          event: {
+            stack: { appliedCommandSeq: three.appliedCommandSeq, entries: [] },
+            replies: ['whitelist/third', OWNED_ADD_PANEL.panel.id, OWNED_LIST_PANEL.panel.id].map((panelId) => ({
+              owner: FixtureOwner.Whitelist,
+              reply: { kind: ReplyKind.PanelClosed, panelId, reason: CloseReason.CloseAll },
+            })),
+          },
+        },
+      },
+      { type: UiEffectType.SendToHost, message: { type: FromPage.ModeChanged, mode: UiMode.Idle } },
+    ])
+  })
+
+  it('keeps the first press of a held back when back is pressed again without release', () => {
+    const first = transition(withPanels([OWNED_LIST_PANEL]), press(Intent.Back), NOW).state
+    const second = transition(first, press(Intent.Back, true), NOW + EARLY_MS)
+    expect(second.state.backHold).toBe(first.backHold)
+    expect(second.state.backFromEscape).toBe(false)
+    expect(second.effects).toEqual([])
+    const fired = transition(second.state, timerFired(TimerKind.BackHold), NOW + BACK_HOLD_MS)
+    expect(fired.state.stack).toEqual([])
   })
 
   it('does nothing when back was released before the timer', () => {

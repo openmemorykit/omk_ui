@@ -4,6 +4,7 @@ import { splitNamespacedId } from '../../protocol/namespaced-id'
 import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
 import type { OwnedReply } from '../../protocol/stack'
 import { mergeFormOnUpdate, openForm, type FormState } from './form'
+import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
 import { firstFocusable, isFocusable, nearestFocusable, visibleWindowStart } from './list-focus'
 import { ConfirmChoice, ConfirmOrigin, LayerKind, type ConfirmLayer, type Frame, type Layer, type UiState } from './ui-state'
 
@@ -13,11 +14,9 @@ export type CloseAllReason = typeof CloseReason.CloseAll | typeof CloseReason.Ra
 
 export const FRAME_MAX_LAYERS = 4
 
-const NO_REPLIES: readonly OwnedReply[] = Object.freeze([])
 const NOT_FOUND = -1
 const FIRST_ROW = 0
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === 'object' && value !== null
 const isUsableItem = (item: unknown): boolean => isRecord(item) && typeof item.id === 'string'
 const isPanelKind = (kind: unknown): boolean => kind === PanelKind.Menu || kind === PanelKind.Form
 
@@ -50,8 +49,7 @@ function frameOwner(frame: Frame): string | null {
 }
 
 function withCommandSeq(state: UiState, commandSeq: number): UiState {
-  const isNewer = Number.isSafeInteger(commandSeq) && commandSeq > state.appliedCommandSeq
-  return isNewer ? { ...state, appliedCommandSeq: commandSeq } : state
+  return isNewerCommand(state.appliedCommandSeq, commandSeq) ? { ...state, appliedCommandSeq: commandSeq } : state
 }
 
 function windowStart(items: readonly Item[], focusItemId: string | null, previousStart: number): number {

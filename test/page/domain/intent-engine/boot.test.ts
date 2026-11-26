@@ -1,5 +1,6 @@
-import { CloseReason, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
+import { CloseReason, PANEL_MAX_ITEMS, ReplyKind, STACK_MAX_DEPTH, type Item } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
+import { BOOT_PANEL_SCAN_MAX } from '../../../../src/page/domain/boot'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import { UiEffectType } from '../../../../src/page/domain/ui-effects'
 import { LayerKind, RadialLevel } from '../../../../src/page/domain/ui-state'
@@ -15,6 +16,10 @@ const EXTRA_PANELS = 3
 const LOWER_SEQ = 1
 const HIGHER_APPLIED = 40
 const FRENCH = 'fr'
+const WARMUP_PASSES = 5
+const MEASURED_PASSES = 20
+const BOOT_BUDGET_MS = 500
+const HOSTILE_PANELS = 100_000
 
 function chain(count: number): ReturnType<typeof menuPanel>[] {
   return Array.from({ length: count }, (_, index) => menuPanel(`level-${String(index)}`))
@@ -90,5 +95,24 @@ describe('Boot', () => {
     const atChildren = { ...initial(), radial: { entries: [OWNED_WHITELIST_RADIAL_ENTRY], level: RadialLevel.Children, sectorIndex: 0, childIndex: 1 } }
     const next = transition(atChildren, bootWith({ radialEntries: [OWNED_GARAGE_RADIAL_ENTRY] }), NOW)
     expect(next.state.radial).toEqual({ entries: [OWNED_GARAGE_RADIAL_ENTRY], level: RadialLevel.Sectors, sectorIndex: 0, childIndex: null })
+  })
+})
+
+describe('Boot worst cases', () => {
+  it('rebuilds the largest Boot well within budget', () => {
+    const items: readonly Item[] = Array.from({ length: PANEL_MAX_ITEMS }, (_, index) => ({ ...OWNED_LIST_PANEL.panel.items[1], id: `item-${String(index)}` }) as Item)
+    const panels = Array.from({ length: BOOT_PANEL_SCAN_MAX }, (_, index) => menuPanel(`level-${String(index)}`, FixtureOwner.Whitelist, items))
+    const boot = bootWith({ panels })
+    for (let pass = 0; pass < WARMUP_PASSES; pass += 1) transition(initial(), boot, NOW)
+    const startedAt = performance.now()
+    for (let pass = 0; pass < MEASURED_PASSES; pass += 1) transition(initial(), boot, NOW)
+    expect(performance.now() - startedAt).toBeLessThan(BOOT_BUDGET_MS)
+  })
+
+  it('reads only a bounded number of panels from a hostile Boot', () => {
+    const panels = Array.from({ length: HOSTILE_PANELS }, (_, index) => menuPanel(`hostile-${String(index)}`))
+    const next = transition(initial(), bootWith({ panels }), NOW)
+    expect(next.state.stack).toHaveLength(STACK_MAX_DEPTH)
+    expect(events(next.effects)[0]?.replies).toHaveLength(BOOT_PANEL_SCAN_MAX - STACK_MAX_DEPTH)
   })
 })

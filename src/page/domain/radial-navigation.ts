@@ -1,12 +1,11 @@
 import { RADIAL_MAX_CHILDREN, RADIAL_MAX_SECTORS, type RadialLeaf } from '@openmemorykit/ui/contract'
 import type { InputSource, StickEvent } from '../../protocol/intents'
 import type { OwnedRadialEntry } from '../../protocol/owned'
+import { isList } from './guards'
 import { aimedChild, aimedSector, entersSubring } from './radial-geometry'
 import { RadialLevel, type RadialState } from './ui-state'
 
 const FIRST_INDEX = 0
-
-const isList = <Element>(value: readonly Element[] | undefined): value is readonly Element[] => Array.isArray(value)
 
 export function boundedEntries(entries: readonly OwnedRadialEntry[]): readonly OwnedRadialEntry[] {
   return isList(entries) ? entries.slice(FIRST_INDEX, RADIAL_MAX_SECTORS) : []
@@ -22,11 +21,19 @@ export function clampIndex(index: number, count: number): number {
   return Math.min(Math.max(index, FIRST_INDEX), count - 1)
 }
 
+const NOT_FOUND = -1
+
+function sameEntry(first: OwnedRadialEntry | undefined, second: OwnedRadialEntry): boolean {
+  return first !== undefined && first.owner === second.owner && first.entry?.id === second.entry?.id
+}
+
 export function withRadialEntries(radial: RadialState, entries: readonly OwnedRadialEntry[]): RadialState {
   const bounded = boundedEntries(entries)
-  const sectorIndex = clampIndex(radial.sectorIndex, bounded.length)
+  const aimed = radial.entries[radial.sectorIndex]
+  const foundAt = aimed === undefined ? NOT_FOUND : bounded.findIndex((owned) => sameEntry(aimed, owned))
+  const sectorIndex = foundAt === NOT_FOUND ? clampIndex(radial.sectorIndex, bounded.length) : foundAt
   const children = childrenOf(bounded[sectorIndex])
-  const keepsChildren = radial.level === RadialLevel.Children && radial.childIndex !== null && children.length > 0
+  const keepsChildren = foundAt !== NOT_FOUND && radial.level === RadialLevel.Children && radial.childIndex !== null && children.length > 0
   return {
     entries: bounded,
     sectorIndex,

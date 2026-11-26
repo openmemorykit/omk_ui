@@ -26,6 +26,7 @@ import { settleMode } from './mode-change'
 import { PageCommandType, TimerKind, type UiCommand, type UiCommandOf, type UiCommandType } from './page-commands'
 import { handleOpenRadial, handleRadialEntries } from './radial-handler'
 import { handleClosePanel, handleDropOwner, handleOpenPanel, handlePushPanel, handleShowConfirm } from './stack-commands'
+import { settleTextEntry } from './text-entry'
 import { handleTimerFired } from './timers'
 import { unchanged, type CommandHandler, type Transition } from './ui-effects'
 import type { UiState } from './ui-state'
@@ -73,12 +74,24 @@ function endsWaitingItself(command: UiCommand): boolean {
   return command.type === PageCommandType.TimerFired && command.timer === TimerKind.WaitingTimeout
 }
 
+function settled(before: UiState, next: Transition, endsWaiting: boolean): Transition {
+  return settleTextEntry(before, settleMode(before, next, endsWaiting))
+}
+
+function recovered(state: UiState, command: UiCommand): Transition {
+  try {
+    return settled(state, fallbackTransition(state, command), false)
+  } catch {
+    return unchanged(state)
+  }
+}
+
 export function transition(state: UiState, command: UiCommand, now: number): Transition {
   try {
     const handler = HANDLER_BY_TYPE.get(command.type)
     if (handler === undefined) return unchanged(state)
-    return settleMode(state, handler(state, command, now), endsWaitingItself(command))
+    return settled(state, handler(state, command, now), endsWaitingItself(command))
   } catch {
-    return fallbackTransition(state, command)
+    return recovered(state, command)
   }
 }

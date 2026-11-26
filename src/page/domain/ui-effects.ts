@@ -42,7 +42,7 @@ export function sendToHost(message: FromPageMessage): UiEffect {
 }
 
 export function schedule(timer: TimerKind, delayMs: number): UiEffect {
-  return { type: UiEffectType.Schedule, timer, delayMs: Math.max(NO_DELAY, delayMs) }
+  return { type: UiEffectType.Schedule, timer, delayMs: Number.isFinite(delayMs) ? Math.max(NO_DELAY, delayMs) : NO_DELAY }
 }
 
 export function cancelSchedule(timer: TimerKind): UiEffect {

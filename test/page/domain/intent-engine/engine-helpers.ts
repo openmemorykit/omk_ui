@@ -5,10 +5,12 @@ import { UiEffectType, type Transition, type UiEffect } from '../../../../src/pa
 import { createInitialState, type UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage, type FromPageMessage, type FromPageMessageOf } from '../../../../src/protocol/from-page'
 import { InputSource, IntentPhase, type Intent } from '../../../../src/protocol/intents'
-import type { OwnedPanel, OwnedRadialEntry } from '../../../../src/protocol/owned'
+import type { OwnedConfirm, OwnedPanel, OwnedRadialEntry } from '../../../../src/protocol/owned'
 import type { OwnedReply, PageEvent } from '../../../../src/protocol/stack'
 import { ToPage, type ToPageMessageOf } from '../../../../src/protocol/to-page'
 import { TO_PAGE_SAMPLES } from '../../../fixtures/messages'
+import { FixtureOwner, OWNED_REMOVE_CONFIRM } from '../../../fixtures/owned'
+import { menuPanel } from '../navigation-helpers'
 
 export const NOW = 50_000
 const FIRST_PUSH_SEQ = 2
@@ -93,4 +95,16 @@ export function withPanels(panels: readonly OwnedPanel[]): UiState {
     if (parent !== undefined) commands.push(pushPanel(panel, parent.panel.id, index + FIRST_PUSH_SEQ))
   })
   return run(initial(), commands).state
+}
+
+export function throwingPanel(localId: string): OwnedPanel {
+  const panel = { ...menuPanel(localId).panel }
+  Object.defineProperty(panel, 'title', { enumerable: true, get: () => { throw new TypeError('hostile title') } })
+  return { owner: FixtureOwner.Whitelist, panel }
+}
+
+export function throwingConfirm(owned: OwnedConfirm = OWNED_REMOVE_CONFIRM): OwnedConfirm {
+  const confirm = { ...owned.confirm }
+  Object.defineProperty(confirm, 'title', { enumerable: true, get: () => { throw new TypeError('hostile title') } })
+  return { owner: owned.owner, confirm }
 }

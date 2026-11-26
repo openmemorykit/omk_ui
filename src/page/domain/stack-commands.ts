@@ -3,18 +3,15 @@ import { splitNamespacedId } from '../../protocol/namespaced-id'
 import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
 import type { OwnedReply } from '../../protocol/stack'
 import type { ToPage } from '../../protocol/to-page'
+import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
 import { closePanelFrame, dropOwnerFrames, isConfirmShown, openPanelFrame, pushPanelFrame, showConfirmLayer, type StackChange } from './navigation'
 import type { UiCommandOf } from './page-commands'
 import { withRadialEntries } from './radial-navigation'
 import { Announcement, stackEvent, unchanged, UiEffectType, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
 import type { UiState } from './ui-state'
 
-const NO_REPLIES: readonly OwnedReply[] = Object.freeze([])
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === 'object' && value !== null
-
-export function isNewerCommand(state: UiState, commandSeq: number): boolean {
-  return Number.isSafeInteger(commandSeq) && commandSeq > state.appliedCommandSeq
+export function isNewerStackCommand(state: UiState, commandSeq: number): boolean {
+  return isNewerCommand(state.appliedCommandSeq, commandSeq)
 }
 
 export function refusedConfirmReplies(state: UiState, owned: OwnedConfirm): readonly OwnedReply[] {
@@ -40,19 +37,19 @@ function openedEffects(before: UiState, change: StackChange, owned: OwnedPanel):
 }
 
 export const handleOpenPanel: CommandHandler<UiCommandOf<typeof ToPage.OpenPanel>> = (state, message) => {
-  if (!isNewerCommand(state, message.commandSeq)) return unchanged(state)
+  if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   const change = openPanelFrame(state, message.panel, message.commandSeq)
   return stackTransition(change, openedEffects(state, change, message.panel))
 }
 
 export const handlePushPanel: CommandHandler<UiCommandOf<typeof ToPage.PushPanel>> = (state, message) => {
-  if (!isNewerCommand(state, message.commandSeq)) return unchanged(state)
+  if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   const change = pushPanelFrame(state, message.panel, message.parentId, message.commandSeq)
   return stackTransition(change, openedEffects(state, change, message.panel))
 }
 
 export const handleClosePanel: CommandHandler<UiCommandOf<typeof ToPage.ClosePanel>> = (state, message) => {
-  if (!isNewerCommand(state, message.commandSeq)) return unchanged(state)
+  if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   return stackTransition(closePanelFrame(state, message.panelId, message.commandSeq))
 }
 
@@ -64,7 +61,7 @@ function withoutOwnerSurfaces(state: UiState, owner: string): UiState {
 }
 
 export const handleDropOwner: CommandHandler<UiCommandOf<typeof ToPage.DropOwner>> = (state, message) => {
-  if (!isNewerCommand(state, message.commandSeq)) return unchanged(state)
+  if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   const dropped = withoutOwnerSurfaces(dropOwnerFrames(state, message.owner, message.commandSeq), message.owner)
   return stackTransition({ state: dropped, replies: NO_REPLIES })
 }
@@ -75,6 +72,6 @@ export function confirmChange(state: UiState, confirm: OwnedConfirm, commandSeq:
 }
 
 export const handleShowConfirm: CommandHandler<UiCommandOf<typeof ToPage.ShowConfirm>> = (state, message) => {
-  if (!isNewerCommand(state, message.commandSeq)) return unchanged(state)
+  if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   return stackTransition(confirmChange(state, message.confirm, message.commandSeq))
 }

@@ -1,9 +1,9 @@
+import { STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { UiMode } from '../../protocol/page-vocabulary'
 import type { OwnedPanel } from '../../protocol/owned'
-import type { OwnedReply } from '../../protocol/stack'
 import type { ToPage } from '../../protocol/to-page'
 import { isGlyphSet, promptView } from './client-messages'
-import { bootPanels } from './command-fallback'
+import { isCommandSeq, isList, NO_REPLIES } from './guards'
 import { RELEASED_BACK } from './hold-detector'
 import { openPanelFrame, pushPanelFrame, type StackChange } from './navigation'
 import type { UiCommandOf } from './page-commands'
@@ -16,9 +16,11 @@ type BootMessage = UiCommandOf<typeof ToPage.Boot>
 
 const NO_PARENT = ''
 const FIRST_PANEL = 0
-const NO_REPLIES: readonly OwnedReply[] = Object.freeze([])
+export const BOOT_PANEL_SCAN_MAX = STACK_MAX_DEPTH + STACK_MAX_DEPTH
 
-const isCommandSeq = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+export function bootPanels(panels: readonly OwnedPanel[]): readonly OwnedPanel[] {
+  return isList(panels) ? panels.slice(FIRST_PANEL, BOOT_PANEL_SCAN_MAX) : []
+}
 
 function rebuiltBase(state: UiState, message: BootMessage): UiState {
   const { language } = message.locale

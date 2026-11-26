@@ -95,16 +95,24 @@ describe('radial confirm', () => {
     const next = transition(open, press(Intent.Confirm), NOW)
     expect(next.state.stack).toEqual([])
     expect(next.state.mode).toBe(UiMode.Waiting)
-    expect(events(next.effects)).toEqual([{
-      stack: { appliedCommandSeq: open.appliedCommandSeq, entries: [] },
-      replies: [
-        { owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: OWNED_ADD_PANEL.panel.id, reason: CloseReason.RadialSelection } },
-        { owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: OWNED_LIST_PANEL.panel.id, reason: CloseReason.RadialSelection } },
-        { owner: FixtureOwner.Garage, reply: { kind: ReplyKind.RadialSelected, entryId: OWNED_GARAGE_RADIAL_ENTRY.entry.id } },
-      ],
-    }])
-    expect(next.effects).toContainEqual({ type: UiEffectType.Schedule, timer: TimerKind.WaitingTimeout, delayMs: WAITING_TIMEOUT_MS })
-    expect(sentOf(next.effects, FromPage.ModeChanged)).toEqual([{ type: FromPage.ModeChanged, mode: UiMode.Waiting }])
+    expect(next.effects).toEqual([
+      {
+        type: UiEffectType.SendToHost,
+        message: {
+          type: FromPage.Event,
+          event: {
+            stack: { appliedCommandSeq: open.appliedCommandSeq, entries: [] },
+            replies: [
+              { owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: OWNED_ADD_PANEL.panel.id, reason: CloseReason.RadialSelection } },
+              { owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: OWNED_LIST_PANEL.panel.id, reason: CloseReason.RadialSelection } },
+              { owner: FixtureOwner.Garage, reply: { kind: ReplyKind.RadialSelected, entryId: OWNED_GARAGE_RADIAL_ENTRY.entry.id } },
+            ],
+          },
+        },
+      },
+      { type: UiEffectType.Schedule, timer: TimerKind.WaitingTimeout, delayMs: WAITING_TIMEOUT_MS },
+      { type: UiEffectType.SendToHost, message: { type: FromPage.ModeChanged, mode: UiMode.Waiting } },
+    ])
   })
 
   it('enters the sub-ring on a sector with children, then selects the child', () => {

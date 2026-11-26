@@ -53,8 +53,17 @@ describe('PushPanel', () => {
   it('pushes the panel and measures its paint', () => {
     const next = transition(withPanels([OWNED_LIST_PANEL]), pushPanel(OWNED_ADD_PANEL, OWNED_LIST_PANEL.panel.id, NEXT_SEQ), NOW)
     expect(stackIds(next.state)).toEqual([OWNED_LIST_PANEL.panel.id, OWNED_ADD_PANEL.panel.id])
-    expect(next.effects).toContainEqual({ type: UiEffectType.MeasurePaint, panelId: OWNED_ADD_PANEL.panel.id })
-    expect(events(next.effects)).toHaveLength(1)
+    expect(next.effects).toEqual([
+      {
+        type: UiEffectType.SendToHost,
+        message: {
+          type: FromPage.Event,
+          event: { stack: { appliedCommandSeq: NEXT_SEQ, entries: [LIST_ENTRY, { panelId: OWNED_ADD_PANEL.panel.id, owner: FixtureOwner.Whitelist }] }, replies: [] },
+        },
+      },
+      { type: UiEffectType.MeasurePaint, panelId: OWNED_ADD_PANEL.panel.id },
+      { type: UiEffectType.Announce, announcement: Announcement.PanelOpened, params: { panelId: OWNED_ADD_PANEL.panel.id, title: OWNED_ADD_PANEL.panel.title } },
+    ])
   })
 
   it('answers Discarded in the Event when the parent is no longer on top, and measures nothing', () => {

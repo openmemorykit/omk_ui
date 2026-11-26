@@ -22,6 +22,7 @@ const HOLD_MS = 400
 const FLOOD = 100
 const LATER_MS = 1_000
 const STALE_SUBMISSION = FIRST_SUBMISSION_ID + 1
+const menuEntry = { owner: FixtureOwner.Whitelist, entry: { ...OWNED_WHITELIST_RADIAL_ENTRY.entry, id: 'whitelist/other' } }
 
 function pendingForm(): UiState {
   const state = withPanels([OWNED_LIST_PANEL, OWNED_ADD_PANEL])
@@ -57,6 +58,11 @@ describe('Notify', () => {
     const next = transition(queuedLater, timerFired(TimerKind.ToastExpiry), at)
     expect(next.state.toasts.visible.map((toast) => toast.owned)).toEqual([OWNED_KEYED_NOTIFICATION])
     expect(next.effects).toEqual([{ type: UiEffectType.Schedule, timer: TimerKind.ToastExpiry, delayMs: LATER_MS }])
+  })
+
+  it('schedules a zero delay instead of a delay that is not finite', () => {
+    const next = transition(initial(), { type: ToPage.Notify, notification: OWNED_PLAIN_NOTIFICATION }, Number.NaN)
+    expect(next.effects).toEqual([{ type: UiEffectType.Schedule, timer: TimerKind.ToastExpiry, delayMs: 0 }])
   })
 
   it('schedules nothing once the last toast expired', () => {
@@ -107,10 +113,20 @@ describe('GlyphSet, Modality and RadialEntries', () => {
     expect(transition(state, { type: ToPage.Modality, modality: 'joystick' as Modality }, NOW).state).toBe(state)
   })
 
+  it('follows the aimed entry when entries before it change, and leaves the sub-ring of a removed entry', () => {
+    const atChild = { ...initial(), radial: { entries: [OWNED_WHITELIST_RADIAL_ENTRY], level: RadialLevel.Children, sectorIndex: 0, childIndex: 1 } }
+    const moved = transition(atChild, radialEntries([OWNED_GARAGE_RADIAL_ENTRY, OWNED_WHITELIST_RADIAL_ENTRY]), NOW).state
+    expect(moved.radial).toMatchObject({ level: RadialLevel.Children, sectorIndex: 1, childIndex: 1 })
+    const removed = transition(atChild, radialEntries([menuEntry, OWNED_GARAGE_RADIAL_ENTRY]), NOW).state
+    expect(removed.radial).toMatchObject({ level: RadialLevel.Sectors, sectorIndex: 0, childIndex: null })
+  })
+
   it('replaces the radial entries, bounded, keeping the position when it still exists', () => {
     const atChild = { ...initial(), radial: { entries: [OWNED_WHITELIST_RADIAL_ENTRY], level: RadialLevel.Children, sectorIndex: 0, childIndex: 1 } }
     const next = transition(atChild, radialEntries([OWNED_WHITELIST_RADIAL_ENTRY, OWNED_GARAGE_RADIAL_ENTRY]), NOW).state
     expect(next.radial).toEqual({ entries: [OWNED_WHITELIST_RADIAL_ENTRY, OWNED_GARAGE_RADIAL_ENTRY], level: RadialLevel.Children, sectorIndex: 0, childIndex: 1 })
+    const atGarage = { ...initial(), radial: { entries: [OWNED_WHITELIST_RADIAL_ENTRY, OWNED_GARAGE_RADIAL_ENTRY], level: RadialLevel.Sectors, sectorIndex: 1, childIndex: null } }
+    expect(transition(atGarage, radialEntries([OWNED_GARAGE_RADIAL_ENTRY]), NOW).state.radial).toMatchObject({ sectorIndex: 0, level: RadialLevel.Sectors })
     const flood = Array.from({ length: FLOOD }, () => OWNED_GARAGE_RADIAL_ENTRY)
     expect(transition(initial(), radialEntries(flood), NOW).state.radial.entries.length).toBeLessThanOrEqual(RADIAL_MAX_SECTORS)
   })

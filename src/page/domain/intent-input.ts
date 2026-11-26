@@ -28,9 +28,9 @@ function released(state: UiState, intent: Intent): Transition {
 
 function pressed(state: UiState, command: LocalIntentCommand, now: number): Transition {
   const held = pressHeld(state.held, command.intent, now)
-  const isBack = command.intent === Intent.Back
-  const next: UiState = isBack ? { ...state, held, backHold: pressBack(now), backFromEscape: command.fromEscape } : { ...state, held }
-  const backEffects: readonly UiEffect[] = isBack ? [schedule(TimerKind.BackHold, BACK_HOLD_MS)] : []
+  const startsBackHold = command.intent === Intent.Back && state.backHold.pressedAt === null
+  const next: UiState = startsBackHold ? { ...state, held, backHold: pressBack(now), backFromEscape: command.fromEscape } : { ...state, held }
+  const backEffects: readonly UiEffect[] = startsBackHold ? [schedule(TimerKind.BackHold, BACK_HOLD_MS)] : []
   const repeatEffects = held === state.held ? [] : repeatSchedule(next, now)
   const routed = routeInput(next, command, now)
   const timers = derivedMode(routed.state) === UiMode.Idle ? [] : backEffects.concat(repeatEffects)
