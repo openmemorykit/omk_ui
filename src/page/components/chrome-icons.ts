@@ -1,0 +1,6 @@
+export const CHEVRON_LEFT = 'M15 5l-7 7 7 7'
+export const CHEVRON_RIGHT = 'M9 5l7 7-7 7'
+export const CHEVRON_UP = 'M6 15l6-6 6 6'
+export const CHEVRON_DOWN = 'M6 9l6 6 6-6'
+export const INFO = 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM12 11v6M12 7.5v.5'
+export const ALERT = 'M12 3l10 18H2L12 3zM12 10v5M12 18v.5'
