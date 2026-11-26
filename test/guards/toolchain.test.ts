@@ -4,6 +4,10 @@ import tseslint from 'typescript-eslint'
 import { describe, expect, it } from 'vitest'
 import pureConfig from '../../../../tsconfig.pure.json'
 import testConfig from '../../../../tsconfig.test.json'
+import clientConfig from '../../../../tsconfig.client.json'
+import serverConfig from '../../../../tsconfig.server.json'
+import testClientConfig from '../../../../tsconfig.test.client.json'
+import testServerConfig from '../../../../tsconfig.test.server.json'
 
 const TYPED_LINT_TIMEOUT = 30_000
 const NUMERIC_ERROR = 2
@@ -62,5 +66,14 @@ describe('toolchain guards', () => {
 
   it('tests the pure code on ES2022 and DOM', () => {
     expect(testConfig.compilerOptions.lib).toEqual(['ES2022', 'DOM'])
+  })
+
+  it.each([
+    ['client', clientConfig],
+    ['server', serverConfig],
+    ['test.client', testClientConfig],
+    ['test.server', testServerConfig],
+  ])('keeps the %s tsconfig on ES2020', (_name, config) => {
+    expect(config.compilerOptions.lib).toEqual(['ES2020'])
   })
 })
