@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  FALLBACK_KEY,
   KEYBOARD_ROW_UNITS,
   KeyAction,
   KeyboardLanguage,
@@ -80,5 +81,12 @@ describe('keyboard layouts', () => {
     const layout = keyboardLayout(KeyboardLanguage.French, KeyboardLayer.Letters)
     expect(Object.isFrozen(layout)).toBe(true)
     expect(Object.isFrozen(layout[0])).toBe(true)
+  })
+
+  it('freezes every key of every layout', () => {
+    const keys = Object.values(KeyboardLanguage).flatMap((language) => Object.values(KeyboardLayer).flatMap((layer) => keyboardLayout(language, layer).flat()))
+    expect(keys.length).toBeGreaterThan(0)
+    expect(keys.filter((key) => !Object.isFrozen(key))).toEqual([])
+    expect(Object.isFrozen(FALLBACK_KEY)).toBe(true)
   })
 })

@@ -1,4 +1,7 @@
+import { ItemSchema } from '@openmemorykit/ui/contract'
+import * as v from 'valibot'
 import { describe, expect, it } from 'vitest'
+import { IDENTIFIER_TEXT } from '../../fixtures/items'
 import { Intent } from '../../../src/protocol/intents'
 import { KeyAction, KeyboardLanguage, KeyboardLayer } from '../../../src/page/domain/keyboard-layouts'
 import {
@@ -26,6 +29,8 @@ const TWO_UNITS = 2
 const THREE_UNITS = 3
 const FOUR_UNITS = 4
 const SWEEP_END = 8
+const HUGE_TEXT_LENGTH = 5_000_000
+const HUGE_TEXT_BUDGET_MS = 50
 
 function at(state: KeyboardState, row: number, unit: number): KeyboardState {
   return { ...state, row, unit }
@@ -51,6 +56,21 @@ describe('openKeyboard', () => {
     expect(openKeyboard(KeyboardLanguage.French, 'éàü', THREE_UNITS).value).toBe('éàü')
     expect(openKeyboard(KeyboardLanguage.French, 'abc', Number.NaN).value).toBe('')
     expect(openKeyboard(KeyboardLanguage.French, 'abc', NEGATIVE_LIMIT).maxLength).toBe(0)
+  })
+
+  it('never truncates a contract value: the contract refuses a value longer than maxLength', () => {
+    const fits = { ...IDENTIFIER_TEXT, value: 'x'.repeat(IDENTIFIER_TEXT.maxLength) }
+    const tooLong = { ...fits, value: `${fits.value}x` }
+    expect(v.safeParse(ItemSchema, fits).success).toBe(true)
+    expect(v.safeParse(ItemSchema, tooLong).success).toBe(false)
+    expect(openKeyboard(KeyboardLanguage.French, fits.value, fits.maxLength).value).toBe(fits.value)
+  })
+
+  it('refuses an infinite limit like any limit that is not finite', () => {
+    ;[Infinity, -Infinity].forEach((limit) => {
+      const state = openKeyboard(KeyboardLanguage.French, 'abc', limit)
+      expect([state.value, state.maxLength]).toEqual(['', 0])
+    })
   })
 
   it('drops lone surrogates and control characters', () => {
@@ -219,6 +239,23 @@ describe('limit in UTF-16 units', () => {
     const state = openKeyboard(KeyboardLanguage.French, '', ROOMY_LIMIT)
     expect(insertText(state, 'a\ud83db\u0007\n').state.value).toBe('ab')
     expect(insertText(state, '')).toEqual({ state, submitted: false, limitReached: false })
+  })
+
+  it('stops reading a huge text once the limit is reached', () => {
+    const full = openKeyboard(KeyboardLanguage.French, 'abcde', LIMIT)
+    const huge = 'x'.repeat(HUGE_TEXT_LENGTH)
+    insertText(full, huge)
+    const start = performance.now()
+    const result = insertText(full, huge)
+    expect(performance.now() - start).toBeLessThan(HUGE_TEXT_BUDGET_MS)
+    expect(result).toEqual({ state: full, submitted: false, limitReached: true })
+  })
+
+  it('reports the limit when the text is cut, and not when it fits exactly', () => {
+    const state = openKeyboard(KeyboardLanguage.French, 'ab', LIMIT)
+    expect(insertText(state, `cde${EMOJI}`)).toMatchObject({ state: { value: 'abcde' }, limitReached: true })
+    expect(insertText(state, 'cde')).toMatchObject({ state: { value: 'abcde' }, limitReached: false })
+    expect(insertText(state, `c\u0007de`)).toMatchObject({ state: { value: 'abcde' }, limitReached: false })
   })
 
   it('resets shift only when something was inserted', () => {
