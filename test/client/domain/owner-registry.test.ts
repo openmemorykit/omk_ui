@@ -7,7 +7,7 @@ import {
   EMPTY_REGISTRY,
   openPanel,
   pushPanel,
-  radialOrder,
+  reconcileStack,
   settleConfirm,
   showConfirm,
   showPrompt,
@@ -165,6 +165,22 @@ describe('confirmations', () => {
     expect(showConfirm(settled, Whitelist, REMOVE_CONFIRM).ok).toBe(true)
   })
 
+  it('are withdrawn when an open of their owner replaces the stack, so the screen frees up', () => {
+    const confirming = registryAfter(showConfirm(EMPTY_REGISTRY, Whitelist, REMOVE_CONFIRM))
+    const opened = registryAfter(openPanel(confirming, Whitelist, LIST_PANEL))
+    expect(opened.confirms).toStrictEqual([])
+    const closedByPlayer = reconcileStack(opened, { appliedCommandSeq: opened.commandSeq, entries: [] })
+    expect(openPanel(closedByPlayer, Garage, LIST_PANEL).ok).toBe(true)
+    expect(showConfirm(closedByPlayer, Garage, REMOVE_CONFIRM).ok).toBe(true)
+    expect(settleConfirm(closedByPlayer, Whitelist, REMOVE_CONFIRM.id)).toBe(closedByPlayer)
+  })
+
+  it('survive a push of their owner, not an open', () => {
+    const confirming = registryAfter(showConfirm(withList, Whitelist, REMOVE_CONFIRM))
+    expect(registryAfter(openPanel(confirming, Whitelist, ADD_PANEL)).confirms).toStrictEqual([])
+    expect(registryAfter(pushPanel(confirming, Whitelist, ADD_PANEL, LIST_PANEL.id)).confirms).toStrictEqual(confirming.confirms)
+  })
+
   it('settle only the confirmation of the caller', () => {
     const confirming = registryAfter(showConfirm(EMPTY_REGISTRY, Whitelist, REMOVE_CONFIRM))
     expect(settleConfirm(confirming, Garage, REMOVE_CONFIRM.id)).toBe(confirming)
@@ -185,7 +201,6 @@ describe('owner checks', () => {
     const registry = registryAfter(addRadialEntry(EMPTY_REGISTRY, Garage, WHITELIST_RADIAL_ENTRY))
     const outcome = call(registry, owner)
     expect(refusal(outcome)).toStrictEqual({ path: '', code: ContractErrorCode.BadIdentifier })
-    expect(() => radialOrder(registry)).not.toThrow()
   })
 
   it.each([

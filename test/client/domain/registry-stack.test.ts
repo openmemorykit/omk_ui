@@ -14,6 +14,7 @@ const { Whitelist, Garage } = FixtureOwner
 const LIST_ENTRY: StackEntry = { panelId: 'whitelist/list', owner: Whitelist }
 const ADD_ENTRY: StackEntry = { panelId: 'whitelist/add', owner: Whitelist }
 const FRACTION = 1.5
+const SECOND_LEVEL = 2
 
 const snapshotOf = (appliedCommandSeq: number, entries: readonly StackEntry[]): StackSnapshot => ({ appliedCommandSeq, entries })
 const withList = registryAfter(openPanel(EMPTY_REGISTRY, Whitelist, LIST_PANEL))
@@ -62,6 +63,16 @@ describe('reconcileStack', () => {
     expect(reconcileStack(reopened, full).stack).toStrictEqual([{ owner: Whitelist, panel: LIST_PANEL }])
     const twice = snapshotOf(SHARED_STACK_SEQ.Push + 1, [LIST_ENTRY, ADD_ENTRY])
     expect(reconcileStack(reopened, twice).stack).toStrictEqual(SHARED_STACK_PANELS)
+  })
+
+  it('replays a close as a cut of the stack before the commands that follow it', () => {
+    const threeLevels = registryAfter(pushPanel(withListAndAdd, Whitelist, panelAt(1), ADD_PANEL.id))
+    const closed = registryAfter(closePanel(threeLevels, Whitelist, ADD_PANEL.id))
+    const levelTwo = panelAt(SECOND_LEVEL)
+    const pushed = registryAfter(pushPanel(closed, Whitelist, levelTwo, LIST_PANEL.id))
+    const levelOne: StackEntry = { panelId: 'whitelist/level-1', owner: Whitelist }
+    const reconciled = reconcileStack(pushed, snapshotOf(threeLevels.commandSeq, [LIST_ENTRY, ADD_ENTRY, levelOne]))
+    expect(reconciled.stack).toStrictEqual([{ owner: Whitelist, panel: LIST_PANEL }, { owner: Whitelist, panel: levelTwo }])
   })
 
   it('replays a close, an open and a drop of the owner', () => {

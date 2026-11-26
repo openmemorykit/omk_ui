@@ -83,7 +83,8 @@ export function openPanel(registry: RegistryState, owner: string, panel: Panel):
   const invalid = identityRefusal(owner, panel.id)
   if (invalid !== null) return invalid
   if (isOccupiedFor(registry, owner)) return refused(ContractErrorCode.Occupied)
-  return withCommand(issueCommand(registry, [{ owner, panel }], { kind: StackCommandKind.Open, owner, panel: toPagePanel(owner, panel), panelId: null }))
+  const withoutOwnConfirms = { ...registry, confirms: othersThan(registry.confirms, owner) }
+  return withCommand(issueCommand(withoutOwnConfirms, [{ owner, panel }], { kind: StackCommandKind.Open, owner, panel: toPagePanel(owner, panel), panelId: null }))
 }
 
 export function pushPanel(registry: RegistryState, owner: string, panel: Panel, parentId: string): RegistryOutcome {
