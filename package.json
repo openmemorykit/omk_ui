@@ -1,0 +1,12 @@
+{
+  "name": "@openmemorykit/ui-resource",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@openmemorykit/core": "0.1.0",
+    "@openmemorykit/ui": "0.1.0",
+    "valibot": "1.4.2"
+  }
+}
