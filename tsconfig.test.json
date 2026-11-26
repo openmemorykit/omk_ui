@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.pure.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM"], "resolveJsonModule": true },
+  "include": ["src/protocol", "src/shared", "src/*/domain", "test"],
+  "exclude": ["test/guards/fixtures/**"]
+}

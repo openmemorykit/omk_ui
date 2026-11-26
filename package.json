@@ -1,12 +1,32 @@
 {
-  "name": "@openmemorykit/ui-resource",
+  "name": "omk_ui",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "license": "MIT",
+  "type": "module",
+  "packageManager": "npm@11.21.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openmemorykit/omk_ui.git"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "node tools/typecheck.mjs",
+    "test": "vitest run --coverage",
+    "check": "npm run lint && npm run typecheck && npm test && node tools/version.mjs"
+  },
   "dependencies": {
-    "@openmemorykit/core": "0.1.0",
-    "@openmemorykit/ui": "0.1.0",
+    "@openmemorykit/core": "github:openmemorykit/omk-core#v0.1.0",
+    "@openmemorykit/ui": "github:openmemorykit/omk-ui-sdk#v0.1.0",
     "valibot": "1.4.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@vitest/coverage-v8": "5.1.1",
+    "eslint": "10.15.0",
+    "eslint-plugin-compat": "7.0.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0",
+    "vitest": "5.1.1"
   }
 }
