@@ -6,6 +6,8 @@ import { ToPage, type ToPageMessage } from '../../../protocol/to-page'
 export const SESSION_TOKEN_KEY = 'sessionToken'
 export const SESSION_TOKEN_MAX_LENGTH = 128
 export const WARNING_INTERVAL_MS = 60_000
+export const READY_RETRY_DELAY_MS = 2_000
+export const READY_MAX_RETRIES = 5
 
 export const HostWarning = {
   BootRefused: 'bootRefused',
@@ -31,7 +33,7 @@ const FROM_PAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(FromPage))
 type PlainRecord = Readonly<Record<string, unknown>>
 type Listener = (message: ToPageMessage) => void
 type Warn = (kind: HostWarning, detail: string) => void
-type Poster = (type: FromPage, body: PlainRecord) => void
+type Poster = (type: FromPage, body: PlainRecord, onFailure?: () => void) => void
 interface Registration { readonly listener: Listener }
 type TokenReader = () => string | null
 interface ReadMessage { readonly message: ToPageMessage; readonly token: string | null }
@@ -88,23 +90,37 @@ function createWarningGate(now: () => number, warn: (line: string) => void, curr
   }
 }
 
+function refused(response: Response): boolean {
+  try {
+    return !response.ok
+  } catch {
+    return false
+  }
+}
+
 function createPoster(resourceName: string, post: typeof fetch, warn: Warn): Poster {
-  const fail = (type: FromPage) => (error: unknown): void => warn(HostWarning.CallbackFailed, `${type}: ${describeError(error)}`)
-  return (type, body) => {
+  return (type, body, onFailure = () => undefined) => {
+    const fail = (error: unknown): void => {
+      warn(HostWarning.CallbackFailed, `${type}: ${describeError(error)}`)
+      onFailure()
+    }
+    const answered = (response: Response): void => {
+      if (refused(response)) fail(new Error(`status ${String(response.status)}`))
+    }
     try {
       const request: RequestInit = { method: POST_METHOD, headers: { 'Content-Type': JSON_CONTENT_TYPE }, body: JSON.stringify(body) }
-      void Promise.resolve(post(`https://${resourceName}/${type}`, request)).then(undefined, fail(type))
+      void Promise.resolve(post(`https://${resourceName}/${type}`, request)).then(answered, fail)
     } catch (error) {
-      fail(type)(error)
+      fail(error)
     }
   }
 }
 
-function createSender(currentToken: TokenReader, poster: Poster, warn: Warn): (message: FromPageMessage) => void {
+function createSender(currentToken: TokenReader, poster: Poster, ready: () => void, warn: Warn): (message: FromPageMessage) => void {
   return (message) => {
     const { type } = message
     if (!FROM_PAGE_TYPES.has(type)) return warn(HostWarning.UnknownCallback, 'message type outside FromPage')
-    if (type === FromPage.Ready) return poster(type, { ...message })
+    if (type === FromPage.Ready) return ready()
     const token = currentToken()
     if (token === null) return warn(HostWarning.SendWithoutToken, type)
     poster(type, { ...message, [SESSION_TOKEN_KEY]: token })
@@ -146,12 +162,41 @@ function createMessageHandler(adoptToken: (token: string) => void, registrations
   }
 }
 
+interface ReadyRetry {
+  readonly send: () => void
+  readonly stop: () => void
+  readonly reset: () => void
+}
+
+function createReadyRetry(win: Window, poster: Poster, shouldRetry: () => boolean): ReadyRetry {
+  let retries = 0
+  let timer: number | null = null
+  const stop = (): void => {
+    if (timer !== null) win.clearTimeout(timer)
+    timer = null
+  }
+  function send(): void {
+    poster(FromPage.Ready, { type: FromPage.Ready }, retryLater)
+  }
+  function retryLater(): void {
+    if (timer !== null || retries >= READY_MAX_RETRIES || !shouldRetry()) return
+    retries += 1
+    timer = win.setTimeout(() => {
+      timer = null
+      if (shouldRetry()) send()
+    }, READY_RETRY_DELAY_MS)
+  }
+  return { send, stop, reset: () => void (retries = 0) }
+}
+
 export function createFivemHost(win: Window, resourceName: string, post: typeof fetch, warn: (line: string) => void): HostBridge {
   let token: string | null = null
   const currentToken = (): string | null => token
   const gate = createWarningGate(() => win.performance.now(), warn, currentToken)
-  const send = createSender(currentToken, createPoster(resourceName, post, gate), gate)
+  const poster = createPoster(resourceName, post, gate)
   const registrations = new Set<Registration>()
+  const retry = createReadyRetry(win, poster, () => token === null && registrations.size > 0)
+  const send = createSender(currentToken, poster, retry.send, gate)
   const onMessage = createMessageHandler((next) => void (token = next), registrations, gate)
   return {
     send,
@@ -160,10 +205,12 @@ export function createFivemHost(win: Window, resourceName: string, post: typeof 
       registrations.add(registration)
       if (registrations.size === 1) {
         win.addEventListener(MESSAGE_EVENT, onMessage)
+        retry.reset()
         send({ type: FromPage.Ready })
       }
       return () => {
         if (!registrations.delete(registration) || registrations.size > 0) return
+        retry.stop()
         win.removeEventListener(MESSAGE_EVENT, onMessage)
       }
     },

@@ -83,6 +83,13 @@ describe('segment rules', () => {
     expect(v.is(IdentifierSchema, longest(LOCAL_ID_MAX_LENGTH + 1))).toBe(false)
   })
 
+  it.each(['list', 'a', '0', 'a.b:c_d-e', 'List', '', '-a', '_a', 'a b', 'a/b', 'é', 'constructor', 'prototype', '__proto__', 'toString', 'a\n', longest(LOCAL_ID_MAX_LENGTH), longest(LOCAL_ID_MAX_LENGTH + 1)])(
+    'agrees with the contract identifier schema on the local id %j',
+    (localId) => {
+      expect(splitNamespacedId(`${FixtureOwner.Whitelist}/${localId}`) !== null).toBe(v.is(IdentifierSchema, localId))
+    },
+  )
+
   it('accepts an owner made of any character but the separator', () => {
     expect(isNamespaceOwner('[esx]-garage.v2')).toBe(true)
     expect(isNamespaceOwner(longest(OWNER_MAX_LENGTH))).toBe(true)

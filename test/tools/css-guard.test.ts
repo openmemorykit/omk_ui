@@ -98,8 +98,10 @@ describe('tools/css-guard', () => {
     expect(spawnSync('node', [join(process.cwd(), 'tools/css-guard.mjs'), '/nonexistent-omk']).status).toBe(1)
   })
 
-  it('passes on a folder without css, as long as the folder exists', () => {
+  it('fails on a folder without css, since the page emits some', () => {
     const dir = mkdtempSync(join(tmpdir(), 'omk-css-guard-empty-'))
-    expect(spawnSync('node', [join(process.cwd(), 'tools/css-guard.mjs'), dir]).status).toBe(0)
+    const run = spawnSync('node', [join(process.cwd(), 'tools/css-guard.mjs'), dir], { encoding: 'utf8' })
+    expect(run.status).toBe(1)
+    expect(run.stderr).toContain('aucun fichier CSS')
   })
 })

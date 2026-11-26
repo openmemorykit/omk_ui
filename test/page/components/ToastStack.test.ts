@@ -38,6 +38,12 @@ describe('ToastStack', () => {
     expect(toast.find('svg').exists()).toBe(true)
   })
 
+  it('plays the entry animation from the class of each toast, without the Vue transition machinery', () => {
+    const wrapper = render(stateWith(notification(NotificationTone.Info, 'Saved')))
+    expect(wrapper.get('[data-surface="toast"]').classes()).toContain('omk-anim-slide')
+    expect(wrapper.html()).not.toContain('transition-group')
+  })
+
   it('omits the message paragraph when the notification has no text', () => {
     const toast = render(stateWith(notification(NotificationTone.Info, 'Saved'))).get('[data-surface="toast"]')
     expect(toast.find('.omk-secondary').exists()).toBe(false)

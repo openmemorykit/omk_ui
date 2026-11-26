@@ -19,21 +19,26 @@ function describe(value: unknown, fallback: string): Described {
   return { message: fallback.length === 0 ? textOf(value) : fallback, stack: '' }
 }
 
-export function installErrorCapture(target: Window, report: (message: FromPageMessage) => void): Detach {
-  let sent = 0
+export type ErrorReporter = (value: unknown, fallback?: string) => void
 
-  function send(described: Described): void {
+export function createErrorReporter(report: (message: FromPageMessage) => void): ErrorReporter {
+  let sent = 0
+  return (value, fallback = '') => {
     if (sent >= MAX_CAPTURED_ERRORS) return
     sent += 1
     try {
+      const described = describe(value, fallback)
       report(pageErrorMessage(described.message, described.stack))
     } catch {
       return
     }
   }
+}
 
-  const onError = (event: ErrorEvent): void => send(describe(event.error, textOf(event.message)))
-  const onRejection = (event: PromiseRejectionEvent): void => send(describe(event.reason, ''))
+export function installErrorCapture(target: Window, report: (message: FromPageMessage) => void): Detach {
+  const send = createErrorReporter(report)
+  const onError = (event: ErrorEvent): void => send(event.error, textOf(event.message))
+  const onRejection = (event: PromiseRejectionEvent): void => send(event.reason)
   target.addEventListener('error', onError)
   target.addEventListener('unhandledrejection', onRejection)
   return () => {

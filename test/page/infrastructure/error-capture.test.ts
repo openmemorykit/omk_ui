@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { FromPage, PAGE_ERROR_STACK_MAX_BYTES, type FromPageMessage } from '../../../src/protocol/from-page'
 import { PAGE_ERROR_MESSAGE_MAX_UNITS } from '../../../src/page/application/page-errors'
-import { installErrorCapture, MAX_CAPTURED_ERRORS } from '../../../src/page/infrastructure/error-capture'
+import { createErrorReporter, installErrorCapture, MAX_CAPTURED_ERRORS } from '../../../src/page/infrastructure/error-capture'
 import { trackListeners, type ListenerLedger } from './ledger'
 
 const HUGE = 5000
@@ -85,5 +85,28 @@ describe('error capture', () => {
     window.dispatchEvent(new ErrorEvent('error', { message: 'x' }))
     window.dispatchEvent(rejection('y'))
     expect(reports).toEqual([])
+  })
+})
+
+describe('error reporter', () => {
+  it('reports a thrown value as a page error', () => {
+    const reports: FromPageMessage[] = []
+    createErrorReporter((message) => void reports.push(message))(new Error('render failed'))
+    expect(reports).toHaveLength(1)
+    expect(reports[0]).toMatchObject({ type: FromPage.PageError, message: 'render failed' })
+  })
+
+  it('stops after the flood limit and never throws', () => {
+    const reports: FromPageMessage[] = []
+    const report = createErrorReporter((message) => void reports.push(message))
+    for (let count = 0; count < FLOOD; count += 1) report(new Error(`failure ${String(count)}`))
+    expect(reports).toHaveLength(MAX_CAPTURED_ERRORS)
+  })
+
+  it('survives a report function that throws', () => {
+    const report = createErrorReporter(() => {
+      throw new Error('host down')
+    })
+    expect(() => report(new Error('render failed'))).not.toThrow()
   })
 })

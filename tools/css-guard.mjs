@@ -115,6 +115,10 @@ function readCssNames(dir) {
 
 function main(dir) {
   const names = readCssNames(dir)
+  if (names.length === 0) {
+    console.error(`aucun fichier CSS dans ${dir} : la page en émet`)
+    process.exit(1)
+  }
   let failed = false
   for (const name of names) {
     for (const finding of scanCss(readFileSync(join(dir, name), 'utf8'))) {

@@ -24,8 +24,8 @@ function iconPaths(tone: NotificationTone): readonly string[] {
 </script>
 
 <template>
-  <TransitionGroup tag="div" class="omk-toasts" :data-column-side="columnSide" enter-active-class="omk-anim-slide" leave-active-class="omk-anim-leave">
-    <div v-for="toast in view.toasts" :key="toast.id" class="omk-toast" data-surface="toast" :data-tone="toast.tone">
+  <div class="omk-toasts" :data-column-side="columnSide">
+    <div v-for="toast in view.toasts" :key="toast.id" class="omk-toast omk-anim-slide" data-surface="toast" :data-tone="toast.tone">
       <span class="omk-toast__mark">
         <svg class="omk-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path v-for="path in iconPaths(toast.tone)" :key="path" :d="path" />
@@ -37,7 +37,7 @@ function iconPaths(tone: NotificationTone): readonly string[] {
         <p v-if="toast.text !== null" class="omk-secondary omk-toast__text">{{ toast.text }}</p>
       </div>
     </div>
-  </TransitionGroup>
+  </div>
 </template>
 
 <style>

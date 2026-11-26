@@ -1,5 +1,4 @@
-import { IdentifierSchema } from '@openmemorykit/ui/contract'
-import * as v from 'valibot'
+import { IDENTIFIER_PATTERN } from '@openmemorykit/ui/contract'
 
 export const NAMESPACE_SEPARATOR = '/'
 export const OWNER_MAX_LENGTH = 64
@@ -7,6 +6,7 @@ export const LOCAL_ID_MAX_LENGTH = 64
 export const NAMESPACED_ID_MAX_LENGTH = OWNER_MAX_LENGTH + NAMESPACE_SEPARATOR.length + LOCAL_ID_MAX_LENGTH
 
 const PROTOTYPE_PROPERTY = 'prototype'
+const RESERVED_LOCAL_IDS: ReadonlySet<string> = new Set(['constructor', PROTOTYPE_PROPERTY, '__proto__'])
 const RESERVED_OWNERS: ReadonlySet<string> = new Set([...Object.getOwnPropertyNames(Object.prototype), PROTOTYPE_PROPERTY])
 
 export interface NamespacedParts {
@@ -25,7 +25,7 @@ export function isNamespaceOwner(owner: string): boolean {
 }
 
 function isLocalId(localId: string): boolean {
-  return localId.length <= LOCAL_ID_MAX_LENGTH && v.is(IdentifierSchema, localId)
+  return localId.length <= LOCAL_ID_MAX_LENGTH && IDENTIFIER_PATTERN.test(localId) && !RESERVED_LOCAL_IDS.has(localId)
 }
 
 export function namespaceId(owner: string, localId: string): string {
