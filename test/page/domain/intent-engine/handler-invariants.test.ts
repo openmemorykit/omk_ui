@@ -5,7 +5,9 @@ import { PageCommandType, TimerKind, type UiCommand } from '../../../../src/page
 import { ConfirmChoice } from '../../../../src/page/domain/ui-state'
 import { Intent } from '../../../../src/protocol/intents'
 import { ToPage } from '../../../../src/protocol/to-page'
-import { NOTIFY_TOGGLE } from '../../../fixtures/items'
+import { NOTIFY_TOGGLE, ROLE_CYCLE } from '../../../fixtures/items'
+import { FixtureOwner } from '../../../fixtures/owned'
+import { menuPanel } from '../navigation-helpers'
 import { openPanel, press, pushPanel, release, timerFired } from './engine-helpers'
 import { click, formWith, hover, NOTE_MENU, PLAIN_TEXT, typeText, VALID_IDENTIFIER } from './handler-helpers'
 import { runInvariantLoop } from './invariant-loop'
@@ -48,11 +50,14 @@ const HANDLER_COMMANDS: readonly ((draw: Draw) => UiCommand)[] = [
   (draw) => hover(target(draw)),
   () => click(FORM_SUBMIT_ROW_ID),
   () => timerFired(TimerKind.BackHold),
+  () => timerFired(TimerKind.Repeat),
+  () => timerFired(TimerKind.Repeat),
   () => timerFired(TimerKind.FormTimeout),
   () => timerFired(TimerKind.LinkPending),
   rejectTopForm,
   (draw) => pushPanel(plainForm(draw), topId(draw), draw.seq),
   (draw) => openPanel(plainForm(draw), draw.seq),
+  (draw) => openPanel(menuPanel('roles', FixtureOwner.Whitelist, [ROLE_CYCLE]), draw.seq),
   () => ({ type: PageCommandType.WindowFocused }),
   (draw) => pushPanel({ ...NOTE_MENU, panel: { ...NOTE_MENU.panel, id: `whitelist/notes-${String(draw.random % POOL)}` } }, topId(draw), draw.seq),
 ]

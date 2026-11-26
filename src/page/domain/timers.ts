@@ -1,6 +1,8 @@
 import { CloseReason } from '@openmemorykit/ui/contract'
 import { IntentPhase } from '../../protocol/intents'
+import { FromPage } from '../../protocol/from-page'
 import { UiMode } from '../../protocol/page-vocabulary'
+import type { PageEvent, StackSnapshot } from '../../protocol/stack'
 import { expireToastQueue } from './client-messages'
 import { BACK_HOLD_MS, checkBackHold } from './hold-detector'
 import { routeInput } from './input-routing'
@@ -9,7 +11,8 @@ import { closeAllFrames } from './navigation'
 import { PageCommandType, TimerKind, type TimerFiredCommand } from './page-commands'
 import { handleList } from './panel-handlers'
 import { dueRepeats } from './repeat-policy'
-import { schedule, stackEvent, unchanged, withEffects, type CommandHandler, type Transition } from './ui-effects'
+import { pageEvent } from './page-event'
+import { schedule, sendToHost, stackEvent, unchanged, UiEffectType, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
 import type { UiState } from './ui-state'
 import { endWaiting } from './waiting-handler'
 
@@ -23,6 +26,19 @@ function fireBackHold(state: UiState, now: number): Transition {
   return withEffects(idle, state.stack.length === 0 ? [] : [stackEvent(idle, closed.replies)])
 }
 
+function eventOf(effect: UiEffect): PageEvent | null {
+  return effect.type === UiEffectType.SendToHost && effect.message.type === FromPage.Event ? effect.message.event : null
+}
+
+function withSingleEvent(effects: readonly UiEffect[]): readonly UiEffect[] {
+  const pageEvents = effects.flatMap((effect) => eventOf(effect) ?? [])
+  if (pageEvents.length <= 1) return effects
+  const stack = pageEvents.reduce<StackSnapshot | null>((latest, event) => event.stack ?? latest, null)
+  const merged = sendToHost(pageEvent(stack, pageEvents.flatMap((event) => event.replies)))
+  const firstIndex = effects.findIndex((effect) => eventOf(effect) !== null)
+  return effects.flatMap((effect, index) => (eventOf(effect) === null ? [effect] : index === firstIndex ? [merged] : []))
+}
+
 function fireRepeats(state: UiState, now: number): Transition {
   const due = dueRepeats(state.held, now)
   const start: Transition = unchanged(due.held === state.held ? state : { ...state, held: due.held })
@@ -30,7 +46,7 @@ function fireRepeats(state: UiState, now: number): Transition {
     const routed = routeInput(previous.state, { type: PageCommandType.LocalIntent, intent, phase: IntentPhase.Press, fromEscape: false }, now)
     return { state: routed.state, effects: previous.effects.concat(routed.effects) }
   }, start)
-  return withEffects(repeated.state, repeated.effects.concat(repeatSchedule(repeated.state, now)))
+  return withEffects(repeated.state, withSingleEvent(repeated.effects).concat(repeatSchedule(repeated.state, now)))
 }
 
 export const handleTimerFired: CommandHandler<TimerFiredCommand> = (state, command, now) => {

@@ -2,8 +2,10 @@ import { ReplyKind, type Item } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import { LINK_PENDING_MS, TimerKind } from '../../../../src/page/domain/page-commands'
-import { schedule, UiEffectType } from '../../../../src/page/domain/ui-effects'
+import { REPEAT_DELAY_MS, REPEAT_INTERVAL_MS, REPEAT_MAX_PER_CALL } from '../../../../src/page/domain/repeat-policy'
+import { schedule, sendToHost, UiEffectType } from '../../../../src/page/domain/ui-effects'
 import { ConfirmChoice, ConfirmOrigin, LayerKind } from '../../../../src/page/domain/ui-state'
+import { FromPage } from '../../../../src/protocol/from-page'
 import { Intent } from '../../../../src/protocol/intents'
 import { ENABLED_TOGGLE, IDENTIFIER_FIELD_MAX_LENGTH, REMOVE_ALL_ACTION, ROLE_CYCLE } from '../../../fixtures/items'
 import { FixtureOwner, OWNED_LIST_PANEL } from '../../../fixtures/owned'
@@ -17,6 +19,7 @@ const THREE_OPTIONS: Item = { ...ROLE_CYCLE, id: 'tier', options: [{ id: 'low', 
 const SETTINGS = menuPanel('settings', OWNER, [THREE_OPTIONS, ENABLED_TOGGLE])
 const SETTINGS_ID = SETTINGS.panel.id
 const PUSH_SEQ = 2
+const LATE_REPEAT_MS = 500
 const OPTION_COUNT = 3
 const CONFIRM_COUNTS = Array.from({ length: OPTION_COUNT }, (_, index) => index + 1)
 
@@ -100,6 +103,17 @@ describe('Cycle', () => {
     const left = transition(state, press(Intent.Left), NOW)
     expect(valueOf(left.state, 'tier')).toBe('high')
     expect(left.effects).toEqual([REPEAT_SCHEDULE, changed(SETTINGS_ID, 'tier', 'high')])
+  })
+
+  it('sends the values of a late repeat in a single Event, in order', () => {
+    const held = run(withPanels([SETTINGS]), [press(Intent.Left)]).state
+    const next = transition(held, timerFired(TimerKind.Repeat), NOW + LATE_REPEAT_MS)
+    const values = ['mid', 'low', 'high'].map((value) => ({ owner: OWNER, reply: { kind: ReplyKind.ValueChanged, panelId: SETTINGS_ID, itemId: 'tier', value } }))
+    expect(next.effects).toEqual([
+      sendToHost({ type: FromPage.Event, event: { stack: null, replies: values } }),
+      schedule(TimerKind.Repeat, REPEAT_DELAY_MS + REPEAT_MAX_PER_CALL * REPEAT_INTERVAL_MS - LATE_REPEAT_MS),
+    ])
+    expect(valueOf(next.state, 'tier')).toBe('high')
   })
 
   it('moves one step forward on confirm and wraps after the last option', () => {
