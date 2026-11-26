@@ -1,0 +1,198 @@
+import { CloseReason, ItemKind, PANEL_MAX_ITEMS, PanelKind, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
+import type { ConfirmContent, ConfirmRequest, Item, Panel } from '@openmemorykit/ui/contract'
+import { splitNamespacedId } from '../../protocol/namespaced-id'
+import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
+import type { OwnedReply } from '../../protocol/stack'
+import { mergeFormOnUpdate, openForm, type FormState } from './form'
+import { firstFocusable, isFocusable, nearestFocusable, visibleWindowStart } from './list-focus'
+import { ConfirmChoice, ConfirmOrigin, LayerKind, type ConfirmLayer, type Frame, type Layer, type UiState } from './ui-state'
+
+export interface StackChange { readonly state: UiState; readonly replies: readonly OwnedReply[] }
+
+export const FRAME_MAX_LAYERS = 4
+
+const NO_REPLIES: readonly OwnedReply[] = Object.freeze([])
+const NOT_FOUND = -1
+const FIRST_ROW = 0
+
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === 'object' && value !== null
+const isUsableItem = (item: unknown): boolean => isRecord(item) && typeof item.id === 'string'
+const isPanelKind = (kind: unknown): boolean => kind === PanelKind.Menu || kind === PanelKind.Form
+
+function isUsablePanel(owned: unknown): owned is OwnedPanel {
+  if (!isRecord(owned) || typeof owned.owner !== 'string' || !isRecord(owned.panel)) return false
+  const { id, kind, items } = owned.panel
+  return typeof id === 'string' && isPanelKind(kind) && Array.isArray(items) && items.length <= PANEL_MAX_ITEMS && items.every(isUsableItem)
+}
+
+const topOf = (stack: readonly Frame[]): Frame | undefined => stack[stack.length - 1]
+const panelIdOf = (frame: Frame): string | null => frame.panel?.panel.id ?? null
+const isRequestConfirm = (layer: Layer): layer is ConfirmLayer => layer.kind === LayerKind.Confirm && layer.origin === ConfirmOrigin.Request
+
+function confirmOwnerOf(layer: ConfirmLayer): string | null {
+  return layer.confirmId === null ? null : splitNamespacedId(layer.confirmId)?.owner ?? null
+}
+
+function frameOwner(frame: Frame): string | null {
+  if (frame.panel !== null) return frame.panel.owner
+  const request = frame.layers.find(isRequestConfirm)
+  return request === undefined ? null : confirmOwnerOf(request)
+}
+
+function withCommandSeq(state: UiState, commandSeq: number): UiState {
+  const isNewer = Number.isSafeInteger(commandSeq) && commandSeq > state.appliedCommandSeq
+  return isNewer ? { ...state, appliedCommandSeq: commandSeq } : state
+}
+
+function windowStart(items: readonly Item[], focusItemId: string | null, previousStart: number): number {
+  const focusIndex = items.findIndex((item) => item.id === focusItemId)
+  return visibleWindowStart(items.length, focusIndex, previousStart)
+}
+
+function createFrame(owned: OwnedPanel): Frame {
+  const { panel } = owned
+  const focusItemId = firstFocusable(panel.items)
+  return {
+    panel: owned,
+    focusItemId,
+    layers: [],
+    form: panel.kind === PanelKind.Form ? openForm(panel) : null,
+    pendingItemId: null,
+    visibleStart: windowStart(panel.items, focusItemId, FIRST_ROW),
+  }
+}
+
+function abandonedConfirmReply(layer: Layer): readonly OwnedReply[] {
+  if (!isRequestConfirm(layer) || layer.confirmId === null) return NO_REPLIES
+  const owner = confirmOwnerOf(layer)
+  return owner === null ? NO_REPLIES : [{ owner, reply: { kind: ReplyKind.ConfirmAnswered, confirmId: layer.confirmId, confirmed: false } }]
+}
+
+function frameClosingReplies(frame: Frame, reason: CloseReason): readonly OwnedReply[] {
+  const answers = frame.layers.slice().reverse().flatMap(abandonedConfirmReply)
+  if (frame.panel === null) return answers
+  return answers.concat({ owner: frame.panel.owner, reply: { kind: ReplyKind.PanelClosed, panelId: frame.panel.panel.id, reason } })
+}
+
+function closingReplies(frames: readonly Frame[], reason: CloseReason): readonly OwnedReply[] {
+  return frames.slice().reverse().flatMap((frame) => frameClosingReplies(frame, reason))
+}
+
+export function openPanelFrame(state: UiState, panel: OwnedPanel, commandSeq: number): StackChange {
+  const applied = withCommandSeq(state, commandSeq)
+  if (!isUsablePanel(panel)) return { state: applied, replies: NO_REPLIES }
+  return { state: { ...applied, stack: [createFrame(panel)] }, replies: closingReplies(state.stack, CloseReason.ClosedByOwner) }
+}
+
+function canPush(stack: readonly Frame[], panel: OwnedPanel, parentId: string): boolean {
+  const top = topOf(stack)
+  if (top === undefined || panelIdOf(top) !== parentId || stack.length >= STACK_MAX_DEPTH) return false
+  return !stack.some((frame) => panelIdOf(frame) === panel.panel.id)
+}
+
+export function pushPanelFrame(state: UiState, panel: OwnedPanel, parentId: string, commandSeq: number): StackChange {
+  const applied = withCommandSeq(state, commandSeq)
+  if (!isUsablePanel(panel)) return { state: applied, replies: NO_REPLIES }
+  if (!canPush(state.stack, panel, parentId)) {
+    return { state: applied, replies: [{ owner: panel.owner, reply: { kind: ReplyKind.PanelClosed, panelId: panel.panel.id, reason: CloseReason.Discarded } }] }
+  }
+  const parents = state.stack.map((frame, index) => (index === state.stack.length - 1 ? { ...frame, pendingItemId: null } : frame))
+  return { state: { ...applied, stack: parents.concat(createFrame(panel)) }, replies: NO_REPLIES }
+}
+
+function refreshedForm(form: FormState | null, panel: Panel): FormState | null {
+  if (panel.kind !== PanelKind.Form) return null
+  return form === null ? openForm(panel) : mergeFormOnUpdate(form, panel)
+}
+
+function layerSurvives(layer: Layer, itemsById: ReadonlyMap<string, Item>): boolean {
+  if (layer.itemId === null) return true
+  const item = itemsById.get(layer.itemId)
+  return layer.kind === LayerKind.Keyboard ? item?.kind === ItemKind.Text : item !== undefined
+}
+
+function refreshFrame(frame: Frame, owned: OwnedPanel): Frame {
+  const { items } = owned.panel
+  const itemsById: ReadonlyMap<string, Item> = new Map(items.map((item) => [item.id, item] as const))
+  const focusItemId = nearestFocusable(items, frame.panel?.panel.items ?? [], frame.focusItemId)
+  const pendingItemId = frame.pendingItemId !== null && itemsById.has(frame.pendingItemId) ? frame.pendingItemId : null
+  return {
+    panel: owned,
+    focusItemId,
+    layers: frame.layers.filter((layer) => layerSurvives(layer, itemsById)),
+    form: refreshedForm(frame.form, owned.panel),
+    pendingItemId,
+    visibleStart: windowStart(items, focusItemId, frame.visibleStart),
+  }
+}
+
+export function updatePanelFrame(state: UiState, panel: OwnedPanel): UiState {
+  if (!isUsablePanel(panel)) return state
+  const index = state.stack.findIndex((frame) => frame.panel !== null && frame.panel.owner === panel.owner && frame.panel.panel.id === panel.panel.id)
+  if (index === NOT_FOUND) return state
+  return { ...state, stack: state.stack.map((frame, position) => (position === index ? refreshFrame(frame, panel) : frame)) }
+}
+
+export function closePanelFrame(state: UiState, panelId: string, commandSeq: number): StackChange {
+  const applied = withCommandSeq(state, commandSeq)
+  const index = typeof panelId === 'string' ? state.stack.findIndex((frame) => panelIdOf(frame) === panelId) : NOT_FOUND
+  if (index === NOT_FOUND) return { state: applied, replies: NO_REPLIES }
+  return { state: { ...applied, stack: state.stack.slice(0, index) }, replies: closingReplies(state.stack.slice(index), CloseReason.ClosedByOwner) }
+}
+
+export function dropOwnerFrames(state: UiState, owner: string, commandSeq: number): UiState {
+  const applied = withCommandSeq(state, commandSeq)
+  const stack = state.stack.filter((frame) => frameOwner(frame) !== owner)
+  return stack.length === state.stack.length ? applied : { ...applied, stack }
+}
+
+function contentOf(confirm: ConfirmRequest): ConfirmContent {
+  const { title, text, confirmLabel, cancelLabel, danger } = confirm
+  return { title, text, confirmLabel, ...(cancelLabel === undefined ? {} : { cancelLabel }), ...(danger === undefined ? {} : { danger }) }
+}
+
+function requestLayer(owned: OwnedConfirm): ConfirmLayer | null {
+  if (!isRecord(owned) || !isRecord(owned.confirm) || typeof owned.confirm.id !== 'string') return null
+  const { owner, confirm } = owned
+  if (splitNamespacedId(confirm.id)?.owner !== owner) return null
+  const choice = confirm.danger === true ? ConfirmChoice.Cancel : ConfirmChoice.Confirm
+  return { kind: LayerKind.Confirm, origin: ConfirmOrigin.Request, content: contentOf(confirm), confirmId: confirm.id, itemId: null, choice }
+}
+
+function isConfirmShown(stack: readonly Frame[], confirmId: string | null): boolean {
+  return stack.some((frame) => frame.layers.some((layer) => isRequestConfirm(layer) && layer.confirmId === confirmId))
+}
+
+export function showConfirmLayer(state: UiState, confirm: OwnedConfirm, commandSeq: number): UiState {
+  const applied = withCommandSeq(state, commandSeq)
+  const layer = requestLayer(confirm)
+  if (layer === null || isConfirmShown(state.stack, layer.confirmId)) return applied
+  const top = topOf(state.stack)
+  if (top === undefined) {
+    return { ...applied, stack: [{ panel: null, focusItemId: null, layers: [layer], form: null, pendingItemId: null, visibleStart: FIRST_ROW }] }
+  }
+  if (frameOwner(top) !== confirm.owner || top.layers.length >= FRAME_MAX_LAYERS) return applied
+  return { ...applied, stack: state.stack.slice(0, -1).concat({ ...top, layers: top.layers.concat(layer) }) }
+}
+
+export function popTopFrame(state: UiState): StackChange {
+  const top = topOf(state.stack)
+  if (top === undefined) return { state, replies: NO_REPLIES }
+  return { state: { ...state, stack: state.stack.slice(0, -1) }, replies: frameClosingReplies(top, CloseReason.Back) }
+}
+
+export function closeAllFrames(state: UiState): StackChange {
+  if (state.stack.length === 0) return { state, replies: NO_REPLIES }
+  return { state: { ...state, stack: [] }, replies: closingReplies(state.stack, CloseReason.CloseAll) }
+}
+
+export function setFrameFocus(state: UiState, itemId: string): UiState {
+  const top = topOf(state.stack)
+  if (top === undefined || top.panel === null || top.focusItemId === itemId) return state
+  const { items } = top.panel.panel
+  const focusIndex = items.findIndex((item) => item.id === itemId)
+  const item = items[focusIndex]
+  if (item === undefined || !isFocusable(item)) return state
+  const focused: Frame = { ...top, focusItemId: item.id, visibleStart: visibleWindowStart(items.length, focusIndex, top.visibleStart) }
+  return { ...state, stack: state.stack.slice(0, -1).concat(focused) }
+}
