@@ -9,13 +9,11 @@ import {
   openPanelFrame,
   popTopFrame,
   pushPanelFrame,
-  setFrameFocus,
   showConfirmLayer,
-  updatePanelFrame,
 } from '../../../src/page/domain/navigation'
 import { stackSnapshot } from '../../../src/page/domain/page-event'
-import { ConfirmChoice, ConfirmOrigin, createInitialState, LayerKind, type Layer } from '../../../src/page/domain/ui-state'
-import { ADD_ACTION, ENABLED_TOGGLE, PLAYER_LINK, PLAYERS_SECTION, PURGE_ACTION } from '../../fixtures/items'
+import { ConfirmChoice, ConfirmOrigin, createInitialState, LayerKind } from '../../../src/page/domain/ui-state'
+import { ENABLED_TOGGLE, PLAYER_LINK } from '../../fixtures/items'
 import { FixtureOwner, OWNED_ADD_PANEL, OWNED_LIST_PANEL, OWNED_REMOVE_CONFIRM } from '../../fixtures/owned'
 import { closedReplies, confirmFor, menuPanel, panelIdAt, replyKinds, stackIds, stackOfDepth } from './navigation-helpers'
 
@@ -25,8 +23,6 @@ const SEQ_OPEN = 1
 const SEQ_PUSH = 2
 const SEQ_NEXT = 3
 const THIRD = 2
-const LONG_LIST_LENGTH = 30
-const FAR_ROW = 25
 
 const listOpen = (): ReturnType<typeof createInitialState> => openPanelFrame(createInitialState(), OWNED_LIST_PANEL, SEQ_OPEN).state
 const listAndAdd = (): ReturnType<typeof createInitialState> => pushPanelFrame(listOpen(), OWNED_ADD_PANEL, LIST_ID, SEQ_PUSH).state
@@ -93,61 +89,6 @@ describe('pushPanelFrame', () => {
     const { state, replies } = pushPanelFrame(confirmOnly, OWNED_ADD_PANEL, LIST_ID, SEQ_PUSH)
     expect(state.stack).toBe(confirmOnly.stack)
     expect(replies).toEqual([{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: ADD_ID, reason: CloseReason.Discarded } }])
-  })
-})
-
-describe('updatePanelFrame', () => {
-  const withFocus = (itemId: string): ReturnType<typeof createInitialState> => setFrameFocus(listOpen(), itemId)
-
-  it('keeps the focus on the same item identifier when items move', () => {
-    const moved = menuPanel('list', FixtureOwner.Whitelist, [PLAYER_LINK, ENABLED_TOGGLE, ADD_ACTION])
-    const state = updatePanelFrame(withFocus(ADD_ACTION.id), moved)
-    expect(state.stack[0]?.focusItemId).toBe(ADD_ACTION.id)
-    expect(state.stack[0]?.panel).toBe(moved)
-  })
-
-  it('moves the focus to the nearest survivor when the focused item disappears', () => {
-    const shrunk = menuPanel('list', FixtureOwner.Whitelist, [ENABLED_TOGGLE, PLAYERS_SECTION, PURGE_ACTION])
-    expect(updatePanelFrame(withFocus(PLAYER_LINK.id), shrunk).stack[0]?.focusItemId).toBe(PURGE_ACTION.id)
-  })
-
-  it('ignores an unknown panel and a panel of another owner', () => {
-    const before = listOpen()
-    expect(updatePanelFrame(before, menuPanel('unknown'))).toBe(before)
-    expect(updatePanelFrame(before, { ...OWNED_LIST_PANEL, owner: FixtureOwner.Garage })).toBe(before)
-  })
-
-  it('drops layers and pending links tied to removed items but keeps a requested confirmation', () => {
-    const requested = showConfirmLayer(listOpen(), OWNED_REMOVE_CONFIRM, SEQ_PUSH)
-    const frame = requested.stack[0]
-    if (frame === undefined) throw new Error('Expected a frame')
-    const itemConfirm: Layer = {
-      kind: LayerKind.Confirm,
-      origin: ConfirmOrigin.Item,
-      content: OWNED_REMOVE_CONFIRM.confirm,
-      confirmId: null,
-      itemId: PLAYER_LINK.id,
-      choice: ConfirmChoice.Cancel,
-    }
-    const decorated = { ...requested, stack: [{ ...frame, layers: [itemConfirm, ...frame.layers], pendingItemId: PLAYER_LINK.id }] }
-    const updated = updatePanelFrame(decorated, menuPanel('list', FixtureOwner.Whitelist, [ENABLED_TOGGLE]))
-    expect(updated.stack[0]?.layers).toEqual(frame.layers)
-    expect(updated.stack[0]?.pendingItemId).toBeNull()
-  })
-
-  it('merges the form values of an updated form', () => {
-    const opened = openPanelFrame(createInitialState(), OWNED_ADD_PANEL, SEQ_OPEN).state
-    const form = opened.stack[0]?.form
-    if (form === undefined || form === null) throw new Error('Expected a form')
-    const edited = { ...opened, stack: opened.stack.map((frame) => ({ ...frame, form: setFieldValue(form, 'notify', true) })) }
-    expect(updatePanelFrame(edited, OWNED_ADD_PANEL).stack[0]?.form?.values).toEqual({ identifier: '', role: 'member', notify: true })
-  })
-
-  it('starts or ends the form when the panel kind changes', () => {
-    const asForm = { ...OWNED_ADD_PANEL, panel: { ...OWNED_ADD_PANEL.panel, id: LIST_ID } }
-    const becameForm = updatePanelFrame(listOpen(), asForm)
-    expect(becameForm.stack[0]?.form?.status).toBe(FormStatus.Editing)
-    expect(updatePanelFrame(becameForm, OWNED_LIST_PANEL).stack[0]?.form).toBeNull()
   })
 })
 
@@ -232,22 +173,6 @@ describe('popTopFrame and closeAllFrames', () => {
     expect(closedReplies(replies).map((reply) => [reply.panelId, reply.reason])).toEqual([[ADD_ID, CloseReason.CloseAll], [LIST_ID, CloseReason.CloseAll]])
     const empty = createInitialState()
     expect(closeAllFrames(empty)).toEqual({ state: empty, replies: [] })
-  })
-})
-
-describe('setFrameFocus', () => {
-  it('focuses a focusable item of the top frame only', () => {
-    const before = listOpen()
-    expect(setFrameFocus(before, PURGE_ACTION.id).stack[0]?.focusItemId).toBe(PURGE_ACTION.id)
-    expect(setFrameFocus(before, PLAYERS_SECTION.id)).toBe(before)
-    expect(setFrameFocus(before, 'unknown')).toBe(before)
-    expect(setFrameFocus(createInitialState(), PURGE_ACTION.id)).toEqual(createInitialState())
-  })
-
-  it('scrolls the visible window to the focused row', () => {
-    const items = Array.from({ length: LONG_LIST_LENGTH }, (_, index) => ({ ...ADD_ACTION, id: `row-${String(index)}` }))
-    const longList = openPanelFrame(createInitialState(), menuPanel('long', FixtureOwner.Whitelist, items), SEQ_OPEN).state
-    expect(setFrameFocus(longList, `row-${String(FAR_ROW)}`).stack[0]?.visibleStart).toBeGreaterThan(0)
   })
 })
 

@@ -46,7 +46,10 @@ function itemReplies(frame: Frame, itemId: string | null, confirmed: boolean): r
 }
 
 function answerAbandon(state: UiState, context: ConfirmContext, confirmed: boolean): Transition {
-  if (confirmed) return closeKeyboardLayer(state, null)
+  if (confirmed) {
+    const closed = closeKeyboardLayer(state, null)
+    return closed.state === state ? unchanged(withTopFrame(state, withoutTopLayer(context.frame))) : closed
+  }
   const frame = withoutTopLayer(context.frame)
   return withEffects(withTopFrame(state, frame), refocusedText(frame))
 }

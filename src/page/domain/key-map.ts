@@ -39,7 +39,7 @@ export type DecodedBinding =
   | { readonly kind: typeof BindingKind.Known; readonly code: string }
   | { readonly kind: typeof BindingKind.Unknown; readonly raw: string }
 
-export const BOUND_KEY_CODES: Readonly<Record<number, string>> = { 170: 'F1', 194: 'ArrowUp', 102: 'MouseMiddle' }
+export const BOUND_KEY_CODES: Readonly<Record<number, string>> = Object.freeze({ 170: 'F1', 194: 'ArrowUp', 102: 'MouseMiddle' })
 
 const TEXT_BINDING_PREFIX = 't_'
 const CODE_BINDING_PREFIX = 'b_'

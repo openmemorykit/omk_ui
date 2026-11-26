@@ -1,8 +1,5 @@
-import { NotificationTone } from '@openmemorykit/ui/contract'
+import { NOTIFICATION_QUEUE_LENGTH, NOTIFICATIONS_VISIBLE, NotificationTone } from '@openmemorykit/ui/contract'
 import type { OwnedNotification } from '../../protocol/owned'
-
-export const MAX_VISIBLE_TOASTS = 4
-export const MAX_WAITING_TOASTS = 20
 
 export const DEFAULT_TOAST_DURATION_MS: Readonly<Record<NotificationTone, number>> = Object.freeze({
   [NotificationTone.Info]: 5_000,
@@ -33,9 +30,9 @@ function replaceSlot(toasts: readonly Toast[], owned: OwnedNotification, shownAt
 }
 
 function enqueue(queue: ToastQueue, owned: OwnedNotification, now: number): ToastQueue {
-  if (queue.visible.length < MAX_VISIBLE_TOASTS) return { ...queue, visible: queue.visible.concat(createToast(owned, now)) }
+  if (queue.visible.length < NOTIFICATIONS_VISIBLE) return { ...queue, visible: queue.visible.concat(createToast(owned, now)) }
   const waiting = queue.waiting.concat(createToast(owned, null))
-  const overflow = waiting.length - MAX_WAITING_TOASTS
+  const overflow = waiting.length - NOTIFICATION_QUEUE_LENGTH
   return overflow > 0 ? { ...queue, waiting: waiting.slice(overflow), dropped: queue.dropped + overflow } : { ...queue, waiting }
 }
 
@@ -49,7 +46,7 @@ export function pushToast(queue: ToastQueue, owned: OwnedNotification, now: numb
 export function expireToasts(queue: ToastQueue, now: number): ToastQueue {
   const alive = queue.visible.filter((toast) => endOf(toast) > now)
   if (alive.length === queue.visible.length) return queue
-  const promoted = queue.waiting.slice(0, MAX_VISIBLE_TOASTS - alive.length).map((toast) => ({ ...toast, shownAt: now }))
+  const promoted = queue.waiting.slice(0, NOTIFICATIONS_VISIBLE - alive.length).map((toast) => ({ ...toast, shownAt: now }))
   return { ...queue, visible: alive.concat(promoted), waiting: queue.waiting.slice(promoted.length) }
 }
 

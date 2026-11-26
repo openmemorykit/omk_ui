@@ -31,14 +31,6 @@ export function firstFocusable(items: readonly Item[]): string | null {
   return focusableIds(items)[0] ?? null
 }
 
-export function moveFocus(items: readonly Item[], currentId: string | null, step: 1 | -1): string | null {
-  const ids = focusableIds(items)
-  if (ids.length === 0) return null
-  const current = currentId === null ? -1 : ids.indexOf(currentId)
-  const target = current === -1 ? (step === 1 ? 0 : ids.length - 1) : (current + step + ids.length) % ids.length
-  return ids[target] ?? null
-}
-
 export function nearestFocusable(items: readonly Item[], previousItems: readonly Item[], previousId: string | null): string | null {
   const kept = items.find((item) => item.id === previousId)
   if (kept !== undefined && isFocusable(kept)) return kept.id

@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ContractVersion, NotificationTone } from '@openmemorykit/ui/contract'
+import { ContractVersion, NOTIFICATION_QUEUE_LENGTH, NOTIFICATIONS_VISIBLE, NotificationTone } from '@openmemorykit/ui/contract'
 import type { Notification } from '@openmemorykit/ui/contract'
 import type { OwnedNotification } from '../../../src/protocol/owned'
 import {
   DEFAULT_TOAST_DURATION_MS,
   EMPTY_TOASTS,
   expireToasts,
-  MAX_VISIBLE_TOASTS,
-  MAX_WAITING_TOASTS,
   nextToastExpiry,
   pushToast,
 } from '../../../src/page/domain/toasts'
@@ -24,7 +22,7 @@ const LONG_MS = 9_000
 const CUSTOM_MS = 1_234
 const TINY_MS = 100
 const FLOOD = 100_000
-const FILL = MAX_VISIBLE_TOASTS + MAX_WAITING_TOASTS
+const FILL = NOTIFICATIONS_VISIBLE + NOTIFICATION_QUEUE_LENGTH
 const SPILL = 30
 const EXPIRING_FIRST = 2
 const FEW = 3
@@ -51,7 +49,7 @@ function titles(toasts: ToastQueue['visible']): readonly string[] {
 
 describe('limits', () => {
   it('are 4 visible and 20 waiting', () => {
-    expect({ visible: MAX_VISIBLE_TOASTS, waiting: MAX_WAITING_TOASTS }).toEqual(LIMITS)
+    expect({ visible: NOTIFICATIONS_VISIBLE, waiting: NOTIFICATION_QUEUE_LENGTH }).toEqual(LIMITS)
   })
 })
 
@@ -76,7 +74,7 @@ describe('pushToast', () => {
   })
 
   it('shows 4 and queues the 5th', () => {
-    const queue = pushAll(numbered(MAX_VISIBLE_TOASTS + 1))
+    const queue = pushAll(numbered(NOTIFICATIONS_VISIBLE + 1))
     expect(titles(queue.visible)).toEqual(['n0', 'n1', 'n2', 'n3'])
     expect(titles(queue.waiting)).toEqual(['n4'])
     expect(queue.waiting[0]?.shownAt).toBeNull()
@@ -84,19 +82,19 @@ describe('pushToast', () => {
 
   it('keeps 20 waiting and drops the oldest on the 21st', () => {
     const full = pushAll(numbered(FILL))
-    expect(full.waiting).toHaveLength(MAX_WAITING_TOASTS)
+    expect(full.waiting).toHaveLength(NOTIFICATION_QUEUE_LENGTH)
     expect(full.dropped).toBe(0)
     const over = pushToast(full, owned({ title: 'late' }), NOW)
-    expect(over.waiting).toHaveLength(MAX_WAITING_TOASTS)
+    expect(over.waiting).toHaveLength(NOTIFICATION_QUEUE_LENGTH)
     expect(over.dropped).toBe(1)
-    expect(over.waiting[0]?.owned.notification.title).toBe(`n${MAX_VISIBLE_TOASTS + 1}`)
+    expect(over.waiting[0]?.owned.notification.title).toBe(`n${NOTIFICATIONS_VISIBLE + 1}`)
     expect(over.waiting.at(-1)?.owned.notification.title).toBe('late')
   })
 
   it('stays bounded under a flood', () => {
     const queue = pushAll(numbered(FLOOD))
-    expect(queue.visible).toHaveLength(MAX_VISIBLE_TOASTS)
-    expect(queue.waiting).toHaveLength(MAX_WAITING_TOASTS)
+    expect(queue.visible).toHaveLength(NOTIFICATIONS_VISIBLE)
+    expect(queue.waiting).toHaveLength(NOTIFICATION_QUEUE_LENGTH)
     expect(queue.dropped).toBe(FLOOD - FILL)
   })
 
@@ -110,7 +108,7 @@ describe('pushToast', () => {
   })
 
   it('replaces a waiting toast with the same owner and key, in place', () => {
-    const queue = pushAll([...numbered(MAX_VISIBLE_TOASTS), owned({ key: SHARED_KEY, title: 'old' }), owned({ title: 'after' })])
+    const queue = pushAll([...numbered(NOTIFICATIONS_VISIBLE), owned({ key: SHARED_KEY, title: 'old' }), owned({ title: 'after' })])
     const later = pushToast(queue, owned({ key: SHARED_KEY, title: 'new' }), NOW + TINY_MS)
     expect(titles(later.waiting)).toEqual(['new', 'after'])
     expect(later.waiting[0]?.shownAt).toBeNull()
@@ -118,7 +116,7 @@ describe('pushToast', () => {
 
   it('does not merge the same key from two owners, nor toasts without key', () => {
     const queue = pushAll([owned({ key: SHARED_KEY }), owned({ key: SHARED_KEY, owner: OTHER_OWNER }), owned(), owned()])
-    expect(queue.visible).toHaveLength(MAX_VISIBLE_TOASTS)
+    expect(queue.visible).toHaveLength(NOTIFICATIONS_VISIBLE)
   })
 
   it('treats hostile keys as plain text', () => {
@@ -128,7 +126,7 @@ describe('pushToast', () => {
   })
 
   it('does not mutate its inputs and returns a new queue', () => {
-    const before = pushAll(numbered(MAX_VISIBLE_TOASTS + FEW))
+    const before = pushAll(numbered(NOTIFICATIONS_VISIBLE + FEW))
     const snapshot = JSON.stringify(before)
     const after = pushToast(before, owned({ title: 'x' }), NOW + 1)
     expect(JSON.stringify(before)).toBe(snapshot)
@@ -144,6 +142,14 @@ describe('pushToast', () => {
 })
 
 describe('expireToasts', () => {
+  it('expires at once a visible toast that has no start time', () => {
+    const [shown] = pushToast(EMPTY_TOASTS, owned({ durationMs: CUSTOM_MS }), NOW).visible
+    if (shown === undefined) throw new Error('toast expected')
+    const unstarted: ToastQueue = { ...EMPTY_TOASTS, visible: [{ ...shown, shownAt: null }] }
+    expect(expireToasts(unstarted, CUSTOM_MS).visible).toEqual([])
+    expect(nextToastExpiry(unstarted)).toBe(CUSTOM_MS)
+  })
+
   it('keeps toasts before their end and removes them at their end', () => {
     const queue = pushAll([owned({ durationMs: SECOND_MS })])
     expect(expireToasts(queue, NOW + SECOND_MS - 1).visible).toHaveLength(1)
@@ -164,13 +170,13 @@ describe('expireToasts', () => {
   })
 
   it('promotes several toasts when several expire, and keeps dropped', () => {
-    const queue = pushAll([...numbered(EXPIRING_FIRST, 0, SECOND_MS), ...numbered(EXPIRING_FIRST, EXPIRING_FIRST), ...numbered(SPILL, MAX_VISIBLE_TOASTS)])
+    const queue = pushAll([...numbered(EXPIRING_FIRST, 0, SECOND_MS), ...numbered(EXPIRING_FIRST, EXPIRING_FIRST), ...numbered(SPILL, NOTIFICATIONS_VISIBLE)])
     const dropped = EXPIRING_FIRST + EXPIRING_FIRST + SPILL - FILL
     expect(queue.dropped).toBe(dropped)
     const later = expireToasts(queue, NOW + SECOND_MS)
-    expect(later.visible).toHaveLength(MAX_VISIBLE_TOASTS)
+    expect(later.visible).toHaveLength(NOTIFICATIONS_VISIBLE)
     expect(later.visible.filter((toast) => toast.shownAt === NOW + SECOND_MS)).toHaveLength(EXPIRING_FIRST)
-    expect(later.waiting).toHaveLength(MAX_WAITING_TOASTS - EXPIRING_FIRST)
+    expect(later.waiting).toHaveLength(NOTIFICATION_QUEUE_LENGTH - EXPIRING_FIRST)
     expect(later.dropped).toBe(dropped)
   })
 
@@ -181,7 +187,7 @@ describe('expireToasts', () => {
   })
 
   it('does not mutate its input', () => {
-    const queue = pushAll(numbered(MAX_VISIBLE_TOASTS + FEW))
+    const queue = pushAll(numbered(NOTIFICATIONS_VISIBLE + FEW))
     const snapshot = JSON.stringify(queue)
     expireToasts(queue, NOW + PLENTY_MS)
     expect(JSON.stringify(queue)).toBe(snapshot)
@@ -199,7 +205,7 @@ describe('nextToastExpiry', () => {
   })
 
   it('ignores waiting toasts', () => {
-    const queue = pushAll([...numbered(MAX_VISIBLE_TOASTS, 0, LONG_MS), owned({ durationMs: TINY_MS })])
+    const queue = pushAll([...numbered(NOTIFICATIONS_VISIBLE, 0, LONG_MS), owned({ durationMs: TINY_MS })])
     expect(nextToastExpiry(queue)).toBe(NOW + LONG_MS)
   })
 })

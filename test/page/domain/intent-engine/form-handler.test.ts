@@ -1,4 +1,4 @@
-import { CloseReason, FormOutcome, ReplyKind, type FormResult } from '@openmemorykit/ui/contract'
+import { CloseReason, FormOutcome, MAX_REPORTED_ERRORS, ReplyKind, type FormResult } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { FORM_TIMEOUT_MS, FormStatus } from '../../../../src/page/domain/form'
 import { FORM_SUBMIT_ROW_ID } from '../../../../src/page/domain/form-handler'
@@ -72,6 +72,13 @@ describe('form submission', () => {
     expect([frame.focusItemId, frame.form?.status, Object.keys(frame.form?.errors ?? {})]).toEqual(['identifier', FormStatus.Editing, ['identifier']])
   })
 
+  it('announces as many errors as the form shows, like a Rejected answer does', () => {
+    const items = Array.from({ length: MAX_REPORTED_ERRORS + TWO_ERRORS }, (_, index) => ({ ...IDENTIFIER_TEXT, id: `field-${String(index)}` }))
+    const next = transition(opened(formWith(items)), click(FORM_SUBMIT_ROW_ID), NOW)
+    expect(Object.keys(topFrame(next.state).form?.errors ?? {})).toHaveLength(MAX_REPORTED_ERRORS)
+    expect(next.effects).toEqual([formErrorsAnnouncement(FORM_ID, MAX_REPORTED_ERRORS)])
+  })
+
   it('submits a valid form: Pending, FormSubmitted in an Event, form delay scheduled', () => {
     const next = transition(opened(VALID_FORM), click(FORM_SUBMIT_ROW_ID), NOW)
     expect(next.effects).toEqual([submitted(FORM_ID, { identifier: VALID_IDENTIFIER, role: 'member', notify: false }), schedule(TimerKind.FormTimeout, FORM_TIMEOUT_MS)])
@@ -142,6 +149,15 @@ describe('form delay', () => {
     const next = transition(both, timerFired(TimerKind.FormTimeout), NOW + FORM_TIMEOUT_MS)
     expect(next.effects).toEqual([timedOutTrace(FORM_ID), schedule(TimerKind.FormTimeout, LATER_MS)])
     expect(next.state.stack.map((frame) => frame.form?.status ?? null)).toEqual([null, FormStatus.Editing, FormStatus.Pending])
+  })
+
+  it('keeps the earliest deadline when a second form is sent later', () => {
+    const first = run(withPanels([OWNED_LIST_PANEL, VALID_FORM]), [click(FORM_SUBMIT_ROW_ID), pushPanel(SECOND_FORM, FORM_ID, PUSH_SEQ)]).state
+    const second = transition(first, click(FORM_SUBMIT_ROW_ID), NOW + LATER_MS)
+    expect(second.effects).toEqual([
+      submitted(SECOND_FORM.panel.id, { identifier: VALID_IDENTIFIER }),
+      schedule(TimerKind.FormTimeout, FORM_TIMEOUT_MS - LATER_MS),
+    ])
   })
 
   it('does nothing without a pending form', () => {

@@ -31,7 +31,7 @@ const SPACE_UNITS = 4
 const SINGLE_UNIT = 1
 
 function characterKeys(characters: string): readonly VirtualKey[] {
-  return Array.from(characters).map((character) => ({
+  return Array.from(characters).map((character) => Object.freeze({
     action: KeyAction.Character,
     character,
     units: SINGLE_UNIT,
@@ -39,7 +39,7 @@ function characterKeys(characters: string): readonly VirtualKey[] {
 }
 
 function actionKey(action: KeyAction, units: number): VirtualKey {
-  return { action, character: null, units }
+  return Object.freeze({ action, character: null, units })
 }
 
 const SHIFT_KEY = actionKey(KeyAction.Shift, SINGLE_UNIT)

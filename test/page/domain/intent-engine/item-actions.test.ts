@@ -75,6 +75,12 @@ describe('Link', () => {
     ])
   })
 
+  it('sends nothing when a pending link is confirmed again', () => {
+    const pending = run(onLink(), [press(Intent.Confirm)]).state
+    const next = transition(pending, press(Intent.Confirm), NOW)
+    expect(next).toEqual({ state: pending, effects: [] })
+  })
+
   it('clears the pending row when the delay fires', () => {
     const pending = run(onLink(), [press(Intent.Confirm)]).state
     const next = transition(pending, timerFired(TimerKind.LinkPending), NOW)

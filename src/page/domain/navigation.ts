@@ -5,7 +5,7 @@ import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
 import type { OwnedReply } from '../../protocol/stack'
 import { mergeFormOnUpdate, openForm, type FormState } from './form'
 import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
-import { firstFocusable, isFocusable, nearestFocusable, visibleWindowStart } from './list-focus'
+import { firstFocusable, nearestFocusable } from './list-focus'
 import { FORM_SUBMIT_ROW_ID, isSubmitRow, rowWindowStart } from './panel-rows'
 import { ConfirmChoice, ConfirmOrigin, LayerKind, type ConfirmLayer, type Frame, type Layer, type UiState } from './ui-state'
 
@@ -187,15 +187,4 @@ export function popTopFrame(state: UiState): StackChange {
 export function closeAllFrames(state: UiState, reason: CloseAllReason = CloseReason.CloseAll): StackChange {
   if (state.stack.length === 0) return { state, replies: NO_REPLIES }
   return { state: { ...state, stack: [] }, replies: closingReplies(state.stack, reason) }
-}
-
-export function setFrameFocus(state: UiState, itemId: string): UiState {
-  const top = topOf(state.stack)
-  if (top === undefined || top.panel === null || top.focusItemId === itemId) return state
-  const { items } = top.panel.panel
-  const focusIndex = items.findIndex((item) => item.id === itemId)
-  const item = items[focusIndex]
-  if (item === undefined || !isFocusable(item)) return state
-  const focused: Frame = { ...top, focusItemId: item.id, visibleStart: visibleWindowStart(items.length, focusIndex, top.visibleStart) }
-  return { ...state, stack: state.stack.slice(0, -1).concat(focused) }
 }

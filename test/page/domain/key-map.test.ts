@@ -99,6 +99,10 @@ describe('decodeBinding', () => {
     expect(BOUND_KEY_CODES).toEqual({ 170: 'F1', 194: 'ArrowUp', 102: 'MouseMiddle' })
   })
 
+  it('freezes the table of bound key codes', () => {
+    expect(Object.isFrozen(BOUND_KEY_CODES)).toBe(true)
+  })
+
   it.each(['b_999', '', 't_', 'b_', 'b_constructor', 'b___proto__', 'b_-170', 'b_1e2', 'b_170 ', 'x_G', 'b_99999999999999999999'])(
     'marks %j as unknown',
     (raw) => {
