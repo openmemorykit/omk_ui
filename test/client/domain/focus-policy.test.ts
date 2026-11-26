@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Modality } from '../../../src/protocol/intents'
 import { UiMode } from '../../../src/protocol/page-vocabulary'
 import { ALWAYS_BLOCKED_CONTROLS, ControlGroup, decideFocus, PUSH_TO_TALK_CONTROL, PushToTalkPolicy } from '../../../src/client/domain/focus-policy'
-import { GuardedControl } from '../../../src/client/domain/release-guard'
+import { GuardedControl, guardedControls, startPadGuard } from '../../../src/client/domain/release-guard'
 import type { FocusContext } from '../../../src/client/domain/focus-policy'
 
 const BASE: FocusContext = {
@@ -63,6 +63,12 @@ describe('decideFocus', () => {
       { group: ControlGroup.Main, control: 0 },
       { group: ControlGroup.Frontend, control: 0 },
     ])
+  })
+
+  it('blocks the real controls of a pad guard closed with View', () => {
+    const controls = guardedControls(startPadGuard(0, 0))
+    const blocked = decideFocus({ ...BASE, releaseGuardControls: controls }).blocked
+    expect(blocked.map((reference) => reference.control)).toEqual(controls.flatMap((control) => [control, control]))
   })
 
   it('reenables push to talk unless text entry is active', () => {

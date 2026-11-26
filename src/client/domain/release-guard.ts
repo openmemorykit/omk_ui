@@ -58,7 +58,7 @@ function isCapped(startedAt: number, now: number): boolean {
 
 function stepPad(guard: ReleaseGuard & { readonly kind: typeof GuardKind.Pad }, input: GuardInput): GuardStep {
   if (input.signal === GuardSignal.EscapeReleased) return staying(guard)
-  if (input.signal === GuardSignal.PageBlurred) return ending(GuardEnd.Blurred)
+  if (input.signal === GuardSignal.PageBlurred) return staying(guard)
   if (input.signal !== GuardSignal.Frame) return ending(GuardEnd.Capped)
   if (isCapped(guard.startedAt, input.now)) return ending(GuardEnd.Capped)
   return input.closingControlHeld ? staying(guard) : ending(GuardEnd.Released)
@@ -76,8 +76,9 @@ function isRecord(value: unknown): boolean {
 }
 
 export function stepReleaseGuard(guard: ReleaseGuard, input: GuardInput): GuardStep {
-  if (!isRecord(guard) || !isRecord(input)) return ending(GuardEnd.Capped)
+  if (!isRecord(guard)) return ending(GuardEnd.Capped)
   if (guard.kind === GuardKind.None) return staying(NO_GUARD)
+  if (!isRecord(input)) return ending(GuardEnd.Capped)
   if (guard.kind === GuardKind.Pad) return stepPad(guard, input)
   if (guard.kind === GuardKind.Escape) return stepEscape(guard, input)
   return ending(GuardEnd.Capped)

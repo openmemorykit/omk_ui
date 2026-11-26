@@ -48,8 +48,8 @@ describe('pad guard', () => {
     expect(guardedControls(startPadGuard(0, START))).toEqual([...PAD_GUARDED_CONTROLS, 0])
   })
 
-  it('releases when the page blurs', () => {
-    expect(stepReleaseGuard(guard, BLURRED).guard).toBe(NO_GUARD)
+  it('ignores the page blur so the closing key stays guarded', () => {
+    expect(stepReleaseGuard(guard, BLURRED)).toEqual({ guard, ended: null })
   })
 })
 
@@ -121,6 +121,16 @@ describe('failing safe', () => {
     const input = value as unknown as GuardInput
     expect(stepReleaseGuard(startPadGuard(CLOSING, START), input)).toEqual({ guard: NO_GUARD, ended: GuardEnd.Capped })
     expect(stepReleaseGuard(startEscapeGuard(START), input)).toEqual({ guard: NO_GUARD, ended: GuardEnd.Capped })
+  })
+
+  it('reads an unknown signal with a valid clock as a release, never as a frame', () => {
+    const unknown = { signal: 'mystery', now: START, closingControlHeld: false } as unknown as GuardInput
+    expect(stepReleaseGuard(startPadGuard(CLOSING, START), unknown)).toEqual({ guard: NO_GUARD, ended: GuardEnd.Capped })
+    expect(stepReleaseGuard(startEscapeGuard(START), unknown)).toEqual({ guard: NO_GUARD, ended: GuardEnd.Capped })
+  })
+
+  it('reports no end when there is no guard to release', () => {
+    expect(stepReleaseGuard(NO_GUARD, null as unknown as GuardInput)).toEqual({ guard: NO_GUARD, ended: null })
   })
 
   it('never holds a guard beyond the cap whatever the frames say', () => {
