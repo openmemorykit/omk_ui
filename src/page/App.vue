@@ -29,7 +29,9 @@ const HIDDEN = { display: 'none' }
       <template #legend><KeyLegend v-if="view.legend === LegendHost.Column" /></template>
     </PanelColumn>
     <RadialMenu>
-      <template #legend><KeyLegend v-if="view.legend === LegendHost.Radial" /></template>
+      <template #legend>
+        <div v-if="view.legend === LegendHost.Radial" class="omk-app__radial-legend"><KeyLegend /></div>
+      </template>
     </RadialMenu>
     <div v-if="view.layerAlone && confirm !== null" class="omk-app__alone">
       <ConfirmLayer :view="confirm" />
@@ -51,6 +53,14 @@ const HIDDEN = { display: 'none' }
 
 .omk-column__legend:empty {
   display: none;
+}
+
+.omk-app__radial-legend {
+  position: absolute;
+  top: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .omk-app__alone {
