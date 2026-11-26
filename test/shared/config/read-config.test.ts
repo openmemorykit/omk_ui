@@ -97,6 +97,11 @@ describe('readConfig keys', () => {
     invalid('input', 'padHoldMs', NaN)
   })
 
+  it('draws the accent limit at a contrast of 3', () => {
+    expect(readConfig({ theme: { accent: '#626262' } }).warnings).toEqual([])
+    invalid('theme', 'accent', '#616161')
+  })
+
   it('refuses the accent #202020 and accepts #8F7BFF', () => {
     expect(readConfig({ theme: { accent: '#202020' } }).warnings).toHaveLength(1)
     expect(readConfig({ theme: { accent: '#8F7BFF' } }).warnings).toEqual([])

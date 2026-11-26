@@ -4,7 +4,24 @@ import { contrastRatio, relativeLuminance } from '../../../src/shared/config/con
 const MAX_RATIO = 21
 const PRECISION = 5
 
+const MID_GRAY_LUMINANCE = 0.2159
+const RED_LUMINANCE = 0.2126
+const GRAY_777_RATIO = 4.48
+const GRAY_767676_RATIO = 4.54
+const RATIO_PRECISION = 2
+const LUMINANCE_PRECISION = 4
+
 describe('contrast', () => {
+  it('applies the sRGB gamma to mid tones', () => {
+    expect(relativeLuminance('#808080')).toBeCloseTo(MID_GRAY_LUMINANCE, LUMINANCE_PRECISION)
+    expect(relativeLuminance('#FF0000')).toBeCloseTo(RED_LUMINANCE, LUMINANCE_PRECISION)
+  })
+
+  it('matches the WCAG reference ratios on white', () => {
+    expect(contrastRatio('#777777', '#FFFFFF')).toBeCloseTo(GRAY_777_RATIO, RATIO_PRECISION)
+    expect(contrastRatio('#767676', '#FFFFFF')).toBeCloseTo(GRAY_767676_RATIO, RATIO_PRECISION)
+  })
+
   it('gives black on white a ratio of 21', () => {
     expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(MAX_RATIO, PRECISION)
   })
