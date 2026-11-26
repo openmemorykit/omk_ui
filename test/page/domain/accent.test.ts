@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ACCENT_TEXT_MIN_CONTRAST, deriveAccent } from '../../../src/page/domain/accent'
 import { contrastRatio } from '../../../src/shared/config/contrast'
-import { PANEL_BACKGROUND, THEME_DEFAULTS } from '../../../src/shared/config/config-schema'
+import { PANEL_BACKGROUND, THEME_DEFAULTS } from '../../../src/shared/config/theme-defaults'
 
 const HEX_PATTERN = /^#[0-9A-F]{6}$/
 const DARK_ACCENT = '#6A55E0'
@@ -59,9 +59,13 @@ describe('deriveAccent', () => {
     expect(contrastRatio(lower, PANEL_BACKGROUND)).toBeLessThan(ACCENT_TEXT_MIN_CONTRAST)
   })
 
-  it('mixes the dim color halfway between accent and background', () => {
-    expect(deriveAccent('#FF0000', '#000000').accentDim).toBe('#800000')
-    expect(deriveAccent('#000000', '#FFFFFF').accentDim).toBe('#808080')
+  it('mixes the dim color with a quarter of accent and three quarters of background', () => {
+    expect(deriveAccent('#FF0000', '#000000').accentDim).toBe('#400000')
+    expect(deriveAccent('#000000', '#FFFFFF').accentDim).toBe('#BFBFBF')
+  })
+
+  it('keeps secondary ink readable on the dim color of the default accent', () => {
+    expect(contrastRatio('#C6C1D6', deriveAccent(DEFAULT_ACCENT, PANEL_BACKGROUND).accentDim)).toBeGreaterThanOrEqual(ACCENT_TEXT_MIN_CONTRAST)
   })
 
   it('reuses accent and ink for focus', () => {
@@ -85,5 +89,17 @@ describe('deriveAccent', () => {
 
   it('falls back to the default panel background when it is invalid', () => {
     expect(deriveAccent(DEFAULT_ACCENT, 'nope')).toEqual(deriveAccent(DEFAULT_ACCENT, PANEL_BACKGROUND))
+  })
+
+  it('falls back on both when accent and background are invalid', () => {
+    expect(deriveAccent('nope', 'nope')).toEqual(deriveAccent(THEME_DEFAULTS.accent, PANEL_BACKGROUND))
+  })
+
+  it('normalizes a lowercase panel background', () => {
+    expect(deriveAccent(DEFAULT_ACCENT, PANEL_BACKGROUND.toLowerCase())).toEqual(deriveAccent(DEFAULT_ACCENT, PANEL_BACKGROUND))
+  })
+
+  it('stops lightening at white when the background is too light to reach text contrast', () => {
+    expect(deriveAccent(LIGHT_ACCENT, WHITE).accentText).toBe(WHITE)
   })
 })
