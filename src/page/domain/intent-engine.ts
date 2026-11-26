@@ -22,6 +22,7 @@ import {
   handleWindowBlurred,
   handleWindowFocused,
 } from './intent-input'
+import { handleTextInputFocused } from './keyboard-handler'
 import { settleMode } from './mode-change'
 import { PageCommandType, TimerKind, type UiCommand, type UiCommandOf, type UiCommandType } from './page-commands'
 import { handleOpenRadial, handleRadialEntries } from './radial-handler'
@@ -61,6 +62,9 @@ const HANDLERS: HandlerTable = {
   [PageCommandType.ClickItem]: handleInput,
   [PageCommandType.PointerAim]: handleInput,
   [PageCommandType.TypeText]: handleInput,
+  [PageCommandType.ClickKey]: handleInput,
+  [PageCommandType.StepItem]: handleInput,
+  [PageCommandType.TextInputFocused]: handleTextInputFocused,
   [PageCommandType.FrameTick]: handleFrameTick,
   [PageCommandType.TimerFired]: handleTimerFired,
   [PageCommandType.WindowBlurred]: handleWindowBlurred,

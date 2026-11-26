@@ -5,10 +5,10 @@ import { changeField, currentFieldValue } from './field-values'
 import { checkField } from './form'
 import { replyEvent, topFrameOf, topLayerOf, withLayer, withTopFrame } from './frame-updates'
 import { KeyboardLanguage } from './keyboard-layouts'
-import { PageCommandType, type LocalIntentCommand, type UiCommand } from './page-commands'
+import { PageCommandType, type LocalIntentCommand, type UiCommand, type UiCommandOf } from './page-commands'
 import { sendToHost, unchanged, UiEffectType, withEffects, type CommandHandler, type Transition } from './ui-effects'
 import { ConfirmChoice, ConfirmOrigin, LayerKind, type Frame, type UiState, type VirtualKeyboardLayer } from './ui-state'
-import { eraseCharacter, insertSpace, insertText, moveKeyboardFocus, openKeyboard, pressFocusedKey, switchLayer, type KeyboardState } from './virtual-keyboard'
+import { eraseCharacter, focusKeyAt, insertSpace, insertText, moveKeyboardFocus, openKeyboard, pressFocusedKey, switchLayer, type KeyboardState } from './virtual-keyboard'
 
 type TextItem = Extract<Item, { readonly kind: typeof ItemKind.Text }>
 
@@ -73,8 +73,8 @@ function askAbandon(state: UiState, context: KeyboardContext): Transition {
   return unchanged(withTopFrame(state, withLayer(frame, abandon)))
 }
 
-function pressed(state: UiState, context: KeyboardContext): Transition {
-  const result = pressFocusedKey(context.layer.keyboard)
+function pressed(state: UiState, context: KeyboardContext, keyboard: KeyboardState = context.layer.keyboard): Transition {
+  const result = pressFocusedKey(keyboard)
   return result.submitted ? closeKeyboardLayer(state, result.state.value) : withKeyboard(state, context, result.state)
 }
 
@@ -114,6 +114,17 @@ function keyboardContext(state: UiState): KeyboardContext | null {
   return frame === undefined || layer === undefined || !isKeyboard(layer) ? null : { frame, layer }
 }
 
+function keyClicked(state: UiState, context: KeyboardContext, row: number, unit: number): Transition {
+  const focused = focusKeyAt(context.layer.keyboard, row, unit)
+  if (focused === null) return unchanged(state)
+  return pressed(state, context, focused)
+}
+
+export const handleTextInputFocused: CommandHandler<UiCommandOf<typeof PageCommandType.TextInputFocused>> = (state, command) => {
+  const layer = state.paused ? undefined : topFrameOf(state)?.layers.find(isKeyboard)
+  return layer?.itemId === command.itemId ? withEffects(state, [sendToHost({ type: FromPage.TextEntry, active: true })]) : unchanged(state)
+}
+
 export const handleKeyboardLayer: CommandHandler<UiCommand> = (state, command) => {
   const context = keyboardContext(state)
   if (context === null) return unchanged(state)
@@ -122,6 +133,8 @@ export const handleKeyboardLayer: CommandHandler<UiCommand> = (state, command) =
       return command.phase === IntentPhase.Press ? keyboardIntent(state, context, command) : unchanged(state)
     case PageCommandType.TypeText:
       return typed(state, context, command.value)
+    case PageCommandType.ClickKey:
+      return keyClicked(state, context, command.row, command.unit)
     default:
       return unchanged(state)
   }

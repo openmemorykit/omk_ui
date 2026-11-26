@@ -6,6 +6,7 @@ import { changeModality } from './client-messages'
 import { BACK_HOLD_MS, pressBack } from './hold-detector'
 import { routeInput, type InputCommand } from './input-routing'
 import { derivedMode } from './mode-change'
+import { textEntryResumed } from './text-entry'
 import { PageCommandType, TimerKind, type LocalIntentCommand, type PageCommand, type UiCommandOf } from './page-commands'
 import { nextRepeatAt, pressHeld } from './repeat-policy'
 import { schedule, sendToHost, unchanged, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
@@ -62,7 +63,8 @@ export const handleWindowBlurred: CommandHandler<CommandOf<typeof PageCommandTyp
 
 export const handleWindowFocused: CommandHandler<CommandOf<typeof PageCommandType.WindowFocused>> = (state) => {
   if (!state.paused) return unchanged(state)
-  return withEffects({ ...state, paused: false }, [sendToHost({ type: FromPage.Paused, paused: false })])
+  const resumed: UiState = { ...state, paused: false }
+  return withEffects(resumed, [sendToHost({ type: FromPage.Paused, paused: false })].concat(textEntryResumed(resumed)))
 }
 
 export const handleLocalModality: CommandHandler<CommandOf<typeof PageCommandType.LocalModality>> = (state) => changeModality(state, Modality.KeyboardMouse)

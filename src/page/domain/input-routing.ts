@@ -14,6 +14,8 @@ export type InputCommand = UiCommandOf<
   | typeof PageCommandType.ClickItem
   | typeof PageCommandType.PointerAim
   | typeof PageCommandType.TypeText
+  | typeof PageCommandType.ClickKey
+  | typeof PageCommandType.StepItem
 >
 
 function panelsHandler(state: UiState): CommandHandler<InputCommand> {
