@@ -2,7 +2,7 @@ import type { Panel } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { ScenarioId, LogKind } from '../../../preview/runtime/types'
 import { FormStatus } from '../../../src/page/domain/form'
-import { PageCommandType, TimerKind } from '../../../src/page/domain/page-commands'
+import { PageCommandType } from '../../../src/page/domain/page-commands'
 import { LayerKind } from '../../../src/page/domain/ui-state'
 import { FromPage } from '../../../src/protocol/from-page'
 import { Intent } from '../../../src/protocol/intents'
@@ -62,7 +62,6 @@ describe('whitelist journey on the real page', () => {
     press(played.page, Intent.Confirm)
     expect(subtitleOf(played)).toBe(`Page 2 sur 7 · ${PLAYERS} joueurs`)
     expect(topFrame(played.page.state())?.focusItemId).toBe('next-page')
-    played.page.dispatch({ type: PageCommandType.TimerFired, timer: TimerKind.LinkPending })
     press(played.page, Intent.Confirm)
     expect(subtitleOf(played)).toBe(`Page 3 sur 7 · ${PLAYERS} joueurs`)
   })

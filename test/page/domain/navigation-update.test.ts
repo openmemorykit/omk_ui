@@ -54,6 +54,12 @@ describe('updatePanelFrame', () => {
     expect(updated.stack[0]?.pendingItemId).toBeNull()
   })
 
+  it('clears the pending link even when its item is still in the updated panel', () => {
+    const opened = listOpen()
+    const pending = { ...opened, stack: opened.stack.map((frame) => ({ ...frame, pendingItemId: PLAYER_LINK.id })) }
+    expect(updatePanelFrame(pending, OWNED_LIST_PANEL).stack[0]?.pendingItemId).toBeNull()
+  })
+
   it('merges the form values of an updated form', () => {
     const opened = openPanelFrame(createInitialState(), OWNED_ADD_PANEL, SEQ_OPEN).state
     const form = opened.stack[0]?.form
