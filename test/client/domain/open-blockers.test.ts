@@ -114,6 +114,10 @@ describe('open blockers: vehicle', () => {
     expect(firstOpenBlocker(with_({ driving: true, vehicleSpeedLimitKmh: Number.NaN }), RadialGesture)).toBe(OpenBlocker.VehicleMoving)
   })
 
+  it('fails closed on a radial entry count that is not a number', () => {
+    expect(firstOpenBlocker(with_({ radialEntryCount: Number.NaN }), RadialGesture)).toBe(OpenBlocker.NoRadialEntry)
+  })
+
   it('fails closed on a clock that is not a number during a cooldown', () => {
     expect(firstOpenBlocker(with_({ cooldownUntil: NOW, now: Number.NaN }), OwnerCall)).toBe(OpenBlocker.Cooldown)
   })

@@ -52,7 +52,7 @@ const BLOCKER_RULES: readonly BlockerRule[] = Object.freeze([
   { blocker: OpenBlocker.OtherNuiFocus, purpose: null, applies: (conditions) => conditions.otherNuiFocus },
   { blocker: OpenBlocker.ScreenFaded, purpose: null, applies: (conditions) => conditions.screenFaded },
   { blocker: OpenBlocker.VehicleMoving, purpose: null, applies: movingTooFast },
-  { blocker: OpenBlocker.NoRadialEntry, purpose: OpenPurpose.RadialGesture, applies: (conditions) => conditions.radialEntryCount <= 0 },
+  { blocker: OpenBlocker.NoRadialEntry, purpose: OpenPurpose.RadialGesture, applies: (conditions) => !(conditions.radialEntryCount > 0) },
   { blocker: OpenBlocker.Cooldown, purpose: OpenPurpose.OwnerCall, applies: coolingDown },
   { blocker: OpenBlocker.Reserved, purpose: OpenPurpose.OwnerCall, applies: reservedForAnother },
 ])
