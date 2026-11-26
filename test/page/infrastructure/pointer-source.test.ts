@@ -11,7 +11,7 @@ const TINY = 10
 const FOUR = 4
 const TWO = 2
 
-const BASE: PointerSourceState = { radialBinding: 'b_102', radialOpen: false }
+const BASE: PointerSourceState = { radialBinding: 'b_102' }
 
 function tap(intent: Intent): UiCommand[] {
   return [
@@ -105,13 +105,7 @@ describe('pointer source', () => {
     expect(commands).toEqual([{ type: PageCommandType.LocalModality }])
   })
 
-  it('turns a left click on the open radial into confirm', () => {
-    state = { ...BASE, radialOpen: true }
-    window.dispatchEvent(new MouseEvent('mousedown', { button: 0, cancelable: true }))
-    expect(commands).toEqual(tap(Intent.Confirm))
-  })
-
-  it('leaves a left click to the components when the radial is closed', () => {
+  it('leaves a left click to the components, radial open or not', () => {
     window.dispatchEvent(new MouseEvent('mousedown', { button: 0, cancelable: true }))
     expect(commands).toEqual([{ type: PageCommandType.LocalModality }])
   })

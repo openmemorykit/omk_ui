@@ -6,7 +6,6 @@ import type { Detach } from '../window-events'
 
 export interface PointerSourceState {
   readonly radialBinding: string
-  readonly radialOpen: boolean
 }
 
 export const WHEEL_NOTCH_PX = 40
@@ -14,7 +13,7 @@ export const WHEEL_PAGE_PX = 400
 export const MAX_WHEEL_STEPS_PER_EVENT = 10
 
 const MIDDLE_CONTROL = 102
-const MouseButton = { Primary: 0, Middle: 1 } as const
+const MouseButton = { Middle: 1 } as const
 const WheelMode = { Pixel: 0, Line: 1, Page: 2 } as const
 
 function wheelPixels(event: WheelEvent): number {
@@ -64,8 +63,6 @@ export function createPointerSource(target: Window, dispatch: Dispatch, read: ()
     if (event.button === MouseButton.Middle && middleOpensRadial(state.radialBinding)) {
       event.preventDefault()
       tap(Intent.Radial)
-    } else if (event.button === MouseButton.Primary && state.radialOpen) {
-      tap(Intent.Confirm)
     } else {
       onMouseMove()
     }
