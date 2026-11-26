@@ -11,6 +11,14 @@ const FIFTH_LINE = 5
 const MARGIN = 200
 const QUARTER = 4
 const HALF = 2
+const HUGE_TEXT = 100_000_000
+const MANY_STRINGS = 500
+const LONG_STRING = 200_000
+const HUGE_VIEW = 5_000_000
+const HUGE_FLOAT_VIEW = 1_000_000
+const HOSTILE_BUDGET_MS = 500
+const SMALL_LINES = 60
+const TWO_KB = 1900
 const DEEP_LEVELS = 100_000
 
 const BIG_LINE_COUNT = 40
@@ -113,8 +121,10 @@ describe('trace buffer: byte bound', () => {
     const wideData = Object.fromEntries(Array.from({ length: DEEP_LEVELS }, (_unused, index) => [`key${String(index)}`, index]))
     const cyclic: Record<string, unknown> = {}
     cyclic.self = cyclic
+    const hostile = [deep, wideData, cyclic as JsonObject]
+    hostile.forEach((data) => appendTrace(EMPTY_TRACE, line(1, data)))
     const started = Date.now()
-    ;[deep, wideData, cyclic as JsonObject].forEach((data) => {
+    hostile.forEach((data) => {
       expect(appendTrace(EMPTY_TRACE, line(1, data))).toBe(EMPTY_TRACE)
     })
     expect(Date.now() - started).toBeLessThan(TIME_BUDGET_MS)
@@ -122,5 +132,58 @@ describe('trace buffer: byte bound', () => {
 
   it('drops a line whose time is not finite', () => {
     expect(appendTrace(EMPTY_TRACE, line(Number.NaN))).toBe(EMPTY_TRACE)
+  })
+
+  it('refuses hostile payloads before serializing them, within the time budget', () => {
+    const hugeText = 'x'.repeat(HUGE_TEXT)
+    const manyStrings = Array.from({ length: MANY_STRINGS }, () => 'y'.repeat(LONG_STRING))
+    const cases: readonly unknown[] = [
+      { text: hugeText },
+      { [hugeText]: 1 },
+      { list: manyStrings },
+      new Uint8Array(HUGE_VIEW),
+      { view: new Uint8Array(HUGE_VIEW) },
+      { nested: [{ view: new Float64Array(HUGE_FLOAT_VIEW) }] },
+      { numbers: new Array<number>(HUGE_VIEW).fill(1) },
+    ]
+    cases.forEach((data) => appendTrace(EMPTY_TRACE, line(1, data as JsonObject)))
+    const started = Date.now()
+    cases.forEach((data) => {
+      expect(appendTrace(EMPTY_TRACE, line(1, data as JsonObject))).toBe(EMPTY_TRACE)
+    })
+    expect(Date.now() - started).toBeLessThan(HOSTILE_BUDGET_MS)
+  })
+
+  it('refuses objects that are not plain, at the root and deeper', () => {
+    class Instance { public readonly value = 1 }
+    const cases: readonly unknown[] = [new Map([['a', 1]]), new Date(0), new Instance(), { inner: new Map() }, { inner: [new Instance()] }, new Uint8Array(1)]
+    cases.forEach((data) => {
+      expect(appendTrace(EMPTY_TRACE, line(1, data as JsonObject))).toBe(EMPTY_TRACE)
+    })
+  })
+
+  it('ignores a line whose data throws when read, instead of raising', () => {
+    const throwing = new Proxy({}, { ownKeys: () => { throw new Error('hostile') } })
+    const accessor = Object.defineProperty({}, 'value', { enumerable: true, get: () => { throw new Error('hostile') } })
+    expect(appendTrace(EMPTY_TRACE, line(1, throwing as JsonObject))).toBe(EMPTY_TRACE)
+    expect(appendTrace(EMPTY_TRACE, line(1, accessor as JsonObject))).toBe(EMPTY_TRACE)
+  })
+
+  it('keeps a copy: changing the data after the append moves neither the line nor the byte count', () => {
+    const data = { text: 'small' }
+    const buffer = appendTrace(EMPTY_TRACE, line(1, data))
+    data.text = 'z'.repeat(TRACE_LINE_MAX_BYTES * HALF)
+    expect(buffer.lines[0]?.data).toEqual({ text: 'small' })
+    const evicted = Array.from({ length: BIG_LINE_COUNT }).reduce<TraceBuffer>((current, _unused, index) => appendTrace(current, line(index, { index, text: 'x'.repeat(TRACE_LINE_MAX_BYTES - MARGIN) })), buffer)
+    expect(evicted.totalBytes).toBe(evicted.sizes.reduce((sum, size) => sum + size, 0))
+    expect(evicted.totalBytes).toBeGreaterThan(0)
+  })
+
+  it('holds the byte bound with many small lines then lines of 2000 bytes', () => {
+    const small = filled(SMALL_LINES, (index) => line(index, { index }))
+    const buffer = Array.from({ length: BIG_LINE_COUNT }).reduce<TraceBuffer>((current, _unused, index) => appendTrace(current, line(index, { index: -index - 1, text: 'x'.repeat(TWO_KB) })), small)
+    expect(buffer.totalBytes).toBeLessThanOrEqual(TRACE_MAX_BYTES)
+    expect(buffer.lines.reduce((sum, entry) => sum + JSON.stringify(entry).length, 0)).toBeLessThanOrEqual(TRACE_MAX_BYTES)
+    expect(buffer.lines.length).toBe(buffer.sizes.length)
   })
 })
