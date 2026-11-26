@@ -8,6 +8,7 @@ import { KeyAction, KeyboardLanguage, KeyboardLayer } from '../../../src/page/do
 import { PageCommandType, type UiCommand } from '../../../src/page/domain/page-commands'
 import { LayerKind, createInitialState } from '../../../src/page/domain/ui-state'
 import { openKeyboard, type KeyboardState } from '../../../src/page/domain/virtual-keyboard'
+import keyboardSource from '../../../src/page/components/VirtualKeyboard.vue?raw'
 import { translate } from '../application/views/column-fixtures'
 
 const LIMIT = 40
@@ -159,5 +160,21 @@ describe('VirtualKeyboard', () => {
     const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
     wrapper.get('.omk-key').element.dispatchEvent(event)
     expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('keeps long key labels inside their key', () => {
+    const { wrapper } = render(viewOf())
+    const keys = wrapper.findAll('.omk-key')
+    const long = keys.filter((key) => key.text().length > 1)
+    expect(long.length).toBeGreaterThan(0)
+    for (const key of long) expect(key.find('.omk-key__label').classes()).toContain('omk-key__label--long')
+    for (const key of keys.filter((entry) => entry.text().length === 1)) expect(key.find('.omk-key__label').classes()).not.toContain('omk-key__label--long')
+    const css = keyboardSource
+    const label = /\.omk-key__label\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+    expect(label).toMatch(/max-width:\s*100%/)
+    expect(label).toMatch(/overflow:\s*hidden/)
+    expect(label).toMatch(/text-overflow:\s*ellipsis/)
+    expect(label).toMatch(/white-space:\s*nowrap/)
+    expect(/\.omk-key__label--long\s*\{([^}]*)\}/.exec(css)?.[1] ?? '').toMatch(/font-size:\s*var\(--text-min\)/)
   })
 })
