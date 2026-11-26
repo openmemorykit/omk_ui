@@ -69,6 +69,7 @@ export interface UiState {
   readonly prompt: PromptView | null
   readonly held: HeldIntents
   readonly backHold: BackHold
+  readonly backFromEscape: boolean
   readonly lastIntentSeq: number
   readonly ackPending: boolean
   readonly escapeHeld: boolean
@@ -97,6 +98,7 @@ export function createInitialState(): UiState {
     prompt: null,
     held: [],
     backHold: RELEASED_BACK,
+    backFromEscape: false,
     lastIntentSeq: INITIAL_INTENT_SEQ,
     ackPending: false,
     escapeHeld: false,
@@ -112,4 +114,9 @@ export function releaseIntent(state: UiState, intent: Intent): UiState {
   const releasesBack = intent === Intent.Back && state.backHold.pressedAt !== null
   if (held === state.held && !releasesBack) return state
   return { ...state, held, backHold: releasesBack ? RELEASED_BACK : state.backHold }
+}
+
+export function releaseAllIntents(state: UiState): UiState {
+  const holdsNothing = state.held.length === 0 && state.backHold.pressedAt === null && !state.backFromEscape
+  return holdsNothing ? state : { ...state, held: [], backHold: RELEASED_BACK, backFromEscape: false }
 }

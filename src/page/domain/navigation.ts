@@ -9,6 +9,8 @@ import { ConfirmChoice, ConfirmOrigin, LayerKind, type ConfirmLayer, type Frame,
 
 export interface StackChange { readonly state: UiState; readonly replies: readonly OwnedReply[] }
 
+export type CloseAllReason = typeof CloseReason.CloseAll | typeof CloseReason.RadialSelection
+
 export const FRAME_MAX_LAYERS = 4
 
 const NO_REPLIES: readonly OwnedReply[] = Object.freeze([])
@@ -19,7 +21,7 @@ const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
 const isUsableItem = (item: unknown): boolean => isRecord(item) && typeof item.id === 'string'
 const isPanelKind = (kind: unknown): boolean => kind === PanelKind.Menu || kind === PanelKind.Form
 
-function isAddressablePanel(owned: unknown): owned is OwnedPanel {
+export function isAddressablePanel(owned: unknown): owned is OwnedPanel {
   if (!isRecord(owned) || typeof owned.owner !== 'string' || !isRecord(owned.panel) || typeof owned.panel.id !== 'string') return false
   return splitNamespacedId(owned.panel.id)?.owner === owned.owner
 }
@@ -166,7 +168,7 @@ function requestLayer(owned: OwnedConfirm): ConfirmLayer | null {
   return { kind: LayerKind.Confirm, origin: ConfirmOrigin.Request, content: contentOf(confirm), confirmId: confirm.id, itemId: null, choice }
 }
 
-function isConfirmShown(stack: readonly Frame[], confirmId: string | null): boolean {
+export function isConfirmShown(stack: readonly Frame[], confirmId: string | null): boolean {
   return stack.some((frame) => frame.layers.some((layer) => isRequestConfirm(layer) && layer.confirmId === confirmId))
 }
 
@@ -188,9 +190,9 @@ export function popTopFrame(state: UiState): StackChange {
   return { state: { ...state, stack: state.stack.slice(0, -1) }, replies: frameClosingReplies(top, CloseReason.Back) }
 }
 
-export function closeAllFrames(state: UiState): StackChange {
+export function closeAllFrames(state: UiState, reason: CloseAllReason = CloseReason.CloseAll): StackChange {
   if (state.stack.length === 0) return { state, replies: NO_REPLIES }
-  return { state: { ...state, stack: [] }, replies: closingReplies(state.stack, CloseReason.CloseAll) }
+  return { state: { ...state, stack: [] }, replies: closingReplies(state.stack, reason) }
 }
 
 export function setFrameFocus(state: UiState, itemId: string): UiState {

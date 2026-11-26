@@ -30,6 +30,7 @@ describe('createInitialState', () => {
       prompt: null,
       held: [],
       backHold: RELEASED_BACK,
+      backFromEscape: false,
       lastIntentSeq: INITIAL_INTENT_SEQ,
       ackPending: false,
       escapeHeld: false,
