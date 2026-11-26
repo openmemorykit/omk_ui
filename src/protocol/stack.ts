@@ -30,7 +30,7 @@ export interface LocalStackSnapshot {
   readonly entries: readonly StackEntryOwner[]
 }
 
-const isCommandSeq = (value: unknown): boolean => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+export const isCommandSeq = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 const isList = (value: unknown): boolean => Array.isArray(value)
 const isRead = (entry: StackEntryOwner | null): entry is StackEntryOwner => entry !== null
 
