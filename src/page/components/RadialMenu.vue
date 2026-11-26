@@ -36,8 +36,7 @@ function aim(event: PointerEvent): void {
   if (!(event.currentTarget instanceof Element)) return
   const box = event.currentTarget.getBoundingClientRect()
   const center = { x: box.left + box.width * MIDDLE, y: box.top + box.height * MIDDLE }
-  const outer = (view.value?.children.length ?? 0) > 0 ? RADIAL_SUBRING_OUTER : RADIAL_RING_OUTER
-  const vector = pointerVector({ x: event.clientX, y: event.clientY }, center, box.width / (RADIAL_SUBRING_OUTER * HALVES), outer)
+  const vector = pointerVector({ x: event.clientX, y: event.clientY }, center, box.width / (RADIAL_SUBRING_OUTER * HALVES), RADIAL_SUBRING_OUTER)
   aimedNothing = vector === null
   dispatch({ type: PageCommandType.PointerAim, vector })
 }

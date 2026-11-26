@@ -5,7 +5,7 @@ import type { Dispatch } from '../../../src/page/application/ports'
 import RadialMenu from '../../../src/page/components/RadialMenu.vue'
 import { UI_CONTEXT, type UiContext } from '../../../src/page/components/use-ui'
 import { PageCommandType } from '../../../src/page/domain/page-commands'
-import { pointerVector, RADIAL_RING_OUTER, sectorCenterAngle } from '../../../src/page/domain/radial-geometry'
+import { pointerVector, RADIAL_SUBRING_OUTER, sectorCenterAngle } from '../../../src/page/domain/radial-geometry'
 import { createInitialState, RadialLevel } from '../../../src/page/domain/ui-state'
 import { Intent, IntentPhase } from '../../../src/protocol/intents'
 import { radialEntry, radialState, translate } from '../application/views/helpers'
@@ -19,6 +19,8 @@ const BOX = 848
 const HALF_BOX = 424
 const HOLE_OFFSET = 50
 const RING_OFFSET = 200
+const SUBRING_OFFSET = 350
+const HALF_TURN_DEGREES = 180
 const PAST_RING = 10
 const DOUBLE_SCALE = 2
 const DOUBLE_BOX = BOX * DOUBLE_SCALE
@@ -148,10 +150,22 @@ describe('RadialMenu', () => {
     expect(dispatch).not.toHaveBeenCalled()
   })
 
-  it('bounds the aim to the level 1 ring when no sub-ring is drawn', async () => {
+  it('aims into the sub-ring from a parent sector at level 1', async () => {
     const { wrapper, dispatch } = mountRadial()
     sizeBox(wrapper)
-    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RADIAL_RING_OUTER + PAST_RING, clientY: HALF_BOX })
+    const angle = (sectorCenterAngle(PARENT, SECTORS) * Math.PI) / HALF_TURN_DEGREES
+    const clientX = HALF_BOX + SUBRING_OFFSET * Math.sin(angle)
+    const clientY = HALF_BOX - SUBRING_OFFSET * Math.cos(angle)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX, clientY })
+    const vector = pointerVector({ x: clientX, y: clientY }, { x: HALF_BOX, y: HALF_BOX }, 1)
+    expect(vector).not.toBeNull()
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: PageCommandType.PointerAim, vector })
+  })
+
+  it('bounds the aim to the sub-ring outer edge at level 1', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RADIAL_SUBRING_OUTER + PAST_RING, clientY: HALF_BOX })
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: PageCommandType.PointerAim, vector: null })
   })
 
