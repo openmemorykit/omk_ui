@@ -1,4 +1,4 @@
-import { CloseReason, FormOutcome, ReplyKind, type FormResult } from '@openmemorykit/ui/contract'
+import { CloseReason, FormOutcome, MAX_REPORTED_ERRORS, ReplyKind, type FormResult } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { FORM_TIMEOUT_MS, FormStatus } from '../../../../src/page/domain/form'
 import { FORM_SUBMIT_ROW_ID } from '../../../../src/page/domain/form-handler'
@@ -70,6 +70,13 @@ describe('form submission', () => {
     expect(next.effects).toEqual([formErrorsAnnouncement(FORM_ID, 1)])
     const frame = topFrame(next.state)
     expect([frame.focusItemId, frame.form?.status, Object.keys(frame.form?.errors ?? {})]).toEqual(['identifier', FormStatus.Editing, ['identifier']])
+  })
+
+  it('announces as many errors as the form shows, like a Rejected answer does', () => {
+    const items = Array.from({ length: MAX_REPORTED_ERRORS + TWO_ERRORS }, (_, index) => ({ ...IDENTIFIER_TEXT, id: `field-${String(index)}` }))
+    const next = transition(opened(formWith(items)), click(FORM_SUBMIT_ROW_ID), NOW)
+    expect(Object.keys(topFrame(next.state).form?.errors ?? {})).toHaveLength(MAX_REPORTED_ERRORS)
+    expect(next.effects).toEqual([formErrorsAnnouncement(FORM_ID, MAX_REPORTED_ERRORS)])
   })
 
   it('submits a valid form: Pending, FormSubmitted in an Event, form delay scheduled', () => {

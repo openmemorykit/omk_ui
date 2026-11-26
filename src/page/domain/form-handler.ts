@@ -28,7 +28,7 @@ function refused(state: UiState, frame: Frame, owned: OwnedPanel, outcome: Submi
   const focusItemId = outcome.firstInvalidId ?? frame.focusItemId
   const visibleStart = rowWindowStart(owned.panel, focusItemId, frame.visibleStart)
   const next = withTopFrame(state, { ...frame, form: outcome.state, focusItemId, visibleStart })
-  return withEffects(next, [formErrorsEffect(owned.panel.id, outcome.invalidCount)])
+  return withEffects(next, [formErrorsEffect(owned.panel.id, Object.keys(outcome.state.errors).length)])
 }
 
 function pendingDeadline(frame: Frame): number {
