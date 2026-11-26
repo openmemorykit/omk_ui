@@ -1,11 +1,11 @@
 import type { ReportKind } from '../../shared/report/report-kind'
-import type { JsonObject } from '../../shared/report/json-value'
+import { JSON_MAX_DEPTH, type JsonObject } from '../../shared/report/json-value'
 
 export const TRACE_CAPACITY = 100
 export const TRACE_MAX_BYTES = 65_536
 export const TRACE_LINE_MAX_BYTES = 2048
 export const TRACE_LINE_MAX_NODES = 512
-export const TRACE_LINE_MAX_DEPTH = 10
+export const TRACE_LINE_MAX_DEPTH = JSON_MAX_DEPTH
 
 const ONE_BYTE_LIMIT = 0x7f
 const TWO_BYTE_LIMIT = 0x7ff
