@@ -85,7 +85,7 @@ function withoutKey<Value>(record: Readonly<Record<string, Value>>, key: string)
   return recordOf(Object.entries(record).filter(([name]) => name !== key))
 }
 
-function valueOfField(state: FormState, itemId: string): FieldValue | undefined {
+export function valueOfField(state: FormState, itemId: string): FieldValue | undefined {
   return has(state.values, itemId) ? state.values[itemId] : undefined
 }
 

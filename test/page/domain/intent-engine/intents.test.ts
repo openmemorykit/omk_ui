@@ -111,10 +111,23 @@ describe('held back', () => {
     expect(sentOf(next.effects, FromPage.ModeChanged)).toEqual([{ type: FromPage.ModeChanged, mode: UiMode.Idle }])
   })
 
-  it('closes a stack of three from Panels when back is still held after 600 ms', () => {
+  it('closes a stack of three from Panels: the press pops the top, the hold after 600 ms closes the rest', () => {
     const three = withPanels([OWNED_LIST_PANEL, OWNED_ADD_PANEL, menuPanel('third')])
     const pressed = transition(three, press(Intent.Back), NOW)
-    expect(pressed.effects).toEqual([{ type: UiEffectType.Schedule, timer: TimerKind.BackHold, delayMs: BACK_HOLD_MS }])
+    const remaining = [OWNED_LIST_PANEL, OWNED_ADD_PANEL].map((owned) => ({ panelId: owned.panel.id, owner: owned.owner }))
+    expect(pressed.effects).toEqual([
+      { type: UiEffectType.Schedule, timer: TimerKind.BackHold, delayMs: BACK_HOLD_MS },
+      {
+        type: UiEffectType.SendToHost,
+        message: {
+          type: FromPage.Event,
+          event: {
+            stack: { appliedCommandSeq: three.appliedCommandSeq, entries: remaining },
+            replies: [{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: 'whitelist/third', reason: CloseReason.Back } }],
+          },
+        },
+      },
+    ])
     const next = transition(pressed.state, timerFired(TimerKind.BackHold), NOW + BACK_HOLD_MS)
     expect(next.state.stack).toEqual([])
     expect(next.effects).toEqual([
@@ -124,7 +137,7 @@ describe('held back', () => {
           type: FromPage.Event,
           event: {
             stack: { appliedCommandSeq: three.appliedCommandSeq, entries: [] },
-            replies: ['whitelist/third', OWNED_ADD_PANEL.panel.id, OWNED_LIST_PANEL.panel.id].map((panelId) => ({
+            replies: [OWNED_ADD_PANEL.panel.id, OWNED_LIST_PANEL.panel.id].map((panelId) => ({
               owner: FixtureOwner.Whitelist,
               reply: { kind: ReplyKind.PanelClosed, panelId, reason: CloseReason.CloseAll },
             })),

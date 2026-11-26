@@ -6,6 +6,7 @@ import type { OwnedReply } from '../../protocol/stack'
 import { mergeFormOnUpdate, openForm, type FormState } from './form'
 import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
 import { firstFocusable, isFocusable, nearestFocusable, visibleWindowStart } from './list-focus'
+import { FORM_SUBMIT_ROW_ID, isSubmitRow, rowWindowStart } from './panel-rows'
 import { ConfirmChoice, ConfirmOrigin, LayerKind, type ConfirmLayer, type Frame, type Layer, type UiState } from './ui-state'
 
 export interface StackChange { readonly state: UiState; readonly replies: readonly OwnedReply[] }
@@ -52,11 +53,6 @@ function withCommandSeq(state: UiState, commandSeq: number): UiState {
   return isNewerCommand(state.appliedCommandSeq, commandSeq) ? { ...state, appliedCommandSeq: commandSeq } : state
 }
 
-function windowStart(items: readonly Item[], focusItemId: string | null, previousStart: number): number {
-  const focusIndex = items.findIndex((item) => item.id === focusItemId)
-  return visibleWindowStart(items.length, focusIndex, previousStart)
-}
-
 function createFrame(owned: OwnedPanel): Frame {
   const { panel } = owned
   const focusItemId = firstFocusable(panel.items)
@@ -66,7 +62,7 @@ function createFrame(owned: OwnedPanel): Frame {
     layers: [],
     form: panel.kind === PanelKind.Form ? openForm(panel) : null,
     pendingItemId: null,
-    visibleStart: windowStart(panel.items, focusItemId, FIRST_ROW),
+    visibleStart: rowWindowStart(panel, focusItemId, FIRST_ROW),
   }
 }
 
@@ -121,7 +117,7 @@ function layerSurvives(layer: Layer, itemsById: ReadonlyMap<string, Item>): bool
 function refreshFrame(frame: Frame, owned: OwnedPanel): Frame {
   const { items } = owned.panel
   const itemsById: ReadonlyMap<string, Item> = new Map(items.map((item) => [item.id, item] as const))
-  const focusItemId = nearestFocusable(items, frame.panel?.panel.items ?? [], frame.focusItemId)
+  const focusItemId = isSubmitRow(owned.panel, frame.focusItemId) ? FORM_SUBMIT_ROW_ID : nearestFocusable(items, frame.panel?.panel.items ?? [], frame.focusItemId)
   const pendingItemId = frame.pendingItemId !== null && itemsById.has(frame.pendingItemId) ? frame.pendingItemId : null
   return {
     panel: owned,
@@ -129,7 +125,7 @@ function refreshFrame(frame: Frame, owned: OwnedPanel): Frame {
     layers: frame.layers.filter((layer) => layerSurvives(layer, itemsById)),
     form: refreshedForm(frame.form, owned.panel),
     pendingItemId,
-    visibleStart: windowStart(items, focusItemId, frame.visibleStart),
+    visibleStart: rowWindowStart(owned.panel, focusItemId, frame.visibleStart),
   }
 }
 

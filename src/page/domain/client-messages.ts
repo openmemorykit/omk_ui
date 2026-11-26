@@ -5,6 +5,7 @@ import { GlyphSet } from '../../protocol/page-vocabulary'
 import type { ToPage } from '../../protocol/to-page'
 import type { JsonObject } from '../../shared/report/json-value'
 import { ResolveOutcome, resolveSubmission } from './form'
+import { rejectionEffects } from './form-handler'
 import { closePanelFrame, updatePanelFrame } from './navigation'
 import { TimerKind, type UiCommandOf } from './page-commands'
 import { expireToasts, nextToastExpiry, pushToast, type ToastQueue } from './toasts'
@@ -74,7 +75,7 @@ export const handleResolveForm: CommandHandler<UiCommandOf<typeof ToPage.Resolve
   const resolved = resolveSubmission(form, message.submissionId, message.result)
   if (resolved.outcome === ResolveOutcome.Ignored) return unchanged(state)
   const updated = { ...state, stack: state.stack.map((frame, position) => (position === index ? { ...frame, form: resolved.state } : frame)) }
-  if (!resolved.close) return unchanged(updated)
+  if (!resolved.close) return withEffects(updated, rejectionEffects(resolved.state, message.panelId))
   const change = closePanelFrame(updated, message.panelId, updated.appliedCommandSeq)
   return withEffects(change.state, [stackEvent(change.state, change.replies)])
 }
