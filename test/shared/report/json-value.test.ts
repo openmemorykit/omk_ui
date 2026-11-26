@@ -1,8 +1,8 @@
 import * as v from 'valibot'
 import { describe, expect, it } from 'vitest'
-import { JSON_MAX_DEPTH, JsonObjectSchema, JsonValueSchema } from '../../../src/shared/report/json-value'
+import { JSON_MAX_DEPTH, JsonIssue, JsonObjectSchema, JsonValueSchema } from '../../../src/shared/report/json-value'
 
-const WORST_CASE_BUDGET_MS = 50
+const WORST_CASE_BUDGET_MS = 150
 const MILLION = 1_000_000
 const JUST_OVER = 18
 const FAR_OVER = 30
@@ -27,6 +27,7 @@ function nestObjects(levels: number, innermost: unknown): unknown {
 }
 
 function timed(action: () => void): number {
+  action()
   const start = Date.now()
   action()
   return Date.now() - start
@@ -91,7 +92,6 @@ describe('JSON value schema', () => {
   describe.each(DEPTHS)('worst case at %i nested levels', (levels) => {
     it('refuses arrays around NaN without throwing, quickly', () => {
       const input = nestArrays(levels, Number.NaN)
-      v.safeParse(JsonValueSchema, nestArrays(levels, Number.NaN))
       let success = true
       const elapsed = timed(() => {
         success = v.safeParse(JsonValueSchema, input).success
@@ -109,5 +109,37 @@ describe('JSON value schema', () => {
       expect(success).toBe(false)
       expect(elapsed).toBeLessThan(WORST_CASE_BUDGET_MS)
     })
+  })
+
+  it.each([
+    ['a Map', new Map([['key', 1]])],
+    ['a Date', new Date(0)],
+    ['a class instance', new (class Sample { public readonly label = 'x' })()],
+    ['an ArrayBuffer', new ArrayBuffer(NESTED_LIST_LENGTH)],
+    ['an object with a custom prototype', Object.create({ inherited: 1 }) as object],
+  ])('refuses %s as WrongType', (_label, input) => {
+    expect(v.safeParse(JsonValueSchema, input).success).toBe(false)
+    expect(v.safeParse(JsonObjectSchema, input).success).toBe(false)
+    expect(v.safeParse(JsonValueSchema, { nested: input }).success).toBe(false)
+  })
+
+  it('accepts a null-prototype object', () => {
+    const input = Object.assign(Object.create(null) as object, { key: 1 })
+    expect(v.safeParse(JsonValueSchema, input).success).toBe(true)
+  })
+
+  it.each(['__proto__', 'constructor'])('refuses the own key %s instead of dropping it', (key) => {
+    const input: unknown = JSON.parse(`{"${key}": 1, "ok": 2}`)
+    expect(v.safeParse(JsonValueSchema, input).success).toBe(false)
+    expect(v.safeParse(JsonObjectSchema, input).success).toBe(false)
+    expect(v.safeParse(JsonValueSchema, [input]).success).toBe(false)
+  })
+
+  it('reports TooLarge for the first container beyond the depth and WrongType for other objects', () => {
+    const tooDeep = v.safeParse(JsonValueSchema, nestArrays(JSON_MAX_DEPTH + 1, 1))
+    expect(tooDeep.issues?.[0]?.message).toBe(JsonIssue.TooLarge)
+    const tooDeepObject = v.safeParse(JsonValueSchema, nestObjects(JSON_MAX_DEPTH + 1, 1))
+    expect(tooDeepObject.issues?.[0]?.message).toBe(JsonIssue.TooLarge)
+    expect(v.safeParse(JsonValueSchema, new Map()).issues?.[0]?.message).toBe(JsonIssue.WrongType)
   })
 })

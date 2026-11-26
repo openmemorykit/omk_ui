@@ -23,18 +23,36 @@ function scalarSchema(input: unknown): v.GenericSchema<unknown, JsonValue> {
   return scalarByType[typeof input] ?? WrongTypeSchema
 }
 
-const isPlainContainer = (input: unknown): input is object => typeof input === 'object' && input !== null && !ArrayBuffer.isView(input)
+const FORBIDDEN_KEYS = ['__proto__', 'constructor'] as const
+
+function isPlainObject(input: unknown): input is object {
+  if (typeof input !== 'object' || input === null) return false
+  const prototype: unknown = Object.getPrototypeOf(input)
+  return prototype === Object.prototype || prototype === null
+}
+
+const hasForbiddenKey = (input: object): boolean => FORBIDDEN_KEYS.some((key) => Object.prototype.hasOwnProperty.call(input, key))
+const isContainer = (input: unknown): input is object => typeof input === 'object' && input !== null
+const isAcceptedObject = (input: unknown): input is object => isPlainObject(input) && !hasForbiddenKey(input)
+
+function containerSchema(input: unknown, accepted: v.GenericSchema<unknown, JsonValue>): v.GenericSchema<unknown, JsonValue> {
+  return isAcceptedObject(input) ? accepted : WrongTypeSchema
+}
 
 function levelSchema(below: v.GenericSchema<unknown, JsonValue>): v.GenericSchema<unknown, JsonValue> {
   const arraySchema = v.array(below, JsonIssue.WrongType)
   const objectSchema = v.record(v.string(), below, JsonIssue.WrongType)
   return v.lazy((input) => {
     if (Array.isArray(input)) return arraySchema
-    return isPlainContainer(input) ? objectSchema : scalarSchema(input)
+    return isContainer(input) ? containerSchema(input, objectSchema) : scalarSchema(input)
   })
 }
 
-const levelZero: v.GenericSchema<unknown, JsonValue> = v.lazy((input) => (isPlainContainer(input) ? TooLargeSchema : scalarSchema(input)))
+function deepContainerSchema(input: object): v.GenericSchema<unknown, never> {
+  return Array.isArray(input) || isAcceptedObject(input) ? TooLargeSchema : WrongTypeSchema
+}
+
+const levelZero: v.GenericSchema<unknown, JsonValue> = v.lazy((input) => (isContainer(input) ? deepContainerSchema(input) : scalarSchema(input)))
 
 const levels: readonly v.GenericSchema<unknown, JsonValue>[] = Array.from({ length: JSON_MAX_DEPTH }).reduce<readonly v.GenericSchema<unknown, JsonValue>[]>(
   (built) => [...built, levelSchema(built[built.length - 1] ?? levelZero)],
@@ -52,5 +70,5 @@ const emptyListBranch = v.pipe(v.tuple([], JsonIssue.WrongType), v.transform(():
 
 export const JsonObjectSchema: v.GenericSchema<unknown, JsonObject> = v.lazy((input) => {
   if (Array.isArray(input)) return input.length === 0 ? emptyListBranch : WrongTypeSchema
-  return isPlainContainer(input) ? objectBranch : WrongTypeSchema
+  return isAcceptedObject(input) ? objectBranch : WrongTypeSchema
 })

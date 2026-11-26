@@ -8,3 +8,7 @@ export const ReportEnvelopeSchema = v.strictObject({
   data: JsonObjectSchema,
 })
 export type ReportEnvelope = v.InferOutput<typeof ReportEnvelopeSchema>
+
+export function safeParseReportEnvelope(input: unknown): v.SafeParseResult<typeof ReportEnvelopeSchema> {
+  return v.safeParse(ReportEnvelopeSchema, input, { abortEarly: true })
+}
