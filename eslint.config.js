@@ -22,10 +22,10 @@ const sides = ['page', 'client', 'server']
 const sideDomain = (side) => `src/${side}/domain/**/*.ts`
 const pureLayers = ['src/{protocol,shared}/**/*.ts']
 const pageCode = ['src/{page,protocol,shared}/**/*.ts']
-const projects = ['pure', 'test'].map((name) => `./tsconfig.${name}.json`)
+const projects = ['pure', 'test', 'page', 'test.page'].map((name) => `./tsconfig.${name}.json`)
 
 export default defineConfig(
-  { ignores: ['**/node_modules/', '**/coverage/', '**/tools/', 'eslint.config.js', '**/vitest.config.ts', 'test/guards/fixtures/**'] },
+  { ignores: ['**/node_modules/', '**/coverage/', '**/tools/', 'eslint.config.js', '**/vitest.config.ts', 'vite.config.ts', '**/*.vue', 'omk_ui/web/', '.public/', '.preview-dist/', 'test/captures/', 'release/', 'test/guards/fixtures/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
