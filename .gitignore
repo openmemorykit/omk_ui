@@ -1,3 +1,8 @@
 node_modules/
 .env
 coverage/
+omk_ui/web/
+.public/
+.preview-dist/
+test/captures/
+release/

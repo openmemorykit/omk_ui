@@ -13,7 +13,10 @@
     "lint": "eslint .",
     "typecheck": "node tools/typecheck.mjs",
     "test": "vitest run --coverage",
-    "check": "npm run lint && npm run typecheck && npm test && node tools/version.mjs"
+    "build": "vite build",
+    "build:preview": "vite build --mode preview",
+    "dev:preview": "vite --mode preview",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && node tools/version.mjs"
   },
   "dependencies": {
     "@fontsource/archivo-narrow": "5.3.0",
