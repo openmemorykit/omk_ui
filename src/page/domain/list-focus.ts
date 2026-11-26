@@ -19,13 +19,12 @@ function clampedInteger(value: number, maximum: number): number {
   return Math.min(Math.max(Math.trunc(value), 0), Math.max(maximum, 0))
 }
 
-function closestFocusableId(items: readonly Item[], anchor: number): string | null {
-  for (let distance = 0; distance < items.length; distance += 1) {
-    for (const candidate of [items[anchor + distance], items[anchor - distance]]) {
-      if (candidate !== undefined && isFocusable(candidate)) return candidate.id
-    }
-  }
-  return null
+function survivorAfterOrBefore(items: readonly Item[], previousItems: readonly Item[], previousIndex: number): string | null {
+  const survivors: ReadonlySet<string> = new Set(focusableIds(items))
+  const isSurvivor = (item: Item): boolean => survivors.has(item.id)
+  const after = previousItems.slice(previousIndex + 1).find(isSurvivor)
+  const before = previousItems.slice(0, previousIndex).reverse().find(isSurvivor)
+  return (after ?? before)?.id ?? null
 }
 
 export function firstFocusable(items: readonly Item[]): string | null {
@@ -45,14 +44,16 @@ export function nearestFocusable(items: readonly Item[], previousItems: readonly
   if (kept !== undefined && isFocusable(kept)) return kept.id
   const previousIndex = previousItems.findIndex((item) => item.id === previousId)
   if (previousIndex === -1) return firstFocusable(items)
-  return closestFocusableId(items, Math.min(previousIndex, items.length - 1))
+  return survivorAfterOrBefore(items, previousItems, previousIndex) ?? firstFocusable(items)
 }
 
 export function visibleWindowStart(itemCount: number, focusIndex: number, previousStart: number): number {
-  const lastStart = Math.max(clampedInteger(itemCount, Number.MAX_SAFE_INTEGER) - VISIBLE_ROWS, 0)
+  const count = clampedInteger(itemCount, Number.MAX_SAFE_INTEGER)
+  const lastIndex = Math.max(count - 1, 0)
+  const lastStart = Math.max(count - VISIBLE_ROWS, 0)
   const start = clampedInteger(previousStart, lastStart)
   if (Number.isNaN(focusIndex) || focusIndex < 0) return start
-  const focus = clampedInteger(focusIndex, Math.max(itemCount - 1, 0))
+  const focus = clampedInteger(focusIndex, lastIndex)
   if (focus < start) return focus
   return focus >= start + VISIBLE_ROWS ? focus - VISIBLE_ROWS + 1 : start
 }

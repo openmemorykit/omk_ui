@@ -88,7 +88,8 @@ export function pointerVector(pointer: Point, center: Point, scale: number): Sti
   const distance = Math.hypot(offsetX, offsetY)
   if (!Number.isFinite(distance) || distance < RADIAL_HOLE_RADIUS * scale) return null
   const unit = RADIAL_RING_OUTER * scale
-  return { x: offsetX / unit, y: offsetY / unit }
+  const vector = { x: offsetX / unit, y: offsetY / unit }
+  return Number.isFinite(vector.x) && Number.isFinite(vector.y) ? vector : null
 }
 
 export function needleAngle(vector: StickEvent): number | null {

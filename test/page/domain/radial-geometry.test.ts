@@ -115,6 +115,7 @@ describe('aimedSector', () => {
   it('returns null for non finite vectors', () => {
     expect(aimedSector({ x: Number.NaN, y: -1 }, FOUR)).toBeNull()
     expect(aimedSector({ x: 0, y: Number.NaN }, FOUR)).toBeNull()
+    expect(aimedSector({ x: Number.MAX_VALUE, y: Number.MAX_VALUE }, FOUR)).toBeNull()
     expect(aimedSector({ x: Number.POSITIVE_INFINITY, y: 0 }, FOUR)).toBeNull()
     expect(aimedSector({ x: 0, y: Number.NEGATIVE_INFINITY }, FOUR)).toBeNull()
   })
@@ -137,6 +138,8 @@ describe('childCenterAngle', () => {
 
   it('does not throw on invalid input', () => {
     expect(Number.isFinite(childCenterAngle(Number.NaN, 0, Number.NaN, 0))).toBe(true)
+    expect(childCenterAngle(1, FOUR, 0, 0)).toBe(QUARTER_TURN)
+    expect(childCenterAngle(1, FOUR, Number.NaN, THREE)).toBe(QUARTER_TURN)
   })
 })
 
@@ -166,6 +169,26 @@ describe('aimedChild', () => {
     expect(aimedChild(vectorAt(-CHILD_STEP_DEGREES, MAGNITUDE), 0, FOUR, THREE)).toBe(0)
     expect(aimedChild(vectorAt(FULL_TURN - CHILD_STEP_DEGREES, MAGNITUDE), 0, FOUR, THREE)).toBe(0)
     expect(aimedChild(vectorAt(CHILD_STEP_DEGREES, MAGNITUDE), 0, FOUR, THREE)).toBe(TWO)
+  })
+
+  it('sends every child border to the next child for many fans', () => {
+    for (let parentCount = 1; parentCount <= EIGHT; parentCount += 1) {
+      for (let parentIndex = 0; parentIndex < parentCount; parentIndex += 1) {
+        for (let childCount = 1; childCount <= SIX; childCount += 1) {
+          for (let child = 0; child < childCount; child += 1) {
+            const border = childCenterAngle(parentIndex, parentCount, child, childCount) + CHILD_STEP_DEGREES / TWO
+            expect(aimedChild(vectorAt(border, MAGNITUDE), parentIndex, parentCount, childCount)).toBe(child + 1 < childCount ? child + 1 : null)
+          }
+        }
+      }
+    }
+  })
+
+  it('returns null for non integer indexes and counts', () => {
+    expect(aimedChild({ x: 0, y: -1 }, ONE_AND_HALF, FOUR, THREE)).toBeNull()
+    expect(aimedChild({ x: 0, y: -1 }, 0, TWO_AND_HALF, THREE)).toBeNull()
+    expect(aimedChild({ x: 0, y: -1 }, 0, FOUR, TWO_AND_HALF)).toBeNull()
+    expect(aimedChild({ x: 0, y: -1 }, 0, 0, THREE)).toBeNull()
   })
 
   it('returns null under the dead zone, for non finite vectors and invalid counts', () => {
@@ -232,6 +255,7 @@ describe('pointerVector', () => {
     expect(pointerVector({ x: Number.NaN, y: 0 }, center, 1)).toBeNull()
     expect(pointerVector({ x: Number.POSITIVE_INFINITY, y: 0 }, center, 1)).toBeNull()
     expect(pointerVector({ x: 900, y: CENTER_Y }, { x: Number.NaN, y: 0 }, 1)).toBeNull()
+    expect(pointerVector({ x: 900, y: 400 }, center, Number.MIN_VALUE)).toBeNull()
     for (const scale of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(pointerVector({ x: 900, y: CENTER_Y }, center, scale)).toBeNull()
     }

@@ -35,6 +35,10 @@ const QUARTER_TURN = 90
 
 const INFO_WITH_DESCRIPTION: Item = { ...COUNT_INFO, id: 'described', description: 'Total' }
 
+function link(id: string): Item {
+  return { kind: ItemKind.Link, id, label: id }
+}
+
 function sections(count: number): readonly Item[] {
   return Array.from({ length: count }, (_, index) => ({ kind: ItemKind.Link, id: `row-${index}`, label: `Row ${index}` }))
 }
@@ -117,6 +121,24 @@ describe('nearestFocusable', () => {
   it('moves focus away from an item that became a section', () => {
     const next: readonly Item[] = [previous[0], { kind: ItemKind.Section, id: 'row-1', label: 'Now a section' }, previous[TWO]] as readonly Item[]
     expect(nearestFocusable(next, previous, 'row-1')).toBe('row-2')
+  })
+
+  it('takes the first survivor after the vanished item even when earlier items vanished too', () => {
+    const [alpha, zulu, bravo, charlie] = [link('a'), link('z'), link('b'), link('c')]
+    expect(nearestFocusable([bravo, charlie], [alpha, zulu, bravo, charlie], 'z')).toBe('b')
+    expect(nearestFocusable([PLAYERS_SECTION, alpha, bravo], [alpha, zulu, bravo], 'z')).toBe('b')
+  })
+
+  it('takes the last survivor before when nothing survives after', () => {
+    const [alpha, bravo, charlie, delta, echo] = [link('a'), link('b'), link('c'), link('d'), link('e')]
+    expect(nearestFocusable([alpha, bravo], [alpha, bravo, charlie, delta, echo], 'e')).toBe('b')
+    expect(nearestFocusable([alpha, charlie], [alpha, bravo, charlie, delta], 'd')).toBe('c')
+  })
+
+  it('does not fail on a list that starts with non focusable items or shares nothing', () => {
+    const next: readonly Item[] = [PLAYERS_SECTION, COUNT_INFO, link('a')]
+    expect(nearestFocusable(next, [link('x')], 'x')).toBe('a')
+    expect(nearestFocusable([PLAYERS_SECTION, COUNT_INFO], [link('x')], 'x')).toBeNull()
   })
 
   it('falls back to the first focusable item without a usable previous focus', () => {
