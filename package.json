@@ -16,17 +16,27 @@
     "check": "npm run lint && npm run typecheck && npm test && node tools/version.mjs"
   },
   "dependencies": {
+    "@fontsource/archivo-narrow": "5.3.0",
+    "@fontsource/sofia-sans-semi-condensed": "5.3.0",
     "@openmemorykit/core": "github:openmemorykit/omk-core#v0.1.0",
     "@openmemorykit/ui": "github:openmemorykit/omk-ui-sdk#v0.1.0",
-    "valibot": "1.4.2"
+    "valibot": "1.4.2",
+    "vue": "3.5.46"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@vitejs/plugin-vue": "6.0.11",
     "@vitest/coverage-v8": "5.1.1",
+    "@vue/test-utils": "2.6.0",
     "eslint": "10.15.0",
     "eslint-plugin-compat": "7.0.2",
+    "eslint-plugin-vue": "10.12.1",
+    "happy-dom": "21.0.4",
     "typescript": "6.0.3",
     "typescript-eslint": "8.73.0",
-    "vitest": "5.1.1"
+    "vite": "8.3.8",
+    "vitest": "5.1.1",
+    "vue-eslint-parser": "10.4.2",
+    "vue-tsc": "3.3.14"
   }
 }
