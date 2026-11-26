@@ -24,16 +24,22 @@ function isContainer(value: unknown): value is object {
   return typeof value === 'object' && value !== null
 }
 
+function isPlainObject(value: unknown): value is object {
+  if (!isContainer(value)) return false
+  const prototype: unknown = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
 function hasOwnKey(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key)
 }
 
-function hasForeignRootKey(raw: unknown): boolean {
-  return isContainer(raw) && Object.keys(raw).some((key) => !ENVELOPE_KEYS.includes(key))
+function hasForeignRootKey(raw: object): boolean {
+  return Object.keys(raw).some((key) => !ENVELOPE_KEYS.includes(key))
 }
 
-function claimedKind(raw: unknown): unknown {
-  if (!isContainer(raw) || !hasOwnKey(raw, KIND_KEY)) return undefined
+function claimedKind(raw: object): unknown {
+  if (!hasOwnKey(raw, KIND_KEY)) return undefined
   return (raw as Readonly<Record<string, unknown>>)[KIND_KEY]
 }
 
@@ -55,7 +61,7 @@ function containsTypedView(root: unknown): boolean {
   return false
 }
 
-function shapeReading(raw: unknown): ReportReading | null {
+function shapeReading(raw: object): ReportReading | null {
   const verdict = inspectShape(raw, REPORT_SHAPE_LIMITS)
   if (!verdict.ok) return verdict.refusal === ShapeRefusal.Nodes ? TOO_LARGE : INVALID
   if (hasForeignRootKey(raw) || containsTypedView(raw)) return INVALID
@@ -74,6 +80,7 @@ function envelopeReading(raw: unknown): ReportReading {
 }
 
 function readUnguarded(raw: unknown, traceActive: boolean, snapshotPending: boolean): ReportReading {
+  if (!isPlainObject(raw)) return INVALID
   const kind = claimedKind(raw)
   if (!isWanted(kind, traceActive, snapshotPending)) return NOT_TRACED
   return shapeReading(raw) ?? sizeReading(raw, kind) ?? envelopeReading(raw)

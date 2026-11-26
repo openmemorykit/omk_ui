@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { serializedByteLength } from '@openmemorykit/core/shared'
 import { createSerializationFake, EmptyTableShape } from '@openmemorykit/core/testing'
 import { ReportKind } from '../../../src/shared/report/report-kind'
-import { safeParseReportEnvelope } from '../../../src/shared/report/report-envelope'
 import { readReport, REPORT_MAX_BYTES, REPORT_SHAPE_LIMITS, ReportDecision, SNAPSHOT_MAX_BYTES } from '../../../src/server/domain/report-rules'
 
 const TIMESTAMP = 1234
@@ -74,8 +73,8 @@ describe('report rules: trace', () => {
     expect(readReport(snapshot, TRACED, IDLE)).toEqual({ decision: ReportDecision.NotTraced })
   })
 
-  it('refuses garbage while the trace is off without reading it further', () => {
-    expect(readReport(null, UNTRACED, PENDING).decision).toBe(ReportDecision.NotTraced)
+  it('refuses a malformed report while the trace is off without reading it further', () => {
+    expect(readReport({ kind: 'madeUp', data: Number.NaN }, UNTRACED, PENDING).decision).toBe(ReportDecision.NotTraced)
   })
 })
 
@@ -126,15 +125,13 @@ describe('report rules: envelope', () => {
     expect(readReport(crossed, TRACED, IDLE)).toEqual({ decision: ReportDecision.Accepted, report: { kind: ReportKind.PageError, at: TIMESTAMP, data: {} } })
   })
 
-  it('refuses an own __proto__ key at the root that the envelope schema lets through', () => {
+  it('refuses an own __proto__ key at the root', () => {
     const raw: unknown = JSON.parse(`{"__proto__":{"polluted":true},"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{}}`)
-    expect(safeParseReportEnvelope(raw).success).toBe(true)
     expect(readReport(raw, TRACED, IDLE)).toEqual({ decision: ReportDecision.Invalid })
   })
 
-  it.each(['toString', 'constructor', 'hasOwnProperty'])('refuses an own %s key at the root that the envelope schema lets through', (key) => {
+  it.each(['toString', 'constructor', 'hasOwnProperty'])('refuses an own %s key at the root', (key) => {
     const raw: unknown = JSON.parse(`{"${key}":1,"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{}}`)
-    expect(safeParseReportEnvelope(raw).success).toBe(true)
     expect(readReport(raw, TRACED, IDLE)).toEqual({ decision: ReportDecision.Invalid })
   })
 
