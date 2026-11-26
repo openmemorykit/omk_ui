@@ -130,6 +130,7 @@ const importCases: readonly (readonly [string, RegExp, number])[] = [
   ['preview-pure/imports-page-layers.vue', /purs/, NAMED_IMPORT_COUNT],
   ['preview-pure/imports-input.vue', /purs/, 1],
   ['preview-pure/imports-citizenfx.vue', CITIZENFX_MESSAGE, 1],
+  ['preview-runtime/imports-application-other.vue', /purs/, 1],
   ['preview-shell/imports-input.vue', /entrée/, 1],
   ['preview-shell/imports-citizenfx.vue', CITIZENFX_MESSAGE, 1],
 ]
@@ -137,6 +138,7 @@ const importCases: readonly (readonly [string, RegExp, number])[] = [
 const importFree: readonly string[] = [
   'components/imports-allowed.vue',
   'preview-pure/imports-allowed.vue',
+  'preview-runtime/imports-ports-allowed.vue',
   'preview-shell/imports-client-domain-allowed.vue',
 ]
 

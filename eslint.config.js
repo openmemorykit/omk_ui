@@ -133,21 +133,24 @@ export default defineConfig(
     ignores: ['preview/main.ts', 'preview/input/**'],
     rules: { 'no-restricted-imports': restrict([natives, [forbidden('input'), 'Seul preview/main.ts câble les sources d\'entrée de preview/input.']]) },
   },
-  {
-    files: sources('preview/{scenarios,runtime}', 'preview-pure'),
+  ...[
+    ['preview/scenarios', 'preview-pure', []],
+    ['preview/runtime', 'preview-runtime', true],
+  ].map(([real, mirror, portsOpen]) => ({
+    files: sources(real, mirror),
     rules: {
       'no-restricted-imports': restrict(
         [
           natives,
           [
-            [...forbidden('server', 'infrastructure', 'components', 'application', 'input', 'shell', 'i18n', 'theme'), ...sdkAndCore.filter((name) => !name.endsWith('/validation')), `!${citizenfx}`],
+            [...forbidden('server', 'infrastructure', 'components', 'input', 'shell', 'i18n', 'theme'), ...(portsOpen ? ['**/application/*', '**/application/*/**', '!**/application/ports'] : forbidden('application')), ...sdkAndCore.filter((name) => !name.endsWith('/validation')), `!${citizenfx}`],
             'Scénarios et runtime de l\'aperçu sont purs : contrat, validation, protocole, client/domain et page/domain seulement.',
           ],
         ],
         [{ name: 'vue', message: 'Scénarios et runtime de l\'aperçu sont purs : contrat, validation, protocole, client/domain et page/domain seulement.' }],
       ),
     },
-  },
+  })),
   { ...compat.configs['flat/recommended'], files: pageCode, settings: { lintAllEsApis: true } },
   { files: ['test/**/*.ts'], rules: { 'max-lines-per-function': 'off' } },
 )
