@@ -19,6 +19,7 @@
     "check": "npm run lint && npm run typecheck && npm test && npm run build && node tools/sizes.mjs omk_ui/web && node tools/css-guard.mjs omk_ui/web/assets && node tools/version.mjs",
     "sizes": "node tools/sizes.mjs omk_ui/web",
     "css-guard": "node tools/css-guard.mjs omk_ui/web/assets",
+    "capture": "node tools/capture.mjs",
     "release": "npm run check && node tools/release.mjs"
   },
   "dependencies": {

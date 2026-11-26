@@ -65,6 +65,8 @@ Open `http://127.0.0.1:5173/?scenario=radial`. Screenshots (`test/captures/`, no
 docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp --shm-size=1g -v <path of playwright-core 1.56.1>:/pw:ro -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v1.56.1-noble node tools/capture.mjs
 ```
 
+It writes one PNG per scenario, resolution and variant, plus `test/captures/report.json` (automatic checks of the screenshot page, failures listed per capture). `--only=<text>` keeps the captures whose name contains the text; the exit code is 1 when a capture fails.
+
 ## Dependencies on other OMK repositories
 
 - `omk-core`, pinned to the `v0.1.0` tag (`@openmemorykit/core`).
@@ -142,6 +144,8 @@ Ouvre `http://127.0.0.1:5173/?scenario=radial`. Les captures (`test/captures/`, 
 ```sh
 docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp --shm-size=1g -v <chemin de playwright-core 1.56.1>:/pw:ro -v "$PWD":/w -w /w mcr.microsoft.com/playwright:v1.56.1-noble node tools/capture.mjs
 ```
+
+Elle écrit un PNG par scénario, résolution et variante, plus `test/captures/report.json` (contrôles automatiques de la page, échecs listés par capture). `--only=<texte>` garde les captures dont le nom contient le texte ; le code de sortie vaut 1 si une capture échoue.
 
 ## Dépendances vers les autres dépôts OMK
 
