@@ -19,6 +19,7 @@ const BOX = 848
 const HALF_BOX = 424
 const HOLE_OFFSET = 50
 const RING_OFFSET = 200
+const PAST_RING = 10
 const DOUBLE_SCALE = 2
 const DOUBLE_BOX = BOX * DOUBLE_SCALE
 const DOUBLE_OFFSET = RING_OFFSET * DOUBLE_SCALE
@@ -150,7 +151,7 @@ describe('RadialMenu', () => {
   it('bounds the aim to the level 1 ring when no sub-ring is drawn', async () => {
     const { wrapper, dispatch } = mountRadial()
     sizeBox(wrapper)
-    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RADIAL_RING_OUTER + 10, clientY: HALF_BOX })
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RADIAL_RING_OUTER + PAST_RING, clientY: HALF_BOX })
     expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: PageCommandType.PointerAim, vector: null })
   })
 

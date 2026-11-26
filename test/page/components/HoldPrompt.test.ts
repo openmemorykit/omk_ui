@@ -11,6 +11,7 @@ import { prompt, translate } from '../application/views/helpers'
 import { REDUCED_MOTION_CUT_SELECTOR } from '../theme/reduced-motion'
 
 const HOLD_MS = 1_500
+const ARC_COUNT = 2
 const VIEWPORT = { width: 1920, height: 1080 }
 
 function stateWith(mode: PromptMode, state: PromptState | null, overrides: Partial<UiState> = {}): UiState {
@@ -51,7 +52,7 @@ describe('HoldPrompt', () => {
 
   it('keeps the ring arcs out of the reduced-motion cut', () => {
     const arcs = render(stateWith(PromptMode.Hold, PromptState.Holding)).findAll('.omk-prompt__arc')
-    expect(arcs).toHaveLength(2)
+    expect(arcs).toHaveLength(ARC_COUNT)
     for (const arc of arcs) expect(arc.element.matches(REDUCED_MOTION_CUT_SELECTOR)).toBe(false)
   })
 

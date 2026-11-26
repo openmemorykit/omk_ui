@@ -135,6 +135,7 @@ describe('VirtualKeyboard', () => {
 
   it('moves the cursor to the end after a render from the pad', async () => {
     const { wrapper } = render(viewOf({ value: 'ab' }))
+    inputOf(wrapper).value = 'abcd'
     inputOf(wrapper).setSelectionRange(0, 0)
     await wrapper.setProps({ view: viewOf({ value: 'abcd' }) })
     await wrapper.vm.$nextTick()

@@ -73,7 +73,7 @@ onMounted(revealActive)
         </span>
         <span v-if="view.counter !== null" class="omk-foot__position"><span class="omk-foot__count">{{ view.counter.position }}</span> <span class="omk-foot__total">/ {{ view.counter.total }}</span></span>
       </footer>
-      <div v-if="view.covered" class="omk-column__layer"><slot name="layer" /></div>
+      <div v-if="view.covered" class="omk-column__layer omk-surface-raised"><slot name="layer" /></div>
     </div>
     <p v-if="view.description !== null" class="omk-description omk-secondary">
       <svg class="omk-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="INFO" /></svg>

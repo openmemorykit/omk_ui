@@ -7,6 +7,7 @@ export const CHILD_STEP_DEGREES = 30
 export const RADIAL_HOLE_RADIUS = 132
 export const RADIAL_RING_OUTER = 318
 export const RADIAL_SUBRING_INNER = 330
+export const RADIAL_SUBRING_OUTER = 424
 
 const FULL_TURN_DEGREES = 360
 const SECTOR_HALVES = 2
@@ -81,12 +82,12 @@ export function entersSubring(vector: StickEvent, source: InputSource): boolean 
   return magnitude !== null && magnitude >= STICK_ENTRY_MAGNITUDES[source]
 }
 
-export function pointerVector(pointer: Point, center: Point, scale: number): StickEvent | null {
+export function pointerVector(pointer: Point, center: Point, scale: number, outer: number = RADIAL_SUBRING_OUTER): StickEvent | null {
   if (!Number.isFinite(scale) || scale <= 0) return null
   const offsetX = pointer.x - center.x
   const offsetY = pointer.y - center.y
   const distance = Math.hypot(offsetX, offsetY)
-  if (!Number.isFinite(distance) || distance < RADIAL_HOLE_RADIUS * scale) return null
+  if (!Number.isFinite(distance) || distance < RADIAL_HOLE_RADIUS * scale || distance > outer * scale) return null
   const unit = RADIAL_RING_OUTER * scale
   const vector = { x: offsetX / unit, y: offsetY / unit }
   return Number.isFinite(vector.x) && Number.isFinite(vector.y) ? vector : null
