@@ -1,0 +1,28 @@
+import type { ValueOf } from '@openmemorykit/core/shared'
+
+export const ReportKind = {
+  ConfigApplied: 'configApplied',
+  ModeChanged: 'modeChanged',
+  PagePaused: 'pagePaused',
+  PageReloaded: 'pageReloaded',
+  StackChanged: 'stackChanged',
+  FocusApplied: 'focusApplied',
+  ModalityChanged: 'modalityChanged',
+  BindingRead: 'bindingRead',
+  CameraReplayed: 'cameraReplayed',
+  ReleaseGuard: 'releaseGuard',
+  TextEntry: 'textEntry',
+  OpenRefused: 'openRefused',
+  ContractRefused: 'contractRefused',
+  UnknownField: 'unknownField',
+  CallLimited: 'callLimited',
+  ForgedCall: 'forgedCall',
+  ReplyUndelivered: 'replyUndelivered',
+  FormTimeout: 'formTimeout',
+  PromptChanged: 'promptChanged',
+  PanelPainted: 'panelPainted',
+  PageError: 'pageError',
+  PageUnresponsive: 'pageUnresponsive',
+  Snapshot: 'snapshot',
+} as const
+export type ReportKind = ValueOf<typeof ReportKind>
