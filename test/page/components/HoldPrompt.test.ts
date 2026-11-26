@@ -8,6 +8,7 @@ import { createInitialState, type UiState } from '../../../src/page/domain/ui-st
 import { Modality } from '../../../src/protocol/intents'
 import { PromptState } from '../../../src/protocol/page-vocabulary'
 import { prompt, translate } from '../application/views/helpers'
+import { REDUCED_MOTION_CUT_SELECTOR } from '../theme/reduced-motion'
 
 const HOLD_MS = 1_500
 const VIEWPORT = { width: 1920, height: 1080 }
@@ -46,6 +47,12 @@ describe('HoldPrompt', () => {
     expect(ring.attributes('data-state')).toBe(PromptState.Holding)
     expect(ring.attributes('data-motion')).toBe('essential')
     expect(ring.attributes('style')).toContain(`--ring-ms: ${HOLD_MS}ms`)
+  })
+
+  it('keeps the ring arcs out of the reduced-motion cut', () => {
+    const arcs = render(stateWith(PromptMode.Hold, PromptState.Holding)).findAll('.omk-prompt__arc')
+    expect(arcs).toHaveLength(2)
+    for (const arc of arcs) expect(arc.element.matches(REDUCED_MOTION_CUT_SELECTOR)).toBe(false)
   })
 
   it('shows the cancelled ring', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { declarationValues, readTokens, withoutKeyframes } from './css-reading'
 import { readSource } from './read-source'
+import { REDUCED_MOTION_CUT_SELECTOR } from './reduced-motion'
 
 const baseCss = readSource('src/page/theme/base.css')
 const tokensCss = readSource('src/page/theme/tokens.css')
@@ -45,6 +46,7 @@ describe('visual rule in the theme files', () => {
   it('cuts animations under reduced motion except essential ones', () => {
     expect(baseCss).toMatch(/@media \(prefers-reduced-motion: reduce\)/)
     expect(baseCss).toContain('[data-motion="essential"]')
+    expect(baseCss).toMatch(new RegExp(`prefers-reduced-motion: reduce\\)\\s*\\{\\s*${REDUCED_MOTION_CUT_SELECTOR.replace(/[*()[\].]/g, '\\$&')}`))
   })
 })
 

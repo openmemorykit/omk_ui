@@ -99,8 +99,8 @@ describe('VirtualKeyboard', () => {
   })
 
   it('shows the title only when given', () => {
-    expect(render(viewOf(), 'Note du staff').wrapper.text()).toContain('Note du staff')
-    expect(render(viewOf()).wrapper.find('.layer-title').exists()).toBe(false)
+    expect(render(viewOf(), 'Note du staff').wrapper.get('.omk-layer-title').text()).toBe('Note du staff')
+    expect(render(viewOf()).wrapper.find('.omk-layer-title').exists()).toBe(false)
   })
 
   it('sends the whole value on input', () => {
@@ -135,7 +135,9 @@ describe('VirtualKeyboard', () => {
 
   it('moves the cursor to the end after a render from the pad', async () => {
     const { wrapper } = render(viewOf({ value: 'ab' }))
+    inputOf(wrapper).setSelectionRange(0, 0)
     await wrapper.setProps({ view: viewOf({ value: 'abcd' }) })
+    await wrapper.vm.$nextTick()
     const input = inputOf(wrapper)
     expect(input.value).toBe('abcd')
     expect(input.selectionStart).toBe('abcd'.length)
