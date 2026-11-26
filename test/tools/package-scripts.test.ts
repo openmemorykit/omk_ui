@@ -9,3 +9,23 @@ describe('package scripts', () => {
     expect(line.startsWith('node tools/fonts.mjs && vite')).toBe(true)
   })
 })
+
+describe('check script', () => {
+  const steps = (scripts['check'] ?? '').split(' && ')
+
+  it('chains lint, typecheck, test, build, sizes, css-guard and version in order', () => {
+    expect(steps).toEqual([
+      'npm run lint',
+      'npm run typecheck',
+      'npm test',
+      'npm run build',
+      'node tools/sizes.mjs omk_ui/web',
+      'node tools/css-guard.mjs omk_ui/web/assets',
+      'node tools/version.mjs',
+    ])
+  })
+
+  it('runs check before the release archive', () => {
+    expect(scripts['release']).toBe('npm run check && node tools/release.mjs')
+  })
+})

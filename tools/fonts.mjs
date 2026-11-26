@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { basename, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const MANIFEST_URL = new URL('../src/page/theme/fonts.json', import.meta.url)
 const SOURCE_ROOT = 'node_modules'
@@ -35,7 +36,7 @@ export function copyFonts(manifest, sourceRoot, targetDir) {
   return { copied, missing }
 }
 
-if (import.meta.main) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const manifest = JSON.parse(readFileSync(MANIFEST_URL, 'utf8'))
   const { copied, missing } = copyFonts(manifest, SOURCE_ROOT, TARGET_DIR)
   if (missing.length > 0) {
