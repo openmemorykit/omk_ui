@@ -70,3 +70,8 @@ export function formWith(items: readonly Item[], localId = 'add'): OwnedPanel {
 export const PLAIN_TEXT: Extract<Item, { readonly kind: typeof ItemKind.Text }> = { ...IDENTIFIER_TEXT, id: 'note', label: 'Note', rules: [] }
 
 export const NOTE_MENU: OwnedPanel = menuPanel('notes', FixtureOwner.Whitelist, [PLAIN_TEXT])
+
+export function changeOf(state: UiState, itemId: string): unknown {
+  const item = itemOf(state, itemId)
+  return item !== undefined && 'value' in item ? item.value : undefined
+}
