@@ -24,5 +24,6 @@ export const ReportKind = {
   PageError: 'pageError',
   PageUnresponsive: 'pageUnresponsive',
   Snapshot: 'snapshot',
+  ConfirmAsked: 'confirmAsked',
 } as const
 export type ReportKind = ValueOf<typeof ReportKind>

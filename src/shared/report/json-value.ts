@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { RESERVED_OBJECT_KEYS } from '../reserved-keys'
+import { isPlainObject } from './own-strict-object'
 
 export type JsonValue = string | number | boolean | null | readonly JsonValue[] | JsonObject
 export interface JsonObject { readonly [key: string]: JsonValue }
@@ -22,12 +23,6 @@ const scalarByType: Readonly<Record<string, v.GenericSchema<unknown, JsonValue>>
 function scalarSchema(input: unknown): v.GenericSchema<unknown, JsonValue> {
   if (input === null) return v.null(JsonIssue.WrongType)
   return scalarByType[typeof input] ?? WrongTypeSchema
-}
-
-function isPlainObject(input: unknown): input is object {
-  if (typeof input !== 'object' || input === null) return false
-  const prototype: unknown = Object.getPrototypeOf(input)
-  return prototype === Object.prototype || prototype === null
 }
 
 const hasForbiddenKey = (input: object): boolean => RESERVED_OBJECT_KEYS.some((key) => Object.prototype.hasOwnProperty.call(input, key))
