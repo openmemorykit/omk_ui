@@ -1,9 +1,11 @@
 import { createFivemServerTransport } from '@openmemorykit/core/server'
-import { createServerEvents, type RejectionHandler, type ServerEvents } from '@openmemorykit/core/shared'
-import { NET_EVENT_SCHEMAS } from '../../shared/net/net-events'
+import { createServerEvents, type ServerEvents } from '@openmemorykit/core/shared'
+import { SERVER_EVENT_SCHEMAS } from '../../shared/net/net-events'
 
-export type KitServerEvents = ServerEvents<typeof NET_EVENT_SCHEMAS>
+export type KitServerEvents = ServerEvents<typeof SERVER_EVENT_SCHEMAS>
 
-export function createKitServerEvents(onRejected: RejectionHandler): KitServerEvents {
-  return createServerEvents(NET_EVENT_SCHEMAS, createFivemServerTransport(), onRejected)
+const REJECTION_HANDLER_NEVER_CALLED = (): void => undefined
+
+export function createKitServerEvents(): KitServerEvents {
+  return createServerEvents(SERVER_EVENT_SCHEMAS, createFivemServerTransport(), REJECTION_HANDLER_NEVER_CALLED)
 }

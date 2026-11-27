@@ -75,14 +75,17 @@ function refusingReservedKeys<Schema extends v.GenericSchema>(schema: Schema): v
 
 const CommandEventSchema = v.variant('kind', [SnapshotCommandSchema, DemoCommandSchema, IntentCommandSchema, CloseCommandSchema, AskCommandSchema])
 
-export const NET_EVENT_SCHEMAS = {
+export type ServerToClientEvent = Exclude<NetEvent, typeof NetEvent.Report>
+
+export const SERVER_EVENT_SCHEMAS = {
   [NetEvent.Trace]: refusingReservedKeys(TraceCommandSchema),
   [NetEvent.Notify]: refusingReservedKeys(NotifyCommandSchema),
   [NetEvent.Command]: refusingReservedKeys(CommandEventSchema),
-  [NetEvent.Report]: v.unknown(),
 } as const
 
-export function netEventOf(command: ServerToClientCommand): NetEvent {
+export const CLIENT_EVENT_SCHEMAS = { ...SERVER_EVENT_SCHEMAS, [NetEvent.Report]: v.unknown() } as const
+
+export function netEventOf(command: ServerToClientCommand): ServerToClientEvent {
   switch (command.kind) {
     case CommandKind.Trace:
       return NetEvent.Trace

@@ -5,7 +5,7 @@ import { NetEvent } from '../../shared/net/net-events'
 
 export type ReportHandler = (source: number, raw: unknown) => void
 
-export function registerReportEvent(report: ReportHandler, onFailure: FailureHandler): void {
+export function registerRawReportEvent(report: ReportHandler, onFailure: FailureHandler): void {
   createFivemServerTransport().onFromClient(NetEvent.Report, (raw, source) => {
     if (isPlayerSource(source)) guardedCall(onFailure, NetEvent.Report, () => report(source, raw), undefined)
   })

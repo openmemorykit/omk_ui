@@ -1,4 +1,3 @@
-import type { RejectedEvent } from '@openmemorykit/core/shared'
 import { NotificationTone } from '@openmemorykit/ui/contract'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ALL_CLIENTS } from '../../../src/server/application/ports'
@@ -17,8 +16,7 @@ let natives: ServerEventNatives | null = null
 
 function channelWith(implementations: Readonly<Record<string, (...args: never[]) => unknown>> = {}, failures: unknown[][] = []): ReturnType<typeof createClientChannel> {
   natives = installServerEventNatives(implementations)
-  const rejected: RejectedEvent[] = []
-  return createClientChannel(createKitServerEvents((event) => rejected.push(event)), (operation, failure) => failures.push([operation, failure]))
+  return createClientChannel(createKitServerEvents(), (operation, failure) => failures.push([operation, failure]))
 }
 
 afterEach(() => {

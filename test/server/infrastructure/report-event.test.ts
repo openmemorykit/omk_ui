@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { receiveReport } from '../../../src/server/application/receive-report'
 import { NetEvent } from '../../../src/shared/net/net-events'
 import { ReportKind } from '../../../src/shared/report/report-kind'
-import { registerReportEvent } from '../../../src/server/infrastructure/report-event'
+import { registerRawReportEvent } from '../../../src/server/infrastructure/report-event'
 import { sampleReport } from '../../fixtures/reports'
 import { createServerHarness, PLAYER } from '../application/server-harness'
 import { installServerEventNatives, type ServerEventNatives } from './server-adapter-natives'
@@ -24,7 +24,7 @@ let natives: ServerEventNatives | null = null
 function installReportEvent(report: (source: number, raw: unknown) => void, failures: unknown[][] = []): { readonly natives: ServerEventNatives } {
   const installed = installServerEventNatives()
   natives = installed
-  registerReportEvent(report, (operation, failure) => failures.push([operation, failure]))
+  registerRawReportEvent(report, (operation, failure) => failures.push([operation, failure]))
   return { natives: installed }
 }
 

@@ -1,10 +1,10 @@
 import { createFivemClientTransport } from '@openmemorykit/core/client'
 import { createClientEvents, type ClientEvents, type RejectionHandler } from '@openmemorykit/core/shared'
-import { NET_EVENT_SCHEMAS, NetEvent } from '../../shared/net/net-events'
+import { CLIENT_EVENT_SCHEMAS, NetEvent } from '../../shared/net/net-events'
 import type { ServerChannel } from '../application/ports'
 import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
-type NetEvents = ClientEvents<typeof NET_EVENT_SCHEMAS>
+type NetEvents = ClientEvents<typeof CLIENT_EVENT_SCHEMAS>
 
 export interface ServerLink {
   readonly channel: ServerChannel
@@ -22,7 +22,7 @@ function guardedListeners(events: NetEvents, onFailure: FailureHandler): NetEven
 
 export function createServerLink(onRejected: RejectionHandler, onFailure: FailureHandler): ServerLink {
   const transport = createFivemClientTransport(onRejected)
-  const events = guardedListeners(createClientEvents(NET_EVENT_SCHEMAS, transport, onRejected), onFailure)
+  const events = guardedListeners(createClientEvents(CLIENT_EVENT_SCHEMAS, transport, onRejected), onFailure)
   const channel: ServerChannel = {
     report: (envelope) => {
       guardedCall(onFailure, `emitNet ${NetEvent.Report}`, () => events.emitToServer(NetEvent.Report, envelope), undefined)
