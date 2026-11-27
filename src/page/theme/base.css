@@ -50,7 +50,7 @@ body {
   box-shadow: var(--shadow-surface);
 }
 
-[data-surface][data-dimmed]::after, [data-dimmed] [data-surface]::after {
+[data-surface][data-dimmed]::after, [data-dimmed]:not([data-surface]) [data-surface]::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -82,7 +82,10 @@ body {
 }
 
 .omk-section {
-  padding: var(--space-5) var(--space-6) var(--space-2);
+  display: flex;
+  align-items: flex-end;
+  height: var(--row-height);
+  padding: 0 var(--space-6) var(--space-2);
   color: var(--ink-3);
   font-size: var(--text-secondary);
   font-weight: var(--font-weight-bold);
@@ -444,10 +447,6 @@ body {
   animation: omk-slide var(--fast) var(--ease);
 }
 
-.omk-anim-leave {
-  animation: omk-leave var(--exit) linear forwards;
-}
-
 @keyframes omk-spin {
   to { transform: rotate(1turn); }
 }
@@ -470,10 +469,6 @@ body {
 
 @keyframes omk-slide {
   from { opacity: 0; transform: translateX(var(--slide-from, var(--space-5))); }
-}
-
-@keyframes omk-leave {
-  to { opacity: 0; transform: translateX(var(--slide-from, var(--space-5))); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -55,6 +55,7 @@ onMounted(revealActive)
       </template>
     </nav>
     <div class="omk-column__body">
+      <div v-if="view.covered" class="omk-column__layer omk-surface-raised"><slot name="layer" /></div>
       <div class="omk-rows">
         <div :key="view.panelId" ref="list" class="omk-rows__list" :class="enterClass" role="listbox" :aria-label="view.title" :aria-activedescendant="view.activeDescendant ?? undefined">
           <div class="omk-rows__spacer" aria-hidden="true" :style="{ height: rowsBefore }" />
@@ -73,7 +74,6 @@ onMounted(revealActive)
         </span>
         <span v-if="view.counter !== null" class="omk-foot__position"><span class="omk-foot__count">{{ view.counter.position }}</span> <span class="omk-foot__total">/ {{ view.counter.total }}</span></span>
       </footer>
-      <div v-if="view.covered" class="omk-column__layer omk-surface-raised"><slot name="layer" /></div>
     </div>
     <p v-if="view.description !== null" class="omk-description omk-secondary">
       <svg class="omk-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="INFO" /></svg>
@@ -210,9 +210,18 @@ onMounted(revealActive)
   color: var(--ink);
 }
 
-.omk-column__layer {
-  position: absolute;
-  inset: 0;
+.omk-column__layer ~ .omk-rows {
+  height: 0;
+  padding: 0;
+  visibility: hidden;
+}
+
+.omk-column__layer ~ .omk-foot {
+  display: none;
+}
+
+.omk-column__layer > [data-surface] {
+  box-shadow: none;
 }
 
 .omk-description {
@@ -233,5 +242,6 @@ onMounted(revealActive)
 
 .omk-column__legend {
   margin-top: var(--space-2);
+  border-top: 0.0625rem solid var(--line);
 }
 </style>

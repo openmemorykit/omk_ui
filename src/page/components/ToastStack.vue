@@ -48,7 +48,7 @@ function iconPaths(tone: NotificationTone): readonly string[] {
   flex-direction: column;
   gap: var(--space-3);
   width: var(--toast-width);
-  contain: layout paint;
+  contain: layout;
 }
 
 .omk-toasts[data-column-side="left"] {

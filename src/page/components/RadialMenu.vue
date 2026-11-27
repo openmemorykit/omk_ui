@@ -91,7 +91,7 @@ function confirm(): void {
 <style>
 .omk-radial-layer { display: contents; }
 .omk-radial { position: absolute; top: 50%; left: 50%; width: calc(var(--radial-subring-outer) * 2); height: calc(var(--radial-subring-outer) * 2); margin: calc(var(--radial-subring-outer) * -1) 0 0 calc(var(--radial-subring-outer) * -1); contain: layout paint; }
-.omk-radial__ring { position: absolute; top: 50%; left: 50%; width: calc(var(--radial-ring-outer) * 2); height: calc(var(--radial-ring-outer) * 2); margin: calc(var(--radial-ring-outer) * -1) 0 0 calc(var(--radial-ring-outer) * -1); border-radius: var(--radius-round); background-color: rgb(var(--panel-deep-rgb) / var(--panel-alpha)); box-shadow: var(--shadow-surface); }
+.omk-radial__ring { position: absolute; top: 50%; left: 50%; width: calc(var(--radial-ring-outer) * 2); height: calc(var(--radial-ring-outer) * 2); margin: calc(var(--radial-ring-outer) * -1) 0 0 calc(var(--radial-ring-outer) * -1); border-radius: var(--radius-round); background-color: var(--panel-deep); box-shadow: var(--shadow-surface); }
 .omk-radial__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .omk-radial__fill { fill: var(--panel); stroke: var(--panel-deep); stroke-width: 4; }
 .omk-radial__label { fill: var(--ink); font-family: var(--font-ui); font-size: 19px; font-weight: var(--font-weight-strong); text-anchor: middle; }

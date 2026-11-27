@@ -117,6 +117,11 @@ const ringStyle = computed(() => ({ '--ring-ms': `${view.value?.ringMs ?? 0}ms` 
   transform: rotate(225deg);
 }
 
+.omk-prompt__ring[data-state="completed"] .omk-prompt__arc {
+  border-top-color: var(--success);
+  border-right-color: var(--success);
+}
+
 .omk-prompt__text {
   display: flex;
   flex-direction: column;

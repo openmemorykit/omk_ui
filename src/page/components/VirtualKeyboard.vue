@@ -3,11 +3,13 @@ import { nextTick, onMounted, useTemplateRef, watch } from 'vue'
 import type { KeyboardView, KeyView } from '../application/views/keyboard-view'
 import { KeyAction } from '../domain/keyboard-layouts'
 import { PageCommandType } from '../domain/page-commands'
+import { ERASE, LAYERS, SHIFT } from './chrome-icons'
 import { useUi } from './use-ui'
 
 const props = defineProps<{ view: KeyboardView; title?: string }>()
 const { dispatch } = useUi()
 const field = useTemplateRef<HTMLInputElement>('field')
+const KEY_ICONS: ReadonlyMap<KeyAction, string> = new Map([[KeyAction.Shift, SHIFT], [KeyAction.Erase, ERASE], [KeyAction.Layer, LAYERS]])
 
 function place(): void {
   const element = field.value
@@ -38,6 +40,10 @@ function press(key: KeyView): void {
 
 function keepFocus(event: MouseEvent): void {
   event.preventDefault()
+}
+
+function iconOf(key: KeyView): string | null {
+  return KEY_ICONS.get(key.action) ?? null
 }
 
 function keyClasses(key: KeyView): Record<string, boolean> {
@@ -86,7 +92,8 @@ watch(() => props.view.value, place, { flush: 'post' })
             @mousedown="keepFocus"
             @click="press(key)"
           >
-            <span class="omk-key__label" :class="{ 'omk-key__label--long': key.label.length > 1 }">{{ key.label }}</span>
+            <svg v-if="iconOf(key) !== null" class="omk-icon omk-key__icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="iconOf(key) ?? ''" /></svg>
+            <span v-else class="omk-key__label" :class="{ 'omk-key__label--long': key.label.length > 1 }">{{ key.label }}</span>
           </button>
         </div>
       </div>
@@ -179,6 +186,10 @@ watch(() => props.view.value, place, { flush: 'post' })
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.omk-key.is-active .omk-key__icon {
+  fill: currentColor;
 }
 
 .omk-key__label--long {
