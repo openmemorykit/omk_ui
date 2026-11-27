@@ -168,6 +168,19 @@ describe('confirmation without panel', () => {
   })
 })
 
+describe('radial over a confirmation alone', () => {
+  it('draws the radial menu alone, never stacked on the confirmation', async () => {
+    page = mountScripted()
+    page.host.emit({ ...BOOT, panels: [], commandSeq: 0 })
+    page.host.emit({ type: ToPage.ShowConfirm, commandSeq: COMMAND_SEQ, confirm: OWNED_REMOVE_CONFIRM })
+    page.host.emit({ type: ToPage.OpenRadial })
+    await settle()
+    expect(page.container.querySelector('.omk-app__alone')).toBeNull()
+    expect(page.container.querySelector('[data-surface="confirm"]')).toBeNull()
+    expect(page.container.querySelectorAll('.omk-radial')).toHaveLength(1)
+  })
+})
+
 describe('theme and viewport', () => {
   it('sets the root font size from the viewport and recomputes it on resize', async () => {
     page = mountScripted()
@@ -211,6 +224,17 @@ describe('dispose', () => {
     expect(pending).toBeGreaterThan(0)
     page.unmount()
     expect(vi.getTimerCount()).toBeLessThan(pending)
+    page = mountScripted()
+  })
+
+  it('sends nothing to the host once disposed, even for frames already requested', async () => {
+    page = mountScripted()
+    page.host.emit(BOOT)
+    await settle()
+    page.host.emit({ type: ToPage.Intent, seq: FIRST_SEQ, intent: Intent.Down, phase: IntentPhase.Press, source: InputSource.Pad })
+    page.unmount()
+    page.frame()
+    expect(page.host.sent.filter((message) => message.type === FromPage.Ack)).toEqual([])
     page = mountScripted()
   })
 

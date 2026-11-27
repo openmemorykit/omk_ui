@@ -258,7 +258,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ## Lucide (ISC, and MIT for the Feather icons)
 
-Copy of the license of `lucide-static` 1.81.0. The icons used (plus, trash-2, user, users, check, x, shield, list, settings, info, triangle-alert, power) are derived from Feather for plus, trash-2, check, x, info and power, so the MIT text below applies to them.
+Copy of the license of `lucide-static` 1.81.0. The icons used (plus, trash-2, user, users, check, x, shield, list, settings, info, triangle-alert, power) are derived from Feather for plus, trash-2, check, x, info, triangle-alert and power, so the MIT text below applies to them.
 
 ```text
 ISC License

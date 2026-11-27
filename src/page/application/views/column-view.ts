@@ -8,6 +8,8 @@ import type { Translate } from '../../i18n/messages'
 import { formSubmitView, type FormSubmitView } from './form-submit-view'
 import { rowElementId, rowView, type RowView } from './row-view'
 
+const BRANDING_BASE = '../branding/'
+
 export const BrandKind = { Logo: 'logo', Monogram: 'monogram' } as const
 export type BrandKind = ValueOf<typeof BrandKind>
 
@@ -89,7 +91,7 @@ function descriptionOf(panel: Panel, frame: Frame): DescriptionView | null {
 
 function brandOf(state: UiState): BrandView {
   const { logo, monogram } = state.settings
-  return Object.freeze({ kind: logo === null ? BrandKind.Monogram : BrandKind.Logo, logo, monogram })
+  return Object.freeze({ kind: logo === null ? BrandKind.Monogram : BrandKind.Logo, logo: logo === null ? null : `${BRANDING_BASE}${logo}`, monogram })
 }
 
 function crumbsOf(state: UiState): readonly CrumbView[] {
