@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { changeGlyphSet, FALLBACK_LOCALE, LOCALE_CONVAR, parseGlyphSet } from '../../../src/client/application/glyph-set'
+import { changeGlyphSet, parseGlyphSet } from '../../../src/client/application/glyph-set'
+import { FALLBACK_LOCALE, LOCALE_CONVAR } from '../../../src/client/application/requested-locale'
 import { GlyphSet } from '../../../src/protocol/page-vocabulary'
 import { ToPage } from '../../../src/protocol/to-page'
 import { expectKeepInputNeverTurnedOn, watchedPorts } from './watched-ports'
@@ -56,6 +57,15 @@ describe('changeGlyphSet', () => {
     ports.convars.set(LOCALE_CONVAR, 'de')
     changeGlyphSet(ports, ['xbox'])
     expect(ports.console.printed).toStrictEqual(['Controller icons: glyphs.set.xbox {unknown}'])
+  })
+
+  it('reads the language the way the boot message does: a convar that is not a language name asks for English only', () => {
+    const ports = watchedPorts()
+    ports.locales.setBundle(ENGLISH.language, ENGLISH)
+    ports.convars.set(LOCALE_CONVAR, '../not a language')
+    changeGlyphSet(ports, ['gamecube'])
+    expect(ports.locales.requested).toStrictEqual([FALLBACK_LOCALE])
+    expect(ports.console.printed).toStrictEqual([ENGLISH.messages['glyphs.usage']])
   })
 
   it('prints the bare key when no bundle is readable', () => {

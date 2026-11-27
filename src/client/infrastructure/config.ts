@@ -9,14 +9,15 @@ const ROOT_KEY = ''
 
 const UNAVAILABLE: ConfigReading = { config: DEFAULT_CONFIG, warnings: [{ key: ROOT_KEY, kind: ConfigWarningKind.Invalid }] }
 
-type ConfigExport = () => unknown
+interface KitExports {
+  readonly [CONFIG_EXPORT]: () => unknown
+}
 
-function configExport(): ConfigExport {
-  const getConfig = globalThis.exports[KIT_RESOURCE]?.[CONFIG_EXPORT] as ConfigExport | undefined
-  if (getConfig === undefined) throw new Error(`${KIT_RESOURCE} has no ${CONFIG_EXPORT} export`)
-  return getConfig
+function callConfigExport(): unknown {
+  const kitExports = globalThis.exports[KIT_RESOURCE] as unknown as KitExports
+  return kitExports[CONFIG_EXPORT]()
 }
 
 export function createConfigSource(onFailure: FailureHandler): ConfigSource {
-  return { read: () => guardedCall(onFailure, `exports.${KIT_RESOURCE}.${CONFIG_EXPORT}`, () => readConfig(configExport()()), UNAVAILABLE) }
+  return { read: () => guardedCall(onFailure, `exports.${KIT_RESOURCE}.${CONFIG_EXPORT}`, () => readConfig(callConfigExport()), UNAVAILABLE) }
 }

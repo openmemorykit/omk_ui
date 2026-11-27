@@ -45,7 +45,7 @@ function registerBinding(command: string, binding: HoldBinding, defaultKey: stri
 
 function registerGlyphsCommand(glyphs: GlyphsCommand, onFailure: FailureHandler): void {
   RegisterCommand(KeyCommand.Glyphs, (_source: number, args: unknown) => {
-    shielded(onFailure, `keyMapping.${KeyCommand.Glyphs}`, () => glyphs.onCommand(Array.isArray(args) ? args.map(String) : []))()
+    guardedCall(onFailure, `keyMapping.${KeyCommand.Glyphs}`, () => glyphs.onCommand(Array.isArray(args) ? args.map(String) : []), undefined)
   }, false)
   if (glyphs.help === undefined) return
   const options = Object.values(GlyphSet).map((glyphSet) => glyphSet.toLowerCase()).join('|')
@@ -53,7 +53,8 @@ function registerGlyphsCommand(glyphs: GlyphsCommand, onFailure: FailureHandler)
 }
 
 export function registerKeyMappings(options: KeyMappingOptions): void {
-  shielded(options.onFailure, `keyMapping.${KeyCommand.Radial}`, () => registerBinding(KeyCommand.Radial, options.radial, DEFAULT_RADIAL_KEY, options.onFailure))()
-  shielded(options.onFailure, `keyMapping.${KeyCommand.Interact}`, () => registerBinding(KeyCommand.Interact, options.interact, DEFAULT_INTERACT_KEY, options.onFailure))()
-  shielded(options.onFailure, 'keyMapping.glyphsCommand', () => registerGlyphsCommand(options.glyphs, options.onFailure))()
+  const { onFailure } = options
+  guardedCall(onFailure, `keyMapping.${KeyCommand.Radial}`, () => registerBinding(KeyCommand.Radial, options.radial, DEFAULT_RADIAL_KEY, onFailure), undefined)
+  guardedCall(onFailure, `keyMapping.${KeyCommand.Interact}`, () => registerBinding(KeyCommand.Interact, options.interact, DEFAULT_INTERACT_KEY, onFailure), undefined)
+  guardedCall(onFailure, 'keyMapping.glyphsCommand', () => registerGlyphsCommand(options.glyphs, onFailure), undefined)
 }
