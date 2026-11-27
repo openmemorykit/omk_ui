@@ -158,9 +158,10 @@ describe('confirmations', () => {
 
   it('allow one pending confirmation per owner until it is settled', () => {
     const confirming = registryAfter(showConfirm(EMPTY_REGISTRY, Whitelist, REMOVE_CONFIRM))
-    expect(confirming.confirms).toStrictEqual([{ owner: Whitelist, confirm: REMOVE_CONFIRM }])
+    expect(confirming.confirms).toStrictEqual([{ owner: Whitelist, confirm: REMOVE_CONFIRM, seq: confirming.commandSeq }])
     expect(refusal(showConfirm(confirming, Whitelist, { ...REMOVE_CONFIRM, id: 'other' })).code).toBe(ContractErrorCode.QuotaExceeded)
-    const settled = settleConfirm(confirming, Whitelist, REMOVE_CONFIRM.id)
+    const shown = reconcileStack(confirming, { appliedCommandSeq: confirming.commandSeq, entries: [] })
+    const settled = settleConfirm(shown, Whitelist, REMOVE_CONFIRM.id)
     expect(settled.confirms).toStrictEqual([])
     expect(showConfirm(settled, Whitelist, REMOVE_CONFIRM).ok).toBe(true)
   })

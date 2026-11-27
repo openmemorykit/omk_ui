@@ -82,6 +82,11 @@ function replayCommand(entries: readonly StackEntry[], command: StackCommand): r
   }
 }
 
+export function pageAppliedCommandSeq(registry: StackState): number {
+  const oldestUnapplied = registry.unapplied[0]
+  return oldestUnapplied === undefined ? registry.commandSeq : oldestUnapplied.seq - 1
+}
+
 function isReplayable(registry: StackState, appliedCommandSeq: number): boolean {
   const oldestReplayable = registry.commandSeq - registry.unapplied.length
   return appliedCommandSeq >= oldestReplayable && appliedCommandSeq <= registry.commandSeq

@@ -148,6 +148,19 @@ describe('dropOwner', () => {
     })
   })
 
+  it('issues no command for an owner that holds nothing', () => {
+    const registry = registryAfter(openPanel(EMPTY_REGISTRY, Garage, LIST_PANEL))
+    expect(dropOwner(registry, Whitelist)).toStrictEqual({ registry, command: null })
+  })
+
+  it.each([
+    ['a radial entry', (registry: RegistryState) => addRadialEntry(registry, Whitelist, WHITELIST_RADIAL_ENTRY)],
+    ['a prompt', (registry: RegistryState) => showPrompt(registry, Whitelist, PRESS_PROMPT)],
+    ['a confirmation', (registry: RegistryState) => showConfirm(registry, Whitelist, REMOVE_CONFIRM)],
+  ])('still owes the page a command for an owner that only holds %s', (_case, hold) => {
+    expect(dropOwner(registryAfter(hold(EMPTY_REGISTRY)), Whitelist).command?.kind).toBe(StackCommandKind.DropOwner)
+  })
+
   it('frees the screen for another owner', () => {
     const occupied = registryAfter(openPanel(EMPTY_REGISTRY, Whitelist, LIST_PANEL))
     expect(openPanel(dropOwner(occupied, Whitelist).registry, Garage, LIST_PANEL).ok).toBe(true)
