@@ -14,6 +14,9 @@ export const PageCommandType = {
   WindowBlurred: 'windowBlurred',
   WindowFocused: 'windowFocused',
   EscapeKeyUp: 'escapeKeyUp',
+  TextInputFocused: 'textInputFocused',
+  ClickKey: 'clickKey',
+  StepItem: 'stepItem',
 } as const
 export type PageCommandType = ValueOf<typeof PageCommandType>
 
@@ -51,6 +54,9 @@ export type PageCommand =
   | { readonly type: typeof PageCommandType.WindowBlurred }
   | { readonly type: typeof PageCommandType.WindowFocused }
   | { readonly type: typeof PageCommandType.EscapeKeyUp }
+  | { readonly type: typeof PageCommandType.TextInputFocused; readonly itemId: string }
+  | { readonly type: typeof PageCommandType.ClickKey; readonly row: number; readonly unit: number }
+  | { readonly type: typeof PageCommandType.StepItem; readonly itemId: string; readonly step: 1 | -1 }
 
 export type UiCommand = ToPageMessage | PageCommand
 export type UiCommandType = UiCommand['type']

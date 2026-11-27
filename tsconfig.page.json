@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM"], "types": ["vite/client"], "resolveJsonModule": true },
+  "include": ["src/**/*.vue", "src/page", "src/protocol", "src/shared", "preview", "preview/**/*.vue", "src/env.d.ts"]
+}

@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import { LINK_PENDING_MS, TimerKind } from '../../../../src/page/domain/page-commands'
 import { REPEAT_DELAY_MS, REPEAT_INTERVAL_MS, REPEAT_MAX_PER_CALL } from '../../../../src/page/domain/repeat-policy'
-import { schedule, sendToHost, UiEffectType } from '../../../../src/page/domain/ui-effects'
+import { cancelSchedule, schedule, sendToHost, UiEffectType } from '../../../../src/page/domain/ui-effects'
 import { ConfirmChoice, ConfirmOrigin, LayerKind } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
 import { Intent } from '../../../../src/protocol/intents'
+import { ToPage } from '../../../../src/protocol/to-page'
 import { ENABLED_TOGGLE, IDENTIFIER_FIELD_MAX_LENGTH, REMOVE_ALL_ACTION, ROLE_CYCLE } from '../../../fixtures/items'
 import { FixtureOwner, OWNED_LIST_PANEL } from '../../../fixtures/owned'
 import { menuPanel } from '../navigation-helpers'
@@ -75,6 +76,12 @@ describe('Link', () => {
     ])
   })
 
+  it('sends nothing when a pending link is confirmed again', () => {
+    const pending = run(onLink(), [press(Intent.Confirm)]).state
+    const next = transition(pending, press(Intent.Confirm), NOW)
+    expect(next).toEqual({ state: pending, effects: [] })
+  })
+
   it('clears the pending row when the delay fires', () => {
     const pending = run(onLink(), [press(Intent.Confirm)]).state
     const next = transition(pending, timerFired(TimerKind.LinkPending), NOW)
@@ -86,6 +93,34 @@ describe('Link', () => {
     const pending = run(onLink(), [press(Intent.Confirm)]).state
     const pushed = run(pending, [pushPanel(menuPanel('player'), LIST_ID, PUSH_SEQ)]).state
     expect(pushed.stack[0]?.pendingItemId).toBeNull()
+  })
+
+  it('clears the pending row and cancels the delay when its own panel is updated', () => {
+    const pending = run(onLink(), [press(Intent.Confirm)]).state
+    const next = transition(pending, { type: ToPage.UpdatePanel, panel: OWNED_LIST_PANEL }, NOW)
+    expect(topFrame(next.state).pendingItemId).toBeNull()
+    expect(next.effects).toEqual([cancelSchedule(TimerKind.LinkPending)])
+  })
+
+  it('accepts a second confirm right after the panel update', () => {
+    const pending = run(onLink(), [press(Intent.Confirm), { type: ToPage.UpdatePanel, panel: OWNED_LIST_PANEL }]).state
+    const next = transition(pending, press(Intent.Confirm), NOW)
+    expect(next.effects).toEqual([
+      replyEvent(OWNER, { kind: ReplyKind.ItemSelected, panelId: LIST_ID, itemId: 'player-1' }),
+      schedule(TimerKind.LinkPending, LINK_PENDING_MS),
+    ])
+  })
+
+  it('keeps the pending row and sends no cancel when another panel is updated', () => {
+    const pending = run(onLink(), [press(Intent.Confirm)]).state
+    const next = transition(pending, { type: ToPage.UpdatePanel, panel: menuPanel('elsewhere', OWNER) }, NOW)
+    expect(topFrame(next.state).pendingItemId).toBe('player-1')
+    expect(next.effects).toEqual([])
+  })
+
+  it('sends no cancel when the updated panel had nothing pending', () => {
+    const state = withPanels([OWNED_LIST_PANEL])
+    expect(transition(state, { type: ToPage.UpdatePanel, panel: OWNED_LIST_PANEL }, NOW).effects).toEqual([])
   })
 
   it('ignores the pending delay when nothing is pending', () => {

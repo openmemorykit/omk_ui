@@ -1,11 +1,11 @@
-import { CloseReason, FormOutcome, NotificationTone, RADIAL_MAX_SECTORS, ReplyKind } from '@openmemorykit/ui/contract'
+import { CloseReason, FormOutcome, NOTIFICATION_QUEUE_LENGTH, NOTIFICATIONS_VISIBLE, NotificationTone, RADIAL_MAX_SECTORS, ReplyKind } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { FormStatus } from '../../../../src/page/domain/form'
 import { pressBack } from '../../../../src/page/domain/hold-detector'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import { PageCommandType, TimerKind } from '../../../../src/page/domain/page-commands'
 import { pressHeld } from '../../../../src/page/domain/repeat-policy'
-import { DEFAULT_TOAST_DURATION_MS, MAX_VISIBLE_TOASTS, MAX_WAITING_TOASTS } from '../../../../src/page/domain/toasts'
+import { DEFAULT_TOAST_DURATION_MS } from '../../../../src/page/domain/toasts'
 import { UiEffectType } from '../../../../src/page/domain/ui-effects'
 import { RadialLevel, type UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
@@ -47,8 +47,8 @@ describe('Notify', () => {
   it('keeps the queue bounded under a flood', () => {
     const flood = Array.from({ length: FLOOD }, () => ({ type: ToPage.Notify, notification: OWNED_PLAIN_NOTIFICATION }) as const)
     const { toasts } = run(initial(), flood).state
-    expect(toasts.visible).toHaveLength(MAX_VISIBLE_TOASTS)
-    expect(toasts.waiting).toHaveLength(MAX_WAITING_TOASTS)
+    expect(toasts.visible).toHaveLength(NOTIFICATIONS_VISIBLE)
+    expect(toasts.waiting).toHaveLength(NOTIFICATION_QUEUE_LENGTH)
   })
 
   it('expires toasts when their timer fires and schedules the next expiry', () => {

@@ -1,6 +1,7 @@
 import type { ValueOf } from '@openmemorykit/core/shared'
 import type { ConfirmContent } from '@openmemorykit/ui/contract'
-import { THEME_DEFAULTS, type ThemeConfig } from '../../shared/config/config-schema'
+import type { ThemeConfig } from '../../shared/config/config-schema'
+import { THEME_DEFAULTS } from '../../shared/config/theme-defaults'
 import { Intent, Modality } from '../../protocol/intents'
 import type { OwnedPanel, OwnedPrompt, OwnedRadialEntry } from '../../protocol/owned'
 import { GlyphSet, UiMode, type PromptState } from '../../protocol/page-vocabulary'

@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.base.json",
-  "compilerOptions": { "lib": ["ES2020"], "types": [] },
-  "include": ["src/protocol", "src/shared", "src/*/domain"]
+  "compilerOptions": { "lib": ["ES2020"], "types": [], "resolveJsonModule": true },
+  "include": ["src/protocol", "src/shared", "src/*/domain", "src/page/application", "src/page/i18n", "preview/scenarios", "preview/runtime"]
 }

@@ -1,3 +1,4 @@
+import { ItemKind } from '@openmemorykit/ui/contract'
 import { Intent, IntentPhase, Modality } from '../../protocol/intents'
 import type { OwnedPanel } from '../../protocol/owned'
 import { expireForms } from './form-handler'
@@ -5,7 +6,7 @@ import { topFrameOf, withTopFrame } from './frame-updates'
 import { activateItem } from './item-actions'
 import { popTopFrame } from './navigation'
 import { PageCommandType, TimerKind, type LocalIntentCommand, type UiCommand } from './page-commands'
-import { isFocusableRow, rowLabel, rowWindowStart, steppedRowId, type RowStep } from './panel-rows'
+import { focusableItem, isFocusableRow, rowLabel, rowWindowStart, steppedRowId, type RowStep } from './panel-rows'
 import { Announcement, stackEvent, unchanged, UiEffectType, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
 import type { Frame, UiState } from './ui-state'
 
@@ -45,6 +46,12 @@ function hovered(state: UiState, context: ListContext, rowId: unknown): Transiti
 function clicked(state: UiState, context: ListContext, rowId: unknown, now: number): Transition {
   if (!isFocusableRow(context.owned.panel, rowId)) return unchanged(state)
   return activateItem(focusedOn(state, context, rowId), Intent.Confirm, now)
+}
+
+function stepped(state: UiState, context: ListContext, itemId: string, step: RowStep, now: number): Transition {
+  const item = focusableItem(context.owned.panel, itemId)
+  if (item?.kind !== ItemKind.Cycle) return unchanged(state)
+  return activateItem(focusedOn(state, context, itemId), step === PREVIOUS ? Intent.Left : Intent.Right, now)
 }
 
 function back(state: UiState, fromEscape: boolean): Transition {
@@ -96,6 +103,8 @@ function inputHandled(state: UiState, command: UiCommand, now: number): Transiti
       return hovered(state, context, command.itemId)
     case PageCommandType.ClickItem:
       return clicked(state, context, command.itemId, now)
+    case PageCommandType.StepItem:
+      return stepped(state, context, command.itemId, command.step, now)
     default:
       return unchanged(state)
   }

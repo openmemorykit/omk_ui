@@ -37,17 +37,16 @@ function isStorable(codePoint: string): boolean {
   return !LONE_SURROGATE.test(codePoint) && !CONTROL_CHARACTER.test(codePoint)
 }
 
-function storableCodePoints(text: string): readonly string[] {
-  return Array.from(text).filter(isStorable)
-}
+interface Taken { readonly text: string; readonly cut: boolean }
 
-function takeWithin(text: string, budget: number): string {
+function takeWithin(text: string, budget: number): Taken {
   let taken = ''
-  for (const codePoint of storableCodePoints(text)) {
-    if (taken.length + codePoint.length > budget) break
+  for (const codePoint of text) {
+    if (!isStorable(codePoint)) continue
+    if (taken.length + codePoint.length > budget) return { text: taken, cut: true }
     taken += codePoint
   }
-  return taken
+  return { text: taken, cut: false }
 }
 
 function sanitizedLength(maxLength: number): number {
@@ -62,7 +61,7 @@ export function openKeyboard(language: KeyboardLanguage, value: string, maxLengt
     row: FIRST_INDEX,
     unit: FIRST_INDEX,
     shift: false,
-    value: takeWithin(value, limit),
+    value: takeWithin(value, limit).text,
     maxLength: limit,
   }
 }
@@ -118,6 +117,15 @@ export function moveKeyboardFocus(state: KeyboardState, direction: Intent): Keyb
   }
 }
 
+export function focusKeyAt(state: KeyboardState, row: number, unit: number): KeyboardState | null {
+  const keys = Number.isInteger(row) && row >= FIRST_INDEX ? rowsOf(state)[row] : undefined
+  if (keys === undefined || !Number.isInteger(unit) || unit < FIRST_INDEX) return null
+  const starts = keyStarts(keys)
+  const index = starts.findIndex((start, position) => unit >= start && unit < start + (keys[position]?.units ?? NO_MOVE))
+  const start = starts[index]
+  return index === NOT_FOUND || start === undefined ? null : { ...state, row, unit: start }
+}
+
 export function focusedKey(state: KeyboardState): VirtualKey {
   const row = rowOf(state)
   return row[keyIndexAt(row, state.unit)] ?? FALLBACK_KEY
@@ -128,10 +136,9 @@ function result(state: KeyboardState, submitted: boolean, limitReached: boolean)
 }
 
 function append(state: KeyboardState, text: string): KeyboardResult {
-  const added = takeWithin(text, state.maxLength - state.value.length)
-  const limitReached = added.length < storableCodePoints(text).join('').length
-  if (added.length === NO_MOVE) return result(state, false, limitReached)
-  return result({ ...state, value: state.value + added, shift: false }, false, limitReached)
+  const { text: added, cut } = takeWithin(text, state.maxLength - state.value.length)
+  if (added.length === NO_MOVE) return result(state, false, cut)
+  return result({ ...state, value: state.value + added, shift: false }, false, cut)
 }
 
 function displayed(state: KeyboardState, key: VirtualKey): string {

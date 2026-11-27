@@ -9,7 +9,7 @@ import { rejectionEffects } from './form-handler'
 import { closePanelFrame, updatePanelFrame } from './navigation'
 import { TimerKind, type UiCommandOf } from './page-commands'
 import { expireToasts, nextToastExpiry, pushToast, type ToastQueue } from './toasts'
-import { schedule, sendToHost, stackEvent, unchanged, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
+import { cancelSchedule, schedule, sendToHost, stackEvent, unchanged, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
 import { releaseAllIntents, type Frame, type PromptView, type UiState } from './ui-state'
 
 const NO_HOLD_MS = 0
@@ -64,7 +64,12 @@ export function changeModality(state: UiState, modality: Modality): Transition {
 
 export const handleModality: CommandHandler<UiCommandOf<typeof ToPage.Modality>> = (state, message) => changeModality(state, message.modality)
 
-export const handleUpdatePanel: CommandHandler<UiCommandOf<typeof ToPage.UpdatePanel>> = (state, message) => unchanged(updatePanelFrame(state, message.panel))
+const hasPendingLink = (state: UiState): boolean => state.stack.some((frame) => frame.pendingItemId !== null)
+
+export const handleUpdatePanel: CommandHandler<UiCommandOf<typeof ToPage.UpdatePanel>> = (state, message) => {
+  const updated = updatePanelFrame(state, message.panel)
+  return withEffects(updated, hasPendingLink(state) && !hasPendingLink(updated) ? [cancelSchedule(TimerKind.LinkPending)] : [])
+}
 
 const isFormFrame = (panelId: string) => (frame: Frame): boolean => frame.form !== null && frame.panel?.panel.id === panelId
 

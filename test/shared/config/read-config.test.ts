@@ -49,7 +49,7 @@ describe('readConfig defaults', () => {
     const reading = readConfig({})
     expect(reading.warnings).toEqual([])
     expect(reading.config).toEqual({
-      theme: { accent: '#8F7BFF', side: 'left', scale: 1, font: 'sofiaSansSemiCondensed', logo: null, monogram: 'N' },
+      theme: { accent: '#8F7BFF', side: 'left', scale: 1, font: 'sofiaSansSemiCondensed', logo: null, monogram: 'O' },
       input: { padHoldMs: 300, padHoldGesture: true, vehicleSpeedLimit: 10, cameraSkippedModes: [] },
       trace: { onStart: false },
     })
@@ -100,8 +100,8 @@ describe('readConfig keys', () => {
   })
 
   it('draws the accent limit at a contrast of 3', () => {
-    expect(readConfig({ theme: { accent: '#626262' } }).warnings).toEqual([])
-    invalid('theme', 'accent', '#616161')
+    expect(readConfig({ theme: { accent: '#5E5E5E' } }).warnings).toEqual([])
+    invalid('theme', 'accent', '#5D5D5D')
   })
 
   it('refuses the accent #202020 and accepts #8F7BFF', () => {

@@ -1,8 +1,13 @@
 import { spawnSync } from 'node:child_process'
 
-const configs = ['pure', 'test'].map((name) => `tsconfig.${name}.json`)
+const programs = [
+  ['tsc', 'pure'],
+  ['tsc', 'test'],
+  ['vue-tsc', 'page'],
+  ['vue-tsc', 'test.page'],
+]
 
-for (const config of configs) {
-  const { status } = spawnSync('npx', ['tsc', '-p', config], { stdio: 'inherit' })
+for (const [compiler, name] of programs) {
+  const { status } = spawnSync('npx', [compiler, '--noEmit', '-p', `tsconfig.${name}.json`], { stdio: 'inherit' })
   if (status !== 0) process.exit(status ?? 1)
 }

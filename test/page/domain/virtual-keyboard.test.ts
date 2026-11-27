@@ -1,11 +1,13 @@
+import { ItemSchema } from '@openmemorykit/ui/contract'
+import * as v from 'valibot'
 import { describe, expect, it } from 'vitest'
+import { IDENTIFIER_TEXT } from '../../fixtures/items'
 import { Intent } from '../../../src/protocol/intents'
 import { KeyAction, KeyboardLanguage, KeyboardLayer } from '../../../src/page/domain/keyboard-layouts'
 import {
   eraseCharacter,
   focusedKey,
   insertSpace,
-  insertText,
   moveKeyboardFocus,
   openKeyboard,
   pressFocusedKey,
@@ -24,8 +26,6 @@ const WIDE_LIMIT = 20
 const NEGATIVE_LIMIT = -4
 const TWO_UNITS = 2
 const THREE_UNITS = 3
-const FOUR_UNITS = 4
-const SWEEP_END = 8
 
 function at(state: KeyboardState, row: number, unit: number): KeyboardState {
   return { ...state, row, unit }
@@ -51,6 +51,21 @@ describe('openKeyboard', () => {
     expect(openKeyboard(KeyboardLanguage.French, 'éàü', THREE_UNITS).value).toBe('éàü')
     expect(openKeyboard(KeyboardLanguage.French, 'abc', Number.NaN).value).toBe('')
     expect(openKeyboard(KeyboardLanguage.French, 'abc', NEGATIVE_LIMIT).maxLength).toBe(0)
+  })
+
+  it('never truncates a contract value: the contract refuses a value longer than maxLength', () => {
+    const fits = { ...IDENTIFIER_TEXT, value: 'x'.repeat(IDENTIFIER_TEXT.maxLength) }
+    const tooLong = { ...fits, value: `${fits.value}x` }
+    expect(v.safeParse(ItemSchema, fits).success).toBe(true)
+    expect(v.safeParse(ItemSchema, tooLong).success).toBe(false)
+    expect(openKeyboard(KeyboardLanguage.French, fits.value, fits.maxLength).value).toBe(fits.value)
+  })
+
+  it('refuses an infinite limit like any limit that is not finite', () => {
+    ;[Infinity, -Infinity].forEach((limit) => {
+      const state = openKeyboard(KeyboardLanguage.French, 'abc', limit)
+      expect([state.value, state.maxLength]).toEqual(['', 0])
+    })
   })
 
   it('drops lone surrogates and control characters', () => {
@@ -175,54 +190,5 @@ describe('switchLayer', () => {
     expect(switchLayer(switchLayer(start, -1), 1).layer).toBe(KeyboardLayer.Letters)
     expect(switchLayer(switchLayer(switchLayer(start, 1), 1), 1).layer).toBe(KeyboardLayer.Letters)
     expect(switchLayer(start, 1).layer).toBe(KeyboardLayer.AccentsDigits)
-  })
-})
-
-describe('limit in UTF-16 units', () => {
-  it('refuses an emoji one unit from the limit without cutting the pair', () => {
-    const state = openKeyboard(KeyboardLanguage.French, 'abc', FOUR_UNITS)
-    const result = insertText(state, EMOJI)
-    expect(result.limitReached).toBe(true)
-    expect(result.state).toBe(state)
-    expect(result.state.value).toBe('abc')
-  })
-
-  it('accepts an emoji with two units left', () => {
-    const result = insertText(openKeyboard(KeyboardLanguage.French, 'ab', FOUR_UNITS), EMOJI)
-    expect(result.state.value).toBe(`ab${EMOJI}`)
-    expect(result.limitReached).toBe(false)
-  })
-
-  it('inserts the longest prefix of whole code points that fits', () => {
-    const result = insertText(openKeyboard(KeyboardLanguage.French, 'a', THREE_UNITS), `é${EMOJI}b`)
-    expect(result.state.value).toBe('aé')
-    expect(result.limitReached).toBe(true)
-    for (const unit of result.state.value) expect(unit).not.toMatch(/^[\ud800-\udfff]$/)
-  })
-
-  it('counts accented characters as one unit', () => {
-    const result = insertText(openKeyboard(KeyboardLanguage.French, '', THREE_UNITS), 'éàü')
-    expect(result.state.value).toBe('éàü')
-    expect(result.limitReached).toBe(false)
-    expect(insertText(result.state, 'e').limitReached).toBe(true)
-  })
-
-  it('never leaves a lone surrogate whatever the limit', () => {
-    for (let limit = 0; limit < SWEEP_END; limit += 1) {
-      const { value } = insertText(openKeyboard(KeyboardLanguage.French, '', limit), `a${EMOJI}é${EMOJI}`).state
-      expect(value.length).toBeLessThanOrEqual(limit)
-      expect(Array.from(value).every((point) => !/^[\ud800-\udfff]$/.test(point))).toBe(true)
-    }
-  })
-
-  it('drops lone surrogates, control characters and ignores empty text', () => {
-    const state = openKeyboard(KeyboardLanguage.French, '', ROOMY_LIMIT)
-    expect(insertText(state, 'a\ud83db\u0007\n').state.value).toBe('ab')
-    expect(insertText(state, '')).toEqual({ state, submitted: false, limitReached: false })
-  })
-
-  it('resets shift only when something was inserted', () => {
-    const shifted = { ...openKeyboard(KeyboardLanguage.French, '', ROOMY_LIMIT), shift: true }
-    expect(insertText(shifted, 'x').state.shift).toBe(false)
   })
 })
