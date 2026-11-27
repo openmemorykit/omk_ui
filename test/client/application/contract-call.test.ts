@@ -10,6 +10,8 @@ import { LIST_PANEL } from '../../fixtures/panels'
 import { createHarness, createReadyHarness, KIT_VERSION, tracedOfKind } from './use-case-harness'
 
 const EXTRA_CALLS = 3
+const HUGE_CHUNK_LENGTH = 1000
+const HUGE_CHUNKS = 2000
 
 const UNKNOWN_FIELD = 'colour'
 const CYCLIC_FIELD = 'self'
@@ -62,6 +64,22 @@ describe('handleContractCall', () => {
   it('refuses a payload larger than 256 KB with TooLarge', () => {
     const huge = { ...LIST_PANEL, subtitle: 'x'.repeat(CALL_MAX_BYTES) }
     expect(refusalCode(handleContractCall(createReadyHarness().context, KitExport.OpenPanel, FixtureOwner.Whitelist, [huge]))).toBe(ContractErrorCode.TooLarge)
+  })
+
+  it('never reads a getter while measuring, and refuses the payload as not serializable', () => {
+    let read = false
+    const trapped = { ...LIST_PANEL, get subtitle(): string { read = true; return 'x' } }
+    expect(refusalCode(handleContractCall(createReadyHarness().context, KitExport.OpenPanel, FixtureOwner.Whitelist, [trapped]))).toBe(ContractErrorCode.WrongType)
+    expect(read).toBe(false)
+  })
+
+  it('refuses a huge payload as TooLarge without visiting what comes after the limit', () => {
+    let visited = false
+    const beyond = new Proxy({}, { ownKeys: () => { visited = true; return [] } })
+    const chunk = 'x'.repeat(HUGE_CHUNK_LENGTH)
+    const huge = { ...LIST_PANEL, items: [...Array.from({ length: HUGE_CHUNKS }, () => ({ chunk })), beyond] }
+    expect(refusalCode(handleContractCall(createReadyHarness().context, KitExport.OpenPanel, FixtureOwner.Whitelist, [huge]))).toBe(ContractErrorCode.TooLarge)
+    expect(visited).toBe(false)
   })
 
   it('refuses a payload that cannot be measured', () => {

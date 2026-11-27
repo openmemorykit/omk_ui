@@ -1,8 +1,9 @@
-import { serializedByteLength, type ValueOf } from '@openmemorykit/core/shared'
+import type { ValueOf } from '@openmemorykit/core/shared'
 import { CALL_MAX_BYTES, ContractErrorCode, ContractVersion, KitExport, refusedCall, type CallResult } from '@openmemorykit/ui/contract'
 import { isNamespaceOwner } from '../../protocol/namespaced-id'
 import { UiMode } from '../../protocol/page-vocabulary'
 import { CallFamily } from '../domain/call-limits'
+import { measureCallBytes } from './call-size'
 import { refuseCall, type ContractCall } from './call-refusals'
 import { EXPORT_HANDLERS } from './export-handlers'
 import type { UseCaseContext } from './use-case-context'
@@ -23,7 +24,7 @@ function familyOf(name: KitExport): CallFamily {
 }
 
 function admissionRefusal(context: UseCaseContext, call: ContractCall, args: readonly unknown[]): CallResult | null {
-  const bytes = serializedByteLength(args)
+  const bytes = measureCallBytes(args, CALL_MAX_BYTES)
   if (bytes === null) return refuseCall(context, call, [{ path: ROOT_PATH, code: ContractErrorCode.WrongType, detail: NOT_SERIALIZABLE }])
   const limited = context.limiter.admit(call.owner, familyOf(call.name), bytes, context.ports.clock.now())
   if (limited !== null) return refuseCall(context, call, [limited])

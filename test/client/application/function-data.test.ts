@@ -18,6 +18,7 @@ const PAYLOADS_WITH_FUNCTIONS: readonly (readonly [KitExport, unknown])[] = [
   [KitExport.AddRadialEntry, { ...GARAGE_RADIAL_ENTRY, icon: noop }],
   [KitExport.ShowPrompt, { ...HOLD_PROMPT, onComplete: noop }],
   [KitExport.Notify, { ...PLAIN_NOTIFICATION, extra: { deep: [noop] } }],
+  [KitExport.OpenPanel, { ...LIST_PANEL, toJSON: noop }],
 ]
 
 function holdsFunction(value: unknown): boolean {
@@ -40,6 +41,14 @@ describe('functions passed as data (msgpack fake)', () => {
     const { registry, link } = harness.store.read()
     expect([registry.stack, registry.confirms, registry.radialEntries, registry.prompts, link.queuedNotifications]).toStrictEqual([[], [], [], [], []])
     expect(harness.ports.nui.sent).toStrictEqual([])
+  })
+
+  it('never calls a toJSON function received in a payload, even while measuring its size', () => {
+    const serialization = createSerializationFake(EmptyTableShape.Object)
+    const harness = createReadyHarness()
+    handleContractCall(harness.context, KitExport.OpenPanel, FixtureOwner.Whitelist, [serialization.cross({ ...LIST_PANEL, toJSON: noop })])
+    expect(serialization.functionReferences()).toHaveLength(1)
+    expect(serialization.functionReferences().every((reference) => reference.calls.length === 0)).toBe(true)
   })
 
   it('refuses a function in a notification from the server', () => {
