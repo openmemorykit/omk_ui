@@ -147,6 +147,7 @@
   "log.command.version": "kit {kitVersion} · contract {contractVersion} · artifact {artifact} · required minimum {minimum}",
   "log.command.config": "Summary of the effective config",
   "log.command.trace": "Journal {state} for {target}",
+  "log.command.traceAllOn": "Journal on for the {count} players present; players who join later are not included (omk_ui trace on <id>)",
   "log.command.debug": "Snapshot asked from player {player}, answer within 3 s",
   "log.command.owners": "{owner}: radial entries {radialEntries}/{radialQuota} · panels {panels} · prompts {prompts}/{promptQuota} · confirmations {confirms}/{confirmQuota}",
   "log.command.demo": "Demo {demo} opened for player {player}",

@@ -9,7 +9,7 @@ import { UiMode } from '../../src/protocol/page-vocabulary'
 import { ToPage } from '../../src/protocol/to-page'
 import { OmkSubcommand } from '../../src/server/application/omk-subcommand'
 import { SNAPSHOT_TIMEOUT_MS } from '../../src/server/application/snapshot-requests'
-import { DemoName } from '../../src/shared/net/net-events'
+import { CommandKind, DemoName } from '../../src/shared/net/net-events'
 import { AskOutcome } from '../../src/shared/report/report-payloads'
 import { ReportKind } from '../../src/shared/report/report-kind'
 import { CHAIN_PLAYER, createChain, type Chain } from './chain-harness'
@@ -21,6 +21,7 @@ const QUESTION = 'Le panneau est-il lisible ?'
 const SERVER_OWNER = 'omk_ui'
 const OPEN_STACK_LINE = /^pile \(1, commande \d+ appliquée\)/
 const TRACE_ON = 'on'
+const ANSWER_LINE_START = frenchText('log.report.confirmAsked', { details: '' })
 const INTENT_REPEAT = 2
 const PRESS_AND_RELEASE = 2
 
@@ -102,5 +103,16 @@ describe('server kit linked to the client kit and the page', () => {
     const answers = chain.reportsToServer.filter((report) => report.kind === ReportKind.ConfirmAsked)
     expect(answers.map((report) => report.data)).toMatchObject([{ outcome: AskOutcome.Confirmed }])
     expect(chain.client.replies.attempts).toStrictEqual([])
+  })
+
+  it('asks a player who joined after "trace on all" and still gets the answer in the journal', () => {
+    const chain = createChain()
+    chain.command(OmkSubcommand.Trace, TRACE_ON)
+    chain.kit.serverCommand({ kind: CommandKind.Trace, active: false })
+    chain.command(OmkSubcommand.Ask, PLAYER, QUESTION)
+    chain.command(OmkSubcommand.Intent, PLAYER, Intent.Confirm)
+    const answers = chain.reportsToServer.filter((report) => report.kind === ReportKind.ConfirmAsked)
+    expect(answers.map((report) => report.data)).toMatchObject([{ outcome: AskOutcome.Confirmed }])
+    expect(chain.server.console.lines.some((line) => line.includes(ANSWER_LINE_START))).toBe(true)
   })
 })

@@ -117,13 +117,31 @@ describe('omk_ui ask', () => {
     expect(harness.ports.clients.sent).toStrictEqual([])
   })
 
+  it('turns the journal on for the asked player right before the question when everybody is traced', () => {
+    const harness = createServerHarness()
+    harness.context.traces.activateAll()
+    run(harness, OmkSubcommand.Ask, String(PLAYER), 'Tu vois ?')
+    expect(harness.ports.clients.sent).toStrictEqual([
+      { target: PLAYER, command: { kind: CommandKind.Trace, active: true } },
+      { target: PLAYER, command: { kind: CommandKind.Ask, askId: 1, text: 'Tu vois ?' } },
+    ])
+  })
+
+  it('does not touch the journal of a player traced one by one', () => {
+    const harness = createServerHarness()
+    harness.context.traces.activate(PLAYER)
+    run(harness, OmkSubcommand.Ask, String(PLAYER), 'Tu vois ?')
+    expect(harness.ports.clients.sent.map(({ command }) => command.kind)).toStrictEqual([CommandKind.Ask])
+  })
+
   it('accepts a question of the longest length, and refuses a longer one', () => {
     const harness = createServerHarness()
     harness.context.traces.activateAll()
     run(harness, OmkSubcommand.Ask, String(PLAYER), 'x'.repeat(ASK_TEXT_MAX_LENGTH))
-    expect(harness.ports.clients.sent).toHaveLength(1)
+    expect(harness.ports.clients.sent.filter(({ command }) => command.kind === CommandKind.Ask)).toHaveLength(1)
+    const sentBefore = harness.ports.clients.sent.length
     expect(run(harness, OmkSubcommand.Ask, String(PLAYER), 'x'.repeat(ASK_TEXT_MAX_LENGTH + 1))).toStrictEqual(prefixed('omk_ui ask <id> <question>'))
-    expect(harness.ports.clients.sent).toHaveLength(1)
+    expect(harness.ports.clients.sent).toHaveLength(sentBefore)
   })
 
   it.each([[[]], [[String(PLAYER)]], [['someone', 'Tu vois ?']]])('shows the usage for %j', (args) => {
