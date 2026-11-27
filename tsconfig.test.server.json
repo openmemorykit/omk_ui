@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "lib": ["ES2020"], "types": ["@citizenfx/server"], "resolveJsonModule": true },
+  "include": ["src/build-globals.d.ts", "test/server/infrastructure", "test/server/composition"]
+}

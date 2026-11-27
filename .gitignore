@@ -6,3 +6,4 @@ omk_ui/web/
 .preview-dist/
 test/captures/
 release/
+omk_ui/dist/

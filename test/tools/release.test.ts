@@ -1,19 +1,34 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { archiveName, buildArchive } from '../../tools/release.mjs'
 
-function project(withPage = true): string {
+const delivered = [
+  'fxmanifest.lua',
+  'config.lua',
+  'client/config_export.lua',
+  'server/config_export.lua',
+  'dist/client.js',
+  'dist/server.js',
+  'web/index.html',
+  'web/assets/a.js',
+  'web/fonts/a.woff2',
+  'locales/fr.json',
+  'locales/overrides/.gitkeep',
+  'locales/overrides/server.json',
+  'branding/.gitkeep',
+  'branding/logo.png',
+]
+const stray = ['notes.txt', 'web/.DS_Store', 'dist/client.js.map', 'client/main.lua', 'locales/draft.txt', 'locales/overrides/draft.txt', 'src/main.ts']
+
+function project(missing = ''): string {
   const root = mkdtempSync(join(tmpdir(), 'omk-release-'))
-  mkdirSync(join(root, 'omk_ui', 'web', 'assets'), { recursive: true })
-  mkdirSync(join(root, 'omk_ui', 'locales', 'overrides'), { recursive: true })
-  writeFileSync(join(root, 'omk_ui', 'fxmanifest.lua'), "version '0.1.0'\n")
-  writeFileSync(join(root, 'omk_ui', 'locales', 'fr.json'), '{}')
-  writeFileSync(join(root, 'omk_ui', 'locales', 'overrides', '.gitkeep'), '')
-  if (withPage) writeFileSync(join(root, 'omk_ui', 'web', 'index.html'), '<!doctype html>')
-  writeFileSync(join(root, 'omk_ui', 'web', 'assets', 'a.js'), 'x')
+  for (const path of delivered.filter((entry) => entry !== missing)) {
+    mkdirSync(dirname(join(root, 'omk_ui', path)), { recursive: true })
+    writeFileSync(join(root, 'omk_ui', path), path === 'fxmanifest.lua' ? "version '0.1.0'\n" : 'x')
+  }
   writeFileSync(join(root, 'LICENSE'), 'MIT licence')
   writeFileSync(join(root, 'THIRD_PARTY.md'), 'tiers')
   writeFileSync(join(root, 'package.json'), '{"version":"0.1.0"}')
@@ -33,9 +48,20 @@ describe('tools/release', () => {
 
   it('lists the delivered folder with the licence and third-party notices at its root', () => {
     const listing = names(buildArchive(project()))
-    for (const name of ['omk_ui/fxmanifest.lua', 'omk_ui/web/index.html', 'omk_ui/LICENSE', 'omk_ui/THIRD_PARTY.md', 'omk_ui/locales/overrides/.gitkeep']) {
+    for (const name of [...delivered.map((path) => `omk_ui/${path}`), 'omk_ui/LICENSE', 'omk_ui/THIRD_PARTY.md']) {
       expect(listing).toContain(name)
     }
+  })
+
+  it('needs unzip to read the archive back', () => {
+    expect(spawnSync('unzip', ['-v']).error).toBeUndefined()
+  })
+
+  it.each(stray)('leaves %s out of the archive', (path) => {
+    const root = project()
+    mkdirSync(dirname(join(root, 'omk_ui', path)), { recursive: true })
+    writeFileSync(join(root, 'omk_ui', path), 'x')
+    expect(names(buildArchive(root))).not.toContain(path)
   })
 
   it('does not touch the working tree to add the licence files', () => {
@@ -44,8 +70,8 @@ describe('tools/release', () => {
     expect(spawnSync('ls', [join(root, 'omk_ui')], { encoding: 'utf8' }).stdout).not.toContain('LICENSE')
   })
 
-  it('refuses a delivered folder without its page', () => {
-    expect(() => buildArchive(project(false))).toThrow(/web\/index\.html/)
+  it.each(['web/index.html', 'dist/client.js', 'dist/server.js', 'config.lua', 'client/config_export.lua', 'server/config_export.lua', 'fxmanifest.lua'])('refuses a delivered folder without %s', (path) => {
+    expect(() => buildArchive(project(path))).toThrow(path)
   })
 
   it('writes release/omk_ui-<version>.zip from the command line', () => {
@@ -57,6 +83,6 @@ describe('tools/release', () => {
   })
 
   it('fails from the command line when the page is missing', () => {
-    expect(spawnSync('node', [join(process.cwd(), 'tools/release.mjs')], { cwd: project(false) }).status).toBe(1)
+    expect(spawnSync('node', [join(process.cwd(), 'tools/release.mjs')], { cwd: project('web/index.html') }).status).toBe(1)
   })
 })
