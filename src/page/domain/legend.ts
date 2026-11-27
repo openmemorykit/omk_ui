@@ -60,18 +60,18 @@ export interface LegendEntry {
   readonly action: ValueOf<typeof LegendAction>
   readonly keys: readonly ValueOf<typeof KeyGlyph>[]
   readonly pad: readonly ValueOf<typeof PadGlyph>[]
-  readonly hold: boolean
+  readonly holdAction: ValueOf<typeof LegendAction> | null
 }
 
 const entry = (
   action: LegendEntry['action'],
   keys: LegendEntry['keys'],
   pad: LegendEntry['pad'],
-  hold: boolean = false,
-): LegendEntry => ({ action, keys, pad, hold })
+  holdAction: LegendEntry['holdAction'] = null,
+): LegendEntry => ({ action, keys, pad, holdAction })
 
 const BACK = entry(LegendAction.Back, [KeyGlyph.Escape], [PadGlyph.B])
-const CLOSE_ALL = entry(LegendAction.CloseAll, [KeyGlyph.Escape], [PadGlyph.B], true)
+const BACK_OR_CLOSE_ALL = entry(LegendAction.Back, [KeyGlyph.Escape], [PadGlyph.B], LegendAction.CloseAll)
 const NAVIGATE = entry(LegendAction.Navigate, [KeyGlyph.ArrowsVertical], [PadGlyph.DpadVertical])
 const SELECT = entry(LegendAction.Select, [KeyGlyph.Enter], [PadGlyph.A])
 const CHANGE = entry(LegendAction.Change, [KeyGlyph.ArrowsHorizontal], [PadGlyph.DpadHorizontal])
@@ -103,14 +103,14 @@ function listEntries(context: LegendContext): readonly LegendEntry[] {
   switch (context.focusedKind) {
     case ItemKind.Action:
     case ItemKind.Link:
-      return context.focusedDisabled ? [NAVIGATE, BACK, CLOSE_ALL] : [NAVIGATE, SELECT, BACK, CLOSE_ALL]
+      return context.focusedDisabled ? [NAVIGATE, BACK_OR_CLOSE_ALL] : [NAVIGATE, SELECT, BACK_OR_CLOSE_ALL]
     case ItemKind.Cycle:
     case ItemKind.Toggle:
-      return [NAVIGATE, CHANGE, BACK, CLOSE_ALL]
+      return [NAVIGATE, CHANGE, BACK_OR_CLOSE_ALL]
     case ItemKind.Text:
-      return [NAVIGATE, EDIT, BACK, CLOSE_ALL]
+      return [NAVIGATE, EDIT, BACK_OR_CLOSE_ALL]
     default:
-      return [NAVIGATE, BACK, CLOSE_ALL]
+      return [NAVIGATE, BACK_OR_CLOSE_ALL]
   }
 }
 

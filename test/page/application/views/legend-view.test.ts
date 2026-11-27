@@ -31,11 +31,11 @@ describe('legendView contexts', () => {
   })
 
   it('describes a list focused on an action', () => {
-    expect(actionsOf(listState(ItemKind.Action))).toEqual([LegendAction.Navigate, LegendAction.Select, LegendAction.Back, LegendAction.CloseAll])
+    expect(actionsOf(listState(ItemKind.Action))).toEqual([LegendAction.Navigate, LegendAction.Select, LegendAction.Back])
   })
 
   it('drops select on a disabled action', () => {
-    expect(actionsOf(listState(ItemKind.Action, true))).toEqual([LegendAction.Navigate, LegendAction.Back, LegendAction.CloseAll])
+    expect(actionsOf(listState(ItemKind.Action, true))).toEqual([LegendAction.Navigate, LegendAction.Back])
   })
 
   it.each([ItemKind.Cycle, ItemKind.Toggle])('offers change on %s', (kind) => {
@@ -46,19 +46,19 @@ describe('legendView contexts', () => {
     expect(actionsOf(listState(ItemKind.Text))).toContain(LegendAction.Edit)
   })
 
-  it('has only navigation, back and close-all with no focused item', () => {
-    expect(actionsOf(panelsState([itemOf(ItemKind.Action)], null))).toEqual([LegendAction.Navigate, LegendAction.Back, LegendAction.CloseAll])
+  it('has only navigation and back with no focused item', () => {
+    expect(actionsOf(panelsState([itemOf(ItemKind.Action)], null))).toEqual([LegendAction.Navigate, LegendAction.Back])
   })
 
   it('has the same legend when the focus names an unknown row', () => {
-    expect(actionsOf(panelsState([itemOf(ItemKind.Action)], 'ghost'))).toEqual([LegendAction.Navigate, LegendAction.Back, LegendAction.CloseAll])
+    expect(actionsOf(panelsState([itemOf(ItemKind.Action)], 'ghost'))).toEqual([LegendAction.Navigate, LegendAction.Back])
   })
 
-  it('has only navigation, back and close-all for a frame without panel', () => {
+  it('has only navigation and back for a frame without panel', () => {
     const base = panelsState([], null)
     const [frame] = base.stack
     const bare = { ...base, stack: [{ ...frame, panel: null }] } as unknown as typeof base
-    expect(actionsOf(bare)).toEqual([LegendAction.Navigate, LegendAction.Back, LegendAction.CloseAll])
+    expect(actionsOf(bare)).toEqual([LegendAction.Navigate, LegendAction.Back])
   })
 
   it('treats the form submit row as an enabled action', () => {
@@ -87,10 +87,14 @@ describe('legendView contexts', () => {
 describe('legendView entries', () => {
   const radial = radialState([radialEntry('a')])
 
-  it('carries the translated action label and the hold flag', () => {
+  it('carries the translated action label and the label of the action held', () => {
     const entries = legendView(listState(ItemKind.Action), translate)?.entries ?? []
-    expect(entries.map((entry) => entry.label)).toEqual(['t:ui.legend.navigate', 't:ui.legend.select', 't:ui.legend.back', 't:ui.legend.closeAll'])
-    expect(entries.map((entry) => entry.hold)).toEqual([false, false, false, true])
+    expect(entries.map((entry) => entry.label)).toEqual(['t:ui.legend.navigate', 't:ui.legend.select', 't:ui.legend.back'])
+    expect(entries.map((entry) => entry.holdLabel)).toEqual([null, null, 't:ui.legend.closeAll'])
+  })
+
+  it('carries the translated hold word, so that the component translates nothing', () => {
+    expect(legendView(listState(ItemKind.Action), translate)?.holdWord).toBe('t:ui.prompt.hold')
   })
 
   it('translates the accessible label of keyboard and pad glyphs', () => {
