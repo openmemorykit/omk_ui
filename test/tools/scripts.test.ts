@@ -9,6 +9,7 @@ import { buildScripts, readVersion, scriptOptions } from '../../tools/scripts.mj
 const BUILD_TIMEOUT = 60_000
 const RESOURCE_NAME = 'omk_ui'
 const WRONG_NAME = 'omk_ui_copy'
+const NATIVE_MISSING = /is not defined/
 
 function temporaryFolder(): string {
   return mkdtempSync(join(tmpdir(), 'omk-scripts-'))
@@ -94,10 +95,16 @@ describe('tools/scripts build', () => {
     expect(server).not.toContain('@citizenfx')
   }, BUILD_TIMEOUT)
 
-  it.each(['client', 'server'] as const)('refuses to start the %s script under another folder name', async (side) => {
+  it.each(['client', 'server'] as const)('refuses to start the %s script under another folder name with one line, touching no other native', async (side) => {
     const built = await buildRepository()
-    expect(runWithResourceName(built[side], RESOURCE_NAME)).toEqual([])
-    expect(runWithResourceName(built[side], WRONG_NAME)).toHaveLength(1)
+    const errors = runWithResourceName(built[side], WRONG_NAME)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toContain(`${RESOURCE_NAME} refuses to start`)
+  }, BUILD_TIMEOUT)
+
+  it.each(['client', 'server'] as const)('goes past the name check of the %s script under omk_ui, up to the first native the sandbox lacks', async (side) => {
+    const built = await buildRepository()
+    expect(() => runWithResourceName(built[side], RESOURCE_NAME)).toThrow(NATIVE_MISSING)
   }, BUILD_TIMEOUT)
 
   it('fails the build on an esbuild warning', async () => {
