@@ -56,7 +56,7 @@ docker run --rm --user $(id -u):$(id -g) -v "$PWD":/app -w /app -e HOME=/tmp nod
 The preview runs the page outside the game, on scripted scenarios. It is built apart (`.preview-dist/`) and never reaches `omk_ui/web`.
 
 ```sh
-docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD":/w -w /w -p 127.0.0.1:5173:5173 node:22 npx vite --mode preview --host 0.0.0.0 --port 5173
+docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD":/w -w /w -p 127.0.0.1:5173:5173 node:22 npm run dev:preview -- --host 0.0.0.0 --port 5173
 ```
 
 Open `http://127.0.0.1:5173/?scenario=radial`. Screenshots (`test/captures/`, not versioned) come from Playwright 1.56.1 in Docker: build with `npm run build:preview` in `node:22`, then:
@@ -136,7 +136,7 @@ docker run --rm --user $(id -u):$(id -g) -v "$PWD":/app -w /app -e HOME=/tmp nod
 L'aperçu fait tourner la page hors du jeu, sur des scénarios écrits d'avance. Il est construit à part (`.preview-dist/`) et n'atteint jamais `omk_ui/web`.
 
 ```sh
-docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD":/w -w /w -p 127.0.0.1:5173:5173 node:22 npx vite --mode preview --host 0.0.0.0 --port 5173
+docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -v "$PWD":/w -w /w -p 127.0.0.1:5173:5173 node:22 npm run dev:preview -- --host 0.0.0.0 --port 5173
 ```
 
 Ouvre `http://127.0.0.1:5173/?scenario=radial`. Les captures (`test/captures/`, non versionnées) viennent de Playwright 1.56.1 dans Docker : construis avec `npm run build:preview` dans `node:22`, puis :
