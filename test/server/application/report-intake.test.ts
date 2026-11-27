@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ReportIntake } from '../../../src/server/domain/report-intake'
+import { ReportIntake } from '../../../src/server/application/report-intake'
 
 const PLAN_CAPACITY = 40
 const PLAN_REFILL_PER_SECOND = 20

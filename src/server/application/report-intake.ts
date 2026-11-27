@@ -1,4 +1,4 @@
-import { admitPlayerReport, drainIgnored, isSummaryDue, type PlayerReportState } from './report-limits'
+import { admitPlayerReport, drainIgnored, isSummaryDue, type PlayerReportState } from '../domain/report-limits'
 
 export interface IgnoredSummary {
   readonly player: number
