@@ -31,7 +31,7 @@ function hasUsableContent(owned: OwnedPanel): boolean {
   return isPanelKind(kind) && Array.isArray(items) && items.length <= PANEL_MAX_ITEMS && items.every(isUsableItem)
 }
 
-function discardedReply(owned: OwnedPanel): readonly OwnedReply[] {
+export function discardedReply(owned: OwnedPanel): readonly OwnedReply[] {
   return [{ owner: owned.owner, reply: { kind: ReplyKind.PanelClosed, panelId: owned.panel.id, reason: CloseReason.Discarded } }]
 }
 
@@ -82,11 +82,16 @@ function closingReplies(frames: readonly Frame[], reason: CloseReason): readonly
   return frames.slice().reverse().flatMap((frame) => frameClosingReplies(frame, reason))
 }
 
+export function replacedStack(state: UiState): StackChange {
+  return { state: { ...state, stack: [] }, replies: closingReplies(state.stack, CloseReason.ClosedByOwner) }
+}
+
 export function openPanelFrame(state: UiState, panel: OwnedPanel, commandSeq: number): StackChange {
   const applied = withCommandSeq(state, commandSeq)
   if (!isAddressablePanel(panel)) return { state: applied, replies: NO_REPLIES }
-  if (!hasUsableContent(panel)) return { state: applied, replies: discardedReply(panel) }
-  return { state: { ...applied, stack: [createFrame(panel)] }, replies: closingReplies(state.stack, CloseReason.ClosedByOwner) }
+  const replaced = replacedStack(applied)
+  if (!hasUsableContent(panel)) return { state: replaced.state, replies: replaced.replies.concat(discardedReply(panel)) }
+  return { state: { ...applied, stack: [createFrame(panel)] }, replies: replaced.replies }
 }
 
 function canPush(stack: readonly Frame[], panel: OwnedPanel, parentId: string): boolean {

@@ -31,6 +31,9 @@ const withId = (owner: string, id: string): OwnedPanel => ({ owner, panel: { ...
 const discarded = (panelId: string): readonly OwnedReply[] => [
   { owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId, reason: CloseReason.Discarded } },
 ]
+const closedByOwner = (panelId: string): readonly OwnedReply[] => [
+  { owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId, reason: CloseReason.ClosedByOwner } },
+]
 const isReadable = (state: UiState): boolean => fromPageStackSnapshot(stackSnapshot(state)) !== null
 
 const UNADDRESSABLE_PANELS: readonly OwnedPanel[] = [
@@ -70,8 +73,8 @@ describe('addressable panels with malformed content', () => {
   it.each(MALFORMED_PANELS.map((panel, index) => [index, panel] as const))('discards panel %i with exactly one PanelClosed', (_, panel) => {
     const base = stackOfDepth(TWO_FRAMES)
     const opened = openPanelFrame(base, panel, NEXT_SEQ)
-    expect(opened.state.stack).toBe(base.stack)
-    expect(opened.replies).toEqual(discarded('whitelist/x'))
+    expect(opened.state.stack).toEqual([])
+    expect(opened.replies).toEqual([...closedByOwner(TOP_PARENT), ...closedByOwner('whitelist/level-0'), ...discarded('whitelist/x')])
     const pushed = pushPanelFrame(base, panel, TOP_PARENT, NEXT_SEQ)
     expect(pushed.state.stack).toBe(base.stack)
     expect(pushed.replies).toEqual(discarded('whitelist/x'))

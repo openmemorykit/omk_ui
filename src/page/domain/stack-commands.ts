@@ -27,8 +27,12 @@ function stackTransition(change: StackChange, extra: readonly UiEffect[] = []): 
   return withEffects(change.state, [stackEvent(change.state, change.replies), ...extra])
 }
 
-function openedEffects(before: UiState, change: StackChange, owned: OwnedPanel): readonly UiEffect[] {
-  if (change.state.stack === before.stack) return []
+function isShownOnTop(state: UiState, owned: OwnedPanel): boolean {
+  return state.stack[state.stack.length - 1]?.panel === owned
+}
+
+function openedEffects(change: StackChange, owned: OwnedPanel): readonly UiEffect[] {
+  if (!isShownOnTop(change.state, owned)) return []
   const { id: panelId, title } = owned.panel
   return [
     { type: UiEffectType.MeasurePaint, panelId },
@@ -39,13 +43,13 @@ function openedEffects(before: UiState, change: StackChange, owned: OwnedPanel):
 export const handleOpenPanel: CommandHandler<UiCommandOf<typeof ToPage.OpenPanel>> = (state, message) => {
   if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   const change = openPanelFrame(state, message.panel, message.commandSeq)
-  return stackTransition(change, openedEffects(state, change, message.panel))
+  return stackTransition(change, openedEffects(change, message.panel))
 }
 
 export const handlePushPanel: CommandHandler<UiCommandOf<typeof ToPage.PushPanel>> = (state, message) => {
   if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   const change = pushPanelFrame(state, message.panel, message.parentId, message.commandSeq)
-  return stackTransition(change, openedEffects(state, change, message.panel))
+  return stackTransition(change, openedEffects(change, message.panel))
 }
 
 export const handleClosePanel: CommandHandler<UiCommandOf<typeof ToPage.ClosePanel>> = (state, message) => {

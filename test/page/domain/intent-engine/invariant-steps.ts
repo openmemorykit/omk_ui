@@ -22,6 +22,7 @@ const ownerOf = (random: number): string => (random % PANEL_POOL === 0 ? Fixture
 const topOf = (state: UiState): UiState['stack'][number] | undefined => state.stack[state.stack.length - 1]
 const topId = (state: UiState): string => topOf(state)?.panel?.panel.id ?? ''
 const panelName = (random: number): string => `panel-${String(random % PANEL_POOL)}`
+const malformedPanel = (random: number): typeof OWNED_ADD_PANEL => ({ ...menuPanel(panelName(random)), panel: { ...menuPanel(panelName(random)).panel, items: [null as never] } })
 const formPanel = (random: number): typeof OWNED_ADD_PANEL => ({ owner: FixtureOwner.Whitelist, panel: { ...OWNED_ADD_PANEL.panel, id: `whitelist/form-${String(random % PANEL_POOL)}` } })
 
 export function shownConfirms(state: UiState): readonly string[] {
@@ -61,6 +62,8 @@ export const RANDOM_COMMANDS: readonly ((draw: Draw) => UiCommand)[] = [
   (draw) => newConfirm(draw, true),
   ({ random, seq }) => openPanel(menuPanel(panelName(random)), seq - 1),
   ({ random, seq }) => openPanel(throwingPanel(`thrown-${panelName(random)}`), seq),
+  ({ random, seq }) => openPanel(malformedPanel(random), seq),
+  ({ seq }) => ({ type: ToPage.CloseAll, commandSeq: seq }),
   ({ random, seq }) => ({ type: ToPage.DropOwner, commandSeq: seq, owner: ownerOf(random) }),
   bootFromStack,
   resolveTopForm,

@@ -1,4 +1,4 @@
-import { ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { expect } from 'vitest'
 import { BACK_HOLD_MS } from '../../../../src/page/domain/hold-detector'
 import { transition } from '../../../../src/page/domain/intent-engine'
@@ -26,7 +26,8 @@ function expectNoReplyAfterClose(event: PageEvent): void {
   const closed = new Set<string>()
   event.replies.forEach(({ reply }) => {
     if (!PANEL_REPLIES.has(reply.kind) || !('panelId' in reply)) return
-    expect(closed.has(reply.panelId)).toBe(false)
+    const discardsANewOpening = reply.kind === ReplyKind.PanelClosed && reply.reason === CloseReason.Discarded
+    expect(closed.has(reply.panelId) && !discardsANewOpening).toBe(false)
     if (reply.kind === ReplyKind.PanelClosed) closed.add(reply.panelId)
   })
 }
