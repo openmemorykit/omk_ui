@@ -1,8 +1,12 @@
 import { KitExport } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { handleContractCall } from '../../../src/client/application/contract-call'
+import { PUSH_TO_TALK_CONVAR } from '../../../src/client/application/apply-focus'
 import { expirePageSnapshot, PAGE_SNAPSHOT_WAIT_MS, receivePageSnapshot, requestSnapshot, SNAPSHOT_REPORT_MAX_BYTES } from '../../../src/client/application/snapshot'
+import { INITIAL_CLIENT_SESSION } from '../../../src/client/application/session-state'
+import { InputSource, Intent } from '../../../src/protocol/intents'
 import { ToPage } from '../../../src/protocol/to-page'
+import { ClientSnapshotField, LastIntentField } from '../../../src/shared/report/snapshot-fields'
 import { safeParseReportEnvelope } from '../../../src/shared/report/report-envelope'
 import { ReportKind } from '../../../src/shared/report/report-kind'
 import { FixtureOwner } from '../../fixtures/owned'
@@ -12,6 +16,7 @@ import { SAMPLE_REQUEST_ID } from '../../fixtures/net-commands'
 import { createHarness, createReadyHarness, type UseCaseHarness } from './use-case-harness'
 
 const TWO_REPORTS = 2
+const SENT_AGO_MS = 1200
 
 const PAGE_STATE = { mode: 'panels', stack: ['whitelist/list'] }
 const OTHER_REQUEST_ID = SAMPLE_REQUEST_ID + 1
@@ -102,5 +107,33 @@ describe('Snapshot', () => {
     requestSnapshot(harness.context, SAMPLE_REQUEST_ID)
     pageAnswers(harness, SAMPLE_REQUEST_ID, PAGE_STATE)
     expect(snapshots(harness)).toMatchObject([{ owners: [{ owner: FixtureOwner.Whitelist, confirms: 1 }] }])
+  })
+
+  it('reads the push-to-talk convar through the real focus decision of the session', () => {
+    const harness = createReadyHarness()
+    requestSnapshot(harness.context, SAMPLE_REQUEST_ID)
+    pageAnswers(harness, SAMPLE_REQUEST_ID, PAGE_STATE)
+    expect(harness.ports.convars.requested).toContain(PUSH_TO_TALK_CONVAR)
+  })
+
+  it('reports the scale of the theme and the last intent the client numbered', () => {
+    const harness = createReadyHarness()
+    const { link } = harness.store.read()
+    harness.store.write({ ...harness.store.read(), link: { ...link, lastIntent: { intent: Intent.Down, source: InputSource.Pad, seq: 3, at: harness.ports.clock.now() - SENT_AGO_MS } } })
+    requestSnapshot(harness.context, SAMPLE_REQUEST_ID)
+    pageAnswers(harness, SAMPLE_REQUEST_ID, PAGE_STATE)
+    expect(snapshots(harness)).toMatchObject([{
+      client: {
+        [ClientSnapshotField.Scale]: 1,
+        [ClientSnapshotField.LastIntent]: { [LastIntentField.Intent]: Intent.Down, [LastIntentField.Source]: InputSource.Pad, [LastIntentField.Seq]: 3, [LastIntentField.AgoMs]: SENT_AGO_MS },
+      },
+    }])
+  })
+
+  it('reports no last intent before the client sent one', () => {
+    const harness = createReadyHarness(INITIAL_CLIENT_SESSION)
+    requestSnapshot(harness.context, SAMPLE_REQUEST_ID)
+    pageAnswers(harness, SAMPLE_REQUEST_ID, PAGE_STATE)
+    expect(snapshots(harness)).toMatchObject([{ client: { [ClientSnapshotField.LastIntent]: null } }])
   })
 })

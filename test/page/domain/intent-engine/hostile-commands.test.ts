@@ -48,7 +48,7 @@ describe('toast expiry and snapshots', () => {
   it('names no panel for a frame that holds a confirmation only', () => {
     const asked = run(initial(), [{ type: ToPage.ShowConfirm, commandSeq: 1, confirm: OWNED_REMOVE_CONFIRM }]).state
     const next = transition(asked, { type: ToPage.SnapshotRequest, requestId: 1 }, NOW)
-    expect(sentOf(next.effects, FromPage.Snapshot)[0]?.snapshot).toMatchObject({ stack: [null] })
+    expect(sentOf(next.effects, FromPage.Snapshot)[0]?.snapshot).toMatchObject({ panels: [{ id: null, focus: null }] })
   })
 
   it('ignores a snapshot request without a safe integer id', () => {

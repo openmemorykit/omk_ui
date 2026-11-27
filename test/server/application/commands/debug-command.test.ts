@@ -8,7 +8,7 @@ import { PAYLOAD_SAMPLES, REPORT_AT } from '../../../fixtures/reports'
 import { AFTER_TIMEOUT_MS, createServerHarness, LOG_PREFIX, OTHER_PLAYER, PLAYER, run } from './command-harness'
 import type { ServerHarness } from '../server-harness'
 
-const AFTER_PAGE_LINES = 4
+const BINDINGS_LINE = 6
 const REQUESTED = `${LOG_PREFIX} Instantané demandé à joueur ${PLAYER}, réponse sous 3 s`
 
 function answer(harness: ServerHarness, client: object, page: object | null): void {
@@ -65,15 +65,18 @@ describe('omk_ui debug', () => {
       SECTION_7_4_LINES[0],
       SECTION_7_4_LINES[1],
       'page : pas de réponse (pas encore prête)',
-      ...SECTION_7_4_LINES.slice(AFTER_PAGE_LINES),
+      'radial : 2 entrées (garage/main, whitelist/main) · dernière position ?',
+      'invite : aucune · notifications : ? visible, 0 en attente',
+      SECTION_7_4_LINES[BINDINGS_LINE],
+      'intentions maintenues : ? · dernière intention down/pad #212 il y a 1,2 s · accusé #212',
     ])
   })
 
   it('shows the intent, the prompt and the held intents of a busy client', () => {
     const harness = createServerHarness()
     const lines = debugRun(harness, [String(PLAYER)])
-    const busy = { ...SECTION_7_4_CLIENT, prompt: 'garage/enter', heldIntents: ['up', 'back'], lastIntent: null }
-    answer(harness, busy, SECTION_7_4_PAGE)
+    const busy = { ...SECTION_7_4_CLIENT, prompt: 'garage/enter', lastIntent: null }
+    answer(harness, busy, { ...SECTION_7_4_PAGE, heldIntents: ['up', 'back'] })
     expect(lineStarting(lines, 'invite')).toBe('invite : garage/enter · notifications : 1 visible, 0 en attente')
     expect(lineStarting(lines, 'intentions')).toBe('intentions maintenues : up, back · aucune intention reçue · accusé #212')
   })
@@ -93,7 +96,7 @@ describe('omk_ui debug', () => {
     const page = { panels: [{ id: 'whitelist/list' }, 'junk'], keyboard: {}, form: {} }
     answer(harness, client, page)
     expect(lineStarting(lines, 'mode')).toContain('modalité touch')
-    expect(lineStarting(lines, 'intentions')).toBe('intentions maintenues : aucune · dernière intention down/? #? il y a ? s · accusé #?')
+    expect(lineStarting(lines, 'intentions')).toBe('intentions maintenues : ? · dernière intention down/? #? il y a ? s · accusé #?')
     expect(lineStarting(lines, 'pile')).toBe('pile (2, commande ? appliquée) : whitelist/list → ? · sous-panneau ? (?, ?/?)')
     expect(lineStarting(lines, 'formulaire')).toBe('formulaire ? : ? · soumission ? · erreurs ?')
     expect(lines[1]).toContain('800×600 · échelle ?')

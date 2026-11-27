@@ -1,3 +1,4 @@
+import type { InputSource, Intent } from '../../protocol/intents'
 import { Modality } from '../../protocol/intents'
 import type { OwnedNotification } from '../../protocol/owned'
 import { UiMode } from '../../protocol/page-vocabulary'
@@ -9,6 +10,13 @@ import type { PadSnapshotState } from '../domain/pad-snapshot'
 import { NO_GUARD, type ReleaseGuard } from '../domain/release-guard'
 import { EMPTY_TRACE, type TraceBuffer } from '../domain/trace-buffer'
 
+export interface LastIntent {
+  readonly intent: Intent
+  readonly source: InputSource
+  readonly seq: number
+  readonly at: number
+}
+
 export interface PageLink {
   readonly ready: boolean
   readonly token: string | null
@@ -16,6 +24,7 @@ export interface PageLink {
   readonly intentSeq: number
   readonly lastAckSeq: number
   readonly unackedSince: number | null
+  readonly lastIntent: LastIntent | null
   readonly queuedNotifications: readonly OwnedNotification[]
 }
 
@@ -52,6 +61,7 @@ export const EMPTY_PAGE_LINK: PageLink = Object.freeze({
   intentSeq: 0,
   lastAckSeq: 0,
   unackedSince: null,
+  lastIntent: null,
   queuedNotifications: Object.freeze([]),
 })
 

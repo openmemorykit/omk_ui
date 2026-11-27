@@ -4,6 +4,7 @@ import { ToPage } from '../../protocol/to-page'
 import { visiblePrompt, type RegistryState } from '../domain/owner-registry'
 import { startOrStopPump } from './pump-switch'
 import { sendToReadyPage } from './registry-commit'
+import { dropHoldWithoutItsPrompt } from './track-prompts'
 import type { UseCaseContext } from './use-case-context'
 
 function showVisiblePrompt(context: UseCaseContext, previous: RegistryState, current: RegistryState): void {
@@ -18,5 +19,6 @@ export function afterPromptsChanged(context: UseCaseContext, previous: RegistryS
   const session = context.store.read()
   if (session.registry.prompts === previous.prompts) return
   showVisiblePrompt(context, previous, session.registry)
+  dropHoldWithoutItsPrompt(context.store)
   startOrStopPump(context.ports, context.store)
 }

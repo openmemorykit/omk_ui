@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { FRAME_STEP_FAILED_LINE, FrameStep } from '../../../src/client/application/limited-console'
+import { FRAME_STEP_FAILED_LINE, FrameStep } from '../../../src/client/application/guarded-frame-step'
 import { pumpFrame } from '../../../src/client/application/pump-inputs'
 import { ControlGroup } from '../../../src/client/domain/focus-policy'
 import { GesturePhase } from '../../../src/client/domain/open-gesture'

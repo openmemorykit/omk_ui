@@ -5,12 +5,14 @@ import type { InputConfig } from '../../shared/config/config-schema'
 import { ControlGroup, PUSH_TO_TALK_CONTROL } from '../domain/focus-policy'
 import { comparePadSnapshot, primePadSnapshot } from '../domain/pad-snapshot'
 import { VIEW_CONTROL } from '../domain/release-guard'
-import { changeModality, decideSessionFocus, readModality, stepGuardFrame } from './apply-focus'
-import { FrameStep, runGuardedStep } from './limited-console'
+import { decideSessionFocus } from './apply-focus'
+import { changeModality, readModality } from './change-modality'
+import { FrameStep, runGuardedStep } from './guarded-frame-step'
 import type { ClientPorts } from './ports'
 import { startOrStopPump } from './pump-switch'
 import { isPadGesture, stepPadGestureFrame } from './radial-gesture'
 import type { PageLink, SessionStore } from './session-state'
+import { stepGuardFrame } from './step-guard-frame'
 import { trackPromptFrame } from './track-prompts'
 
 function followModality(ports: ClientPorts, store: SessionStore): void {
@@ -32,7 +34,8 @@ function applyFrameBlocking(ports: ClientPorts, store: SessionStore, blockViewCo
 function sendIntent(ports: ClientPorts, link: PageLink, intent: IntentEvent): PageLink {
   const seq = link.intentSeq + 1
   ports.nui.send({ type: ToPage.Intent, ...intent, seq })
-  return { ...link, intentSeq: seq, unackedSince: link.unackedSince ?? ports.clock.now() }
+  const now = ports.clock.now()
+  return { ...link, intentSeq: seq, unackedSince: link.unackedSince ?? now, lastIntent: { intent: intent.intent, source: intent.source, seq, at: now } }
 }
 
 function sendPadIntents(ports: ClientPorts, store: SessionStore): void {

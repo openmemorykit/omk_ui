@@ -4,11 +4,11 @@ import type { OwnedPrompt } from '../../protocol/owned'
 import { FromPage } from '../../protocol/from-page'
 import { GlyphSet, PromptState } from '../../protocol/page-vocabulary'
 import type { ToPage } from '../../protocol/to-page'
-import type { JsonObject } from '../../shared/report/json-value'
 import { ResolveOutcome, resolveSubmission } from './form'
 import { rejectionEffects } from './form-handler'
 import { closePanelFrame, updatePanelFrame } from './navigation'
 import { TimerKind, type UiCommandOf } from './page-commands'
+import { pageSnapshot } from './page-snapshot'
 import { expireToasts, nextToastExpiry, pushToast, type ToastQueue } from './toasts'
 import { cancelSchedule, schedule, sendToHost, stackEvent, unchanged, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
 import { releaseAllIntents, type Frame, type PromptView, type UiState } from './ui-state'
@@ -104,23 +104,6 @@ export const handleResolveForm: CommandHandler<UiCommandOf<typeof ToPage.Resolve
   if (!resolved.close) return withEffects(updated, rejectionEffects(resolved.state, message.panelId))
   const change = closePanelFrame(updated, message.panelId, updated.appliedCommandSeq)
   return withEffects(change.state, [stackEvent(change.state, change.replies)])
-}
-
-function pageSnapshot(state: UiState): JsonObject {
-  return {
-    mode: state.mode,
-    paused: state.paused,
-    modality: state.modality,
-    escapeHeld: state.escapeHeld,
-    appliedCommandSeq: state.appliedCommandSeq,
-    lastIntentSeq: state.lastIntentSeq,
-    stack: state.stack.map((frame) => frame.panel?.panel.id ?? null),
-    radialLevel: state.radial.level,
-    radialEntries: state.radial.entries.length,
-    visibleToasts: state.toasts.visible.length,
-    waitingToasts: state.toasts.waiting.length,
-    prompt: state.prompt?.prompt.prompt.id ?? null,
-  }
 }
 
 export const handleSnapshotRequest: CommandHandler<UiCommandOf<typeof ToPage.SnapshotRequest>> = (state, message) => {

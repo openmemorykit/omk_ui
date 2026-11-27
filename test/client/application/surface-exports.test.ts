@@ -2,11 +2,11 @@ import { CALL_DONE, CallStatus, ContractErrorCode, KitExport, RADIAL_ENTRIES_PER
 import { describe, expect, it } from 'vitest'
 import { cleanupOwner } from '../../../src/client/application/cleanup-owner'
 import { handleContractCall } from '../../../src/client/application/contract-call'
-import { trackPromptFrame } from '../../../src/client/application/track-prompts'
+import { interactPress, trackPromptFrame } from '../../../src/client/application/track-prompts'
 import { HoldSource, PromptPhase, SHOWN_PROMPT, type PromptHold } from '../../../src/client/domain/hold-prompt'
 import { ToPage } from '../../../src/protocol/to-page'
 import { FixtureOwner, OWNED_GARAGE_RADIAL_ENTRY, OWNED_HOLD_PROMPT, OWNED_PLAIN_NOTIFICATION, OWNED_WHITELIST_RADIAL_ENTRY } from '../../fixtures/owned'
-import { GARAGE_RADIAL_ENTRY, HOLD_PROMPT, PLAIN_NOTIFICATION, WHITELIST_RADIAL_ENTRY } from '../../fixtures/surfaces'
+import { GARAGE_RADIAL_ENTRY, HOLD_PROMPT, HOLD_PROMPT_MS, PLAIN_NOTIFICATION, WHITELIST_RADIAL_ENTRY } from '../../fixtures/surfaces'
 import { createHarness, createReadyHarness, type UseCaseHarness } from './use-case-harness'
 
 const EXTRA_ENTRY_IDS = ['second', 'third'] as const
@@ -113,13 +113,23 @@ describe('prompt display after a change', () => {
     expect(harness.store.read().prompt).toBe(hold)
   })
 
-  it('leaves the cancellation of a hold covered by another prompt to the next frame', () => {
+  it('cancels at once a hold covered by another prompt', () => {
     const harness = createReadyHarness()
     call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
-    const hold = holdingOn(harness, FixtureOwner.Garage)
+    holdingOn(harness, FixtureOwner.Garage)
     call(harness, KitExport.ShowPrompt, FixtureOwner.Whitelist, HOLD_PROMPT)
-    expect(harness.store.read().prompt).toBe(hold)
-    trackPromptFrame(harness.ports, harness.store)
+    expect(harness.store.read().prompt).toBe(SHOWN_PROMPT)
+  })
+
+  it('does not complete a hold that its owner hid and showed again while the player had let go', () => {
+    const harness = createReadyHarness()
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
+    interactPress(harness.ports, harness.store)
+    call(harness, KitExport.HidePrompt, FixtureOwner.Garage, HOLD_PROMPT.id)
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
+    harness.ports.clock.advance(HOLD_PROMPT_MS)
+    if (harness.ports.pump.isRunning()) trackPromptFrame(harness.ports, harness.store)
+    expect(harness.ports.replies.delivered).toStrictEqual([])
     expect(harness.store.read().prompt).toBe(SHOWN_PROMPT)
   })
 

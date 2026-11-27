@@ -15,7 +15,7 @@ import { forceBoot } from './page-link'
 import { panelsKeptAfterSnapshot } from './panels-on-page'
 import { reserveForSelectedOwner } from './reservation'
 import { ONE_LINE_PER_MINUTE_MS, traceLine } from './trace'
-import { rememberLink, type UseCaseContext } from './use-case-context'
+import { updateBookkeeping, type UseCaseContext } from './use-case-context'
 
 const EVENT_FIELD = 'event' satisfies keyof FromPageMessageOf<typeof FromPage.Event>
 
@@ -26,7 +26,7 @@ function readEvent(body: unknown): ReceivedPageEvent | null {
 
 function refuseStackSnapshot(context: UseCaseContext, snapshot: StackSnapshot): void {
   const appliedSeq: unknown = snapshot.appliedCommandSeq
-  const predatesBoot = isCommandSeq(appliedSeq) && appliedSeq < context.memory.read().bootCommandSeq
+  const predatesBoot = isCommandSeq(appliedSeq) && appliedSeq < context.bookkeeping.read().bootCommandSeq
   if (!predatesBoot) forceBoot(context)
 }
 
@@ -40,7 +40,7 @@ function applyStackSnapshot(context: UseCaseContext, snapshot: StackSnapshot | n
     return false
   }
   store.write({ ...session, registry })
-  rememberLink(context, { panelsOnPage: panelsKeptAfterSnapshot(context.memory.read().panelsOnPage, registry, snapshot) })
+  updateBookkeeping(context, { panelsOnPage: panelsKeptAfterSnapshot(context.bookkeeping.read().panelsOnPage, registry, snapshot) })
   const panels = registry.stack.map((registered) => namespaceId(registered.owner, registered.panel.id))
   traceLine(ports, store, { at: ports.clock.now(), kind: ReportKind.StackChanged, data: { appliedCommandSeq: snapshot.appliedCommandSeq, panels } })
   return true

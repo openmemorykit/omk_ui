@@ -10,7 +10,7 @@ import { panelsLostByPage, panelsShownByBoot } from './panels-on-page'
 import type { RandomSource } from './ports'
 import type { PageLink } from './session-state'
 import { ONE_LINE_PER_MINUTE_MS, traceLimited, traceLine } from './trace'
-import { rememberLink, type UseCaseContext } from './use-case-context'
+import { updateBookkeeping, type UseCaseContext } from './use-case-context'
 
 export const READY_INTERVAL_MS = 1000
 export const SESSION_TOKEN_FIELD = 'sessionToken'
@@ -33,7 +33,7 @@ function isTooSoon(link: PageLink, now: number): boolean {
 }
 
 function closePanelsLostByPage(context: UseCaseContext): void {
-  const lost = panelsLostByPage(context.memory.read().panelsOnPage, context.store.read().registry)
+  const lost = panelsLostByPage(context.bookkeeping.read().panelsOnPage, context.store.read().registry)
   deliverReplies(context, [...lost].reverse().map(({ owner, panelId }) => panelClosedReply(owner, panelId, CloseReason.ClosedByOwner)))
 }
 
@@ -48,7 +48,7 @@ function bootPage(context: UseCaseContext, token: string, readyAt: number): void
   const queued = session.link.queuedNotifications
   const link: PageLink = { ...session.link, ready: true, token, lastReadyAt: readyAt, unackedSince: null, lastAckSeq: session.link.intentSeq, queuedNotifications: [] }
   store.write({ ...session, registry, link })
-  rememberLink(context, { panelsOnPage: panelsShownByBoot(registry), bootCommandSeq: registry.commandSeq })
+  updateBookkeeping(context, { panelsOnPage: panelsShownByBoot(registry), bootCommandSeq: registry.commandSeq })
   ports.nui.sendBoot(buildBootMessage(ports, registry), token)
   queued.forEach((notification) => ports.nui.send({ type: ToPage.Notify, notification }))
   ports.events.emitReady()
@@ -64,8 +64,8 @@ export function receiveReady(context: UseCaseContext): void {
   const now = ports.clock.now()
   const { link } = store.read()
   if (isTooSoon(link, now)) return
-  const readyCount = context.memory.read().readyCount + 1
-  rememberLink(context, { readyCount })
+  const readyCount = context.bookkeeping.read().readyCount + 1
+  updateBookkeeping(context, { readyCount })
   if (readyCount > FIRST_READY) traceLine(ports, store, { at: now, kind: ReportKind.PageReloaded, data: { readyCount } })
   closeLostPanelsThenBoot(context, freshToken(ports.random, readyCount), now)
 }

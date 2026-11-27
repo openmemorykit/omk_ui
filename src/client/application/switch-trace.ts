@@ -1,3 +1,4 @@
+import { PLAYER_REPORT_BUCKET } from '../../shared/report/report-bucket'
 import { drainTrace, EMPTY_TRACE } from '../domain/trace-buffer'
 import type { ClientPorts } from './ports'
 import type { SessionStore } from './session-state'
@@ -11,7 +12,7 @@ function applyTraceSwitch(ports: ClientPorts, store: SessionStore, active: boole
   }
   const drained = drainTrace(session.trace.buffer)
   store.write({ ...session, trace: { ...session.trace, active: true, buffer: drained.buffer } })
-  drained.lines.forEach((line) => ports.server.report(line))
+  drained.lines.slice(-PLAYER_REPORT_BUCKET.capacity).forEach((line) => ports.server.report(line))
 }
 
 export function switchTrace(ports: ClientPorts, store: SessionStore, active: boolean): void {
