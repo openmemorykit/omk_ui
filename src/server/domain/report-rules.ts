@@ -1,4 +1,4 @@
-import { inspectShape, serializedByteLength, ShapeRefusal, type ShapeLimits, type ValueOf } from '@openmemorykit/core/shared'
+import { hasOwnKey, inspectShape, isPlainObject, serializedByteLength, ShapeRefusal, type ShapeLimits, type ValueOf } from '@openmemorykit/core/shared'
 import { safeParseReportEnvelope, type ReportEnvelope } from '../../shared/report/report-envelope'
 import { ReportKind } from '../../shared/report/report-kind'
 
@@ -23,19 +23,8 @@ function isContainer(value: unknown): value is object {
   return typeof value === 'object' && value !== null
 }
 
-function isPlainObject(value: unknown): value is object {
-  if (!isContainer(value)) return false
-  const prototype: unknown = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
-}
-
-function hasOwnKey(value: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(value, key)
-}
-
-function claimedKind(raw: object): unknown {
-  if (!hasOwnKey(raw, KIND_KEY)) return undefined
-  return (raw as Readonly<Record<string, unknown>>)[KIND_KEY]
+function claimedKind(raw: Readonly<Record<string, unknown>>): unknown {
+  return hasOwnKey(raw, KIND_KEY) ? raw[KIND_KEY] : undefined
 }
 
 function isWanted(kind: unknown, traceActive: boolean, snapshotPending: boolean): boolean {

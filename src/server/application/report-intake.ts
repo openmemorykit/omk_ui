@@ -9,6 +9,10 @@ export class ReportIntake {
   private readonly players = new Map<number, PlayerReportState>()
   private summarizedAt = Number.NEGATIVE_INFINITY
 
+  get trackedPlayerCount(): number {
+    return this.players.size
+  }
+
   admit(player: number, now: number): boolean {
     const admission = admitPlayerReport(this.players.get(player), now)
     if (admission.state !== undefined) this.players.set(player, admission.state)
