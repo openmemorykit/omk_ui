@@ -99,6 +99,21 @@ describe('omk_ui debug', () => {
     expect(lines[1]).toContain('800×600 · échelle ?')
   })
 
+  it('joins every panel of the stack with an arrow, not only the first two', () => {
+    const harness = createServerHarness()
+    const lines = debugRun(harness, [String(PLAYER)])
+    answer(harness, {}, { appliedCommandSeq: 1, panels: [{ id: 'a/one' }, { id: 'b/two' }, { id: 'c/three' }] })
+    expect(lineStarting(lines, 'pile')).toBe('pile (3, commande 1 appliquée) : a/one → b/two → c/three')
+  })
+
+  it('prints a forged panel identifier as one neutralised line', () => {
+    const harness = createServerHarness()
+    const lines = debugRun(harness, [String(PLAYER)])
+    answer(harness, { modality: 'x\n[omk_ui] fake ^1' }, { appliedCommandSeq: 1, panels: [{ id: 'a\n[omk_ui] fake ^2' }] })
+    expect(lines.every((line) => !/[\n\r]|\^\d/.test(line))).toBe(true)
+    expect(lineStarting(lines, 'pile')).toContain('a [omk_ui] fake ^ 2')
+  })
+
   it('does not take a field of the wrong type for a number', () => {
     const harness = createServerHarness()
     const lines = debugRun(harness, [String(PLAYER)])

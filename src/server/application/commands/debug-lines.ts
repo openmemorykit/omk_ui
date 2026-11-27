@@ -100,7 +100,7 @@ function keyboardText(reading: Reading): string[] {
 
 function stackLine(reading: Reading): string {
   const panels = (listOf(reading.page, PageSnapshotField.Panels) ?? []).map(panelText)
-  const stack = [listOrNone(reading, panels).replace(LIST_SEPARATOR, PANEL_SEPARATOR), ...keyboardText(reading)]
+  const stack = [panels.length === 0 ? reading.context.log.translate('log.word.none') : panels.join(PANEL_SEPARATOR), ...keyboardText(reading)]
   return reading.context.log.translate('log.debug.stack', {
     depth: panels.length,
     commandSeq: shown(numberOf(reading.page, PageSnapshotField.AppliedCommandSeq)),

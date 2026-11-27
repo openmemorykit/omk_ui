@@ -15,6 +15,9 @@ const MINUTE_DIGITS = 2
 const SECOND_DIGITS = 2
 const MILLISECOND_DIGITS = 3
 const ZERO = '0'
+export const PRINTABLE_MAX_LENGTH = 200
+const CONTROL_CHARACTERS = /[\p{Cc}\u2028\u2029]/gu
+const COLOUR_CODE = /\^(?=\d)/g
 
 export type LogKey = Extract<keyof typeof french, `log.${string}`>
 export type LogParams = Readonly<Record<string, string | number>>
@@ -27,6 +30,10 @@ export interface ServerLog {
   readonly printStamped: (text: string) => void
   readonly printPlayer: (player: number, text: string) => void
   readonly printBlock: (lines: readonly string[]) => void
+}
+
+export function printable(text: string): string {
+  return text.replace(CONTROL_CHARACTERS, ' ').replace(COLOUR_CODE, '^ ').slice(0, PRINTABLE_MAX_LENGTH)
 }
 
 export function prefixBlock(lines: readonly string[]): readonly string[] {

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { prefixBlock } from '../../../src/server/application/server-log'
+import { PRINTABLE_MAX_LENGTH, prefixBlock, printable } from '../../../src/server/application/server-log'
 import { createServerHarness, LOG_PREFIX, PLAYER } from './server-harness'
 
 const LOCALE_CONVAR = 'omk_ui_locale'
+const EXCESS = 50
 const ONE_MINUTE_TWO_SECONDS_FIVE_MILLISECONDS = 62_005
 
 describe('server log: translation', () => {
@@ -62,5 +63,19 @@ describe('server log: console lines', () => {
   it('prefixes only the first line of a block', () => {
     expect(prefixBlock(['first', 'second'])).toStrictEqual([`${LOG_PREFIX} first`, 'second'])
     expect(prefixBlock([])).toStrictEqual([])
+  })
+})
+
+describe('server log: printable text', () => {
+  it('turns line breaks and control characters into spaces', () => {
+    expect(printable('a\nb\r\nc\td\u0007e')).toBe('a b  c d e')
+  })
+
+  it('neutralises the FiveM colour codes', () => {
+    expect(printable('^1red ^9 ^x')).toBe('^ 1red ^ 9 ^x')
+  })
+
+  it('cuts a text that is too long', () => {
+    expect(printable('z'.repeat(PRINTABLE_MAX_LENGTH + EXCESS))).toHaveLength(PRINTABLE_MAX_LENGTH)
   })
 })

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { ALL_CLIENTS } from '../../../src/server/application/ports'
 import { notifyFromResource, relayNotification } from '../../../src/server/application/server-notify'
 import { CommandKind } from '../../../src/shared/net/net-events'
+import { PRINTABLE_MAX_LENGTH } from '../../../src/server/application/server-log'
 import { ABSENT_PLAYER, createServerHarness, LOG_PREFIX, OTHER_PLAYER, PLAYER } from './server-harness'
 
 const NOTIFICATION = { version: 1, tone: NotificationTone.Info, title: 'Bienvenue' }
@@ -84,5 +85,14 @@ describe('server notify: call by another resource', () => {
     const result = notifyFromResource(context, PLAYER, NOTIFICATION, 'x'.repeat(VERY_LONG_NAME))
     expect(result.status).toBe(CallStatus.Done)
     expect(ports.console.lines[0]?.length).toBeLessThan(MAX_LINE_LENGTH)
+  })
+})
+
+describe('server notify: target in the journal', () => {
+  it('cuts and neutralises a target that is a long hostile string', () => {
+    const { ports, context } = createServerHarness()
+    notifyFromResource(context, `a\n${LOG_PREFIX} fake ${'b'.repeat(VERY_LONG_NAME)}`, NOTIFICATION, 'garage')
+    expect(ports.console.lines).toHaveLength(1)
+    expect(ports.console.lines[0]?.length).toBeLessThan(MAX_LINE_LENGTH + PRINTABLE_MAX_LENGTH)
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { flushExpiredSnapshots, receiveReport } from '../../../src/server/application/receive-report'
+import { PRINTABLE_MAX_LENGTH } from '../../../src/server/application/server-log'
 import { ReportKind } from '../../../src/shared/report/report-kind'
 import { sampleReport } from '../../fixtures/reports'
 import { ABSENT_PLAYER, AFTER_TIMEOUT_MS, collectReplies, createServerHarness, LOG_PREFIX, OTHER_PLAYER, PLAYER, type ServerHarness } from './server-harness'
@@ -12,6 +13,9 @@ const TWO_REPORTS = 2
 const TWO_SUMMARIES = 2
 const OVER_LIMIT = 3000
 const FLOOD = 100
+const FORGED = 'x\n[omk_ui] 00:00.000 · joueur 9 · faux ^1rouge\r\tfin'
+const VERY_LONG_VALUE = 5000
+const MAX_FRAME = 100
 
 function tracedHarness(): ServerHarness {
   const harness = createServerHarness()
@@ -177,5 +181,20 @@ describe('receive report: rate limit', () => {
     for (let sent = 0; sent < FLOOD; sent += 1) receiveReport(context, PLAYER, sampleReport(ReportKind.ModeChanged))
     expect(ports.console.lines).toHaveLength(1)
     expect(ports.console.lines[0]).toContain('Comptes rendus ignorés')
+  })
+})
+
+describe('receive report: text coming from a client', () => {
+  it('prints a forged multi-line value as one neutralised line', () => {
+    const { ports, context } = tracedHarness()
+    receiveReport(context, PLAYER, { ...sampleReport(ReportKind.ModeChanged), data: { from: FORGED.replace('fin', ' fin'), to: 'radial' } })
+    expect(ports.console.lines).toHaveLength(1)
+    expect(ports.console.lines[0]).not.toMatch(/[\n\r\t]|\^\d/)
+  })
+
+  it('cuts a value that is too long', () => {
+    const { ports, context } = tracedHarness()
+    receiveReport(context, PLAYER, { ...sampleReport(ReportKind.ModeChanged), data: { from: 'y'.repeat(VERY_LONG_VALUE), to: 'radial' } })
+    expect(ports.console.lines[0]?.length).toBeLessThan(PRINTABLE_MAX_LENGTH * TWO_REPORTS + MAX_FRAME)
   })
 })

@@ -2,6 +2,7 @@ import { CALL_DONE, CallStatus, ContractErrorCode, NotificationSchema, refusedCa
 import { validateContract, ValidationStatus } from '@openmemorykit/ui/validation'
 import { CommandKind } from '../../shared/net/net-events'
 import { OWNER_MAX_LENGTH } from '../../protocol/namespaced-id'
+import { printable } from './server-log'
 import { ALL_CLIENTS } from './ports'
 import type { ServerContext } from './server-context'
 
@@ -22,7 +23,7 @@ export function relayNotification(context: ServerContext, target: unknown, notif
 }
 
 function describeTarget(context: ServerContext, target: unknown): string {
-  return target === ALL_CLIENTS ? context.log.translate('log.trace.allPlayers') : String(target)
+  return target === ALL_CLIENTS ? context.log.translate('log.trace.allPlayers') : printable(String(target))
 }
 
 function journalCall(context: ServerContext, target: unknown, caller: string | null, result: CallResult): void {
