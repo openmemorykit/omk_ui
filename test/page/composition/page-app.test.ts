@@ -227,6 +227,17 @@ describe('dispose', () => {
     page = mountScripted()
   })
 
+  it('sends nothing to the host once disposed, even for frames already requested', async () => {
+    page = mountScripted()
+    page.host.emit(BOOT)
+    await settle()
+    page.host.emit({ type: ToPage.Intent, seq: FIRST_SEQ, intent: Intent.Down, phase: IntentPhase.Press, source: InputSource.Pad })
+    page.unmount()
+    page.frame()
+    expect(page.host.sent.filter((message) => message.type === FromPage.Ack)).toEqual([])
+    page = mountScripted()
+  })
+
   it('can be disposed twice and mounted only once', () => {
     page = mountScripted()
     page.app.mount(document.createElement('div'))

@@ -46,8 +46,9 @@ function pushToTalkCodeOf(raw: string): string | null {
   return decoded.kind === BindingKind.Known ? decoded.code : null
 }
 
-function createPorts(options: PageAppOptions, announcer: Announcer): UiPorts {
-  const { host, win } = options
+function createPorts(options: PageAppOptions, announcer: Announcer, isDisposed: () => boolean): UiPorts {
+  const { win } = options
+  const host: HostBridge = { ...options.host, send: (message) => (isDisposed() ? undefined : options.host.send(message)), listen: (listener) => options.host.listen(listener) }
   const raf = (callback: FrameRequestCallback): number => win.requestAnimationFrame(callback)
   const clock = { now: () => win.performance.now() }
   return {
@@ -97,9 +98,9 @@ interface Runtime {
   readonly regions: { current: Announcer | null }
 }
 
-function createRuntime(options: PageAppOptions): Runtime {
+function createRuntime(options: PageAppOptions, isDisposed: () => boolean): Runtime {
   const regions: Runtime['regions'] = { current: null }
-  const ports = createPorts(options, { announce: (text, urgency) => regions.current?.announce(text, urgency) })
+  const ports = createPorts(options, { announce: (text, urgency) => regions.current?.announce(text, urgency) }, isDisposed)
   const store = createUiStore(ports)
   const vueStore = createVueStore(store)
   const size = shallowRef(options.viewport.read())
@@ -114,10 +115,10 @@ function createRuntime(options: PageAppOptions): Runtime {
 
 export function createPageApp(options: PageAppOptions): PageApp {
   const { host, win } = options
-  const runtime = createRuntime(options)
+  let disposed = false
+  const runtime = createRuntime(options, () => disposed)
   let detachments: Detach[] = []
   let mounted = false
-  let disposed = false
 
   return {
     mount(element) {
