@@ -1,10 +1,8 @@
-import { RejectionReason, type RejectedEvent } from '@openmemorykit/core/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { receiveReport } from '../../../src/server/application/receive-report'
 import { NetEvent } from '../../../src/shared/net/net-events'
 import { ReportKind } from '../../../src/shared/report/report-kind'
 import { registerReportEvent } from '../../../src/server/infrastructure/report-event'
-import { createKitServerEvents } from '../../../src/server/infrastructure/server-events'
 import { sampleReport } from '../../fixtures/reports'
 import { createServerHarness, PLAYER } from '../application/server-harness'
 import { installServerEventNatives, type ServerEventNatives } from './server-adapter-natives'
@@ -13,7 +11,7 @@ const CONSOLE = 0
 const LOCAL_TRIGGER = ''
 const BURST = 40
 const SECOND = 1000
-const SHAPE_DEPTH_LIMIT = 16
+const HUGE_DEPTH = 100_000
 const UNREADABLE_KIND = { kind: 'bogus', at: 0, data: {} }
 
 interface Received {
@@ -23,12 +21,11 @@ interface Received {
 
 let natives: ServerEventNatives | null = null
 
-function installReportEvent(report: (source: number, raw: unknown) => void, failures: unknown[] = []): { readonly rejected: RejectedEvent[]; readonly natives: ServerEventNatives } {
+function installReportEvent(report: (source: number, raw: unknown) => void, failures: unknown[] = []): { readonly natives: ServerEventNatives } {
   const installed = installServerEventNatives()
   natives = installed
-  const rejected: RejectedEvent[] = []
-  registerReportEvent(createKitServerEvents((event) => rejected.push(event)), report, (error) => failures.push(error))
-  return { rejected, natives: installed }
+  registerReportEvent(report, (error) => failures.push(error))
+  return { natives: installed }
 }
 
 function nested(depth: number): unknown {
@@ -61,11 +58,14 @@ describe('report event omk_ui:report', () => {
 
   it('refuses a source that is not a player (console, or a local trigger by another resource)', () => {
     const received: Received[] = []
-    const { rejected, natives: installed } = installReportEvent((source, raw) => received.push({ source, raw }))
-    installed.trigger(NetEvent.Report, LOCAL_TRIGGER, sampleReport(ReportKind.ModeChanged))
-    installed.trigger(NetEvent.Report, CONSOLE, sampleReport(ReportKind.ModeChanged))
+    const failures: unknown[] = []
+    const { natives: installed } = installReportEvent((source, raw) => received.push({ source, raw }), failures)
+    expect(() => {
+      installed.trigger(NetEvent.Report, LOCAL_TRIGGER, sampleReport(ReportKind.ModeChanged))
+      installed.trigger(NetEvent.Report, CONSOLE, sampleReport(ReportKind.ModeChanged))
+    }).not.toThrow()
     expect(received).toStrictEqual([])
-    expect(rejected.map((event) => event.reason)).toStrictEqual([RejectionReason.Source, RejectionReason.Source])
+    expect(failures).toStrictEqual([])
   })
 
   it('refuses a report of a player over his rate without reading its payload', () => {
@@ -81,12 +81,22 @@ describe('report event omk_ui:report', () => {
     expect(ports.console.lines.some((line) => line.includes(unreadable))).toBe(true)
   })
 
-  it('lets core refuse a payload deeper than its shape limits before the report handler', () => {
+  it('hands a huge or deep player payload to the handler without walking it first', () => {
     const received: Received[] = []
-    const { rejected, natives: installed } = installReportEvent((source, raw) => received.push({ source, raw }))
-    installed.trigger(NetEvent.Report, PLAYER, nested(SHAPE_DEPTH_LIMIT + 1))
-    expect(received).toStrictEqual([])
-    expect(rejected.map((event) => event.reason)).toStrictEqual([RejectionReason.Shape])
+    const { natives: installed } = installReportEvent((source, raw) => received.push({ source, raw }))
+    let reads = 0
+    const counted = Object.defineProperty({}, 'inner', {
+      enumerable: true,
+      get: () => {
+        reads += 1
+        return nested(HUGE_DEPTH)
+      },
+    })
+    const wide = Array.from({ length: HUGE_DEPTH }, () => ({}))
+    installed.trigger(NetEvent.Report, PLAYER, counted)
+    installed.trigger(NetEvent.Report, PLAYER, wide)
+    expect(received.map((entry) => entry.raw)).toStrictEqual([counted, wide])
+    expect(reads).toBe(0)
   })
 
   it('keeps a failing report handler inside the event handler and reports it', () => {
