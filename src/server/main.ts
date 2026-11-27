@@ -16,7 +16,7 @@ import { isRunningAsKit } from './infrastructure/resource-name'
 import { createServerConsole } from './infrastructure/server-console'
 import { createKitServerEvents } from './infrastructure/server-events'
 import { armTimer } from './infrastructure/timers'
-import type { FailureHandler } from '../shared/guarded-call'
+import { guardedCall, type FailureHandler } from '../shared/guarded-call'
 import { startRefusalLine } from '../shared/kit-resource'
 
 const SNAPSHOT_TIMER_MS = SNAPSHOT_TIMEOUT_MS + 1
@@ -49,14 +49,18 @@ function connectEntryPoints(startedKit: ServerKit, onFailure: FailureHandler): v
   registerPlayerDropped((source) => startedKit.playerDropped(source), onFailure)
 }
 
-function start(): void {
-  if (!isRunningAsKit((foundName) => console.error(startRefusalLine(foundName)))) return
-  const onFailure = createFailureReporter(createServerConsole(), createServerClock())
+function startKit(onFailure: FailureHandler): void {
   const ports = createPorts(onFailure)
   const startedKit = createServerKit(ports, __OMK_VERSION__)
   kit = startedKit
   connectEntryPoints(startedKit, onFailure)
   startedKit.started()
+}
+
+function start(): void {
+  if (!isRunningAsKit((foundName) => console.error(startRefusalLine(foundName)))) return
+  const onFailure = createFailureReporter(createServerConsole(), createServerClock())
+  guardedCall(onFailure, 'start the server kit', () => startKit(onFailure), undefined)
 }
 
 start()

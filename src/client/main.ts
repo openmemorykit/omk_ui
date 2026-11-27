@@ -25,7 +25,7 @@ import { registerResourceStop } from './infrastructure/resource-stop'
 import { createServerLink, type ServerLink } from './infrastructure/server-channel'
 import { armTimer } from './infrastructure/timers'
 import type { FromPage } from '../protocol/from-page'
-import type { FailureHandler } from '../shared/guarded-call'
+import { guardedCall, type FailureHandler } from '../shared/guarded-call'
 import { KIT_RESOURCE_NAME, startRefusalLine } from '../shared/kit-resource'
 import { CommandKind, NetEvent, type ServerToClientCommand } from '../shared/net/net-events'
 
@@ -88,6 +88,19 @@ function connectEntryPoints(startedKit: ClientKit, link: ServerLink, ports: Clie
   registerResourceStop({ onOtherResourceStopped: (name) => startedKit.resourceStopped(name), onSelfStopping: () => startedKit.selfStopping() }, onFailure)
 }
 
+function replayEarlyPageMessages(startedKit: ClientKit, onFailure: FailureHandler): void {
+  earlyPageMessages.splice(0).forEach(({ type, body }) => guardedCall(onFailure, `replay page message ${type}`, () => startedKit.pageMessage(type, body), undefined))
+}
+
+function startKit(consolePort: ConsolePort, onFailure: FailureHandler): void {
+  const link = createServerLink((rejected) => kit?.serverEventRejected(rejected), onFailure)
+  const ports = createPorts(link, consolePort, onFailure)
+  const startedKit = createClientKit(ports, ports.config.read().config, __OMK_VERSION__)
+  kit = startedKit
+  replayEarlyPageMessages(startedKit, onFailure)
+  connectEntryPoints(startedKit, link, ports, onFailure)
+}
+
 function start(): void {
   const resourceName = GetCurrentResourceName()
   if (resourceName !== KIT_RESOURCE_NAME) {
@@ -97,12 +110,7 @@ function start(): void {
   const consolePort = createConsolePort()
   const onFailure = createFailureReporter(consolePort, createGameClock())
   registerNuiCallbacks(receivePageMessage, onFailure)
-  const link = createServerLink((rejected) => kit?.serverEventRejected(rejected), onFailure)
-  const ports = createPorts(link, consolePort, onFailure)
-  const startedKit = createClientKit(ports, ports.config.read().config, __OMK_VERSION__)
-  kit = startedKit
-  earlyPageMessages.splice(0).forEach(({ type, body }) => startedKit.pageMessage(type, body))
-  connectEntryPoints(startedKit, link, ports, onFailure)
+  guardedCall(onFailure, 'start the client kit', () => startKit(consolePort, onFailure), undefined)
 }
 
 start()

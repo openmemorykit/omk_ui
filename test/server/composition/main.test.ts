@@ -13,6 +13,9 @@ const CONSOLE_SOURCE = 0
 const PLAYER_SOURCE = 7
 const NOTIFY_EXPORT = 'notify'
 const DENIED_LINE = 'omk_ui.admin'
+const KIT_MODULE = '../../../src/server/application/server-kit'
+const KIT_FAILURE = 'the kit could not be built'
+const NO_REPLY_KEY = 'log.debug.noReply'
 
 type Handler = (...args: never[]) => unknown
 type CommandHandler = (source: number, args: string[]) => void
@@ -31,6 +34,7 @@ interface StartedServer extends ServerRecords {
 }
 
 let started: StartedServer | null = null
+let gameTime = 0
 
 const LOCALE_FILES: ReadonlyMap<string, string> = new Map([
   ['locales/en.json', JSON.stringify(english)],
@@ -52,10 +56,10 @@ function installServerNatives(resourceName: string, records: ServerRecords): Nat
     GetInvokingResource: () => 'garage',
     GetConvar: (_name: string, fallback: string) => fallback,
     LoadResourceFile: (_resource: string, path: string) => LOCALE_FILES.get(path) ?? null,
-    GetGameTimer: () => 0,
+    GetGameTimer: () => gameTime,
     GetNumPlayerIndices: () => 0,
     GetPlayerFromIndex: () => null,
-    DoesPlayerExist: () => false,
+    DoesPlayerExist: () => true,
     setTimeout: (fire: () => void, delayMs: number) => void records.timers.push({ delayMs, fire }),
   })
 }
@@ -63,6 +67,7 @@ function installServerNatives(resourceName: string, records: ServerRecords): Nat
 async function startServer(resourceName = RESOURCE_NAME): Promise<StartedServer> {
   vi.resetModules()
   vi.stubGlobal('__OMK_VERSION__', KIT_VERSION)
+  gameTime = 0
   const errors: unknown[][] = []
   const lines: string[] = []
   vi.spyOn(console, 'error').mockImplementation((...line: unknown[]) => void errors.push(line))
@@ -76,6 +81,7 @@ async function startServer(resourceName = RESOURCE_NAME): Promise<StartedServer>
 }
 
 afterEach(() => {
+  vi.doUnmock(KIT_MODULE)
   started?.natives.restore()
   started = null
   vi.unstubAllGlobals()
@@ -108,7 +114,23 @@ describe('server main', () => {
     server.commands.get(KIT_COMMAND)?.(CONSOLE_SOURCE, ['version'])
     expect(server.lines.some((line) => line.includes(KIT_VERSION))).toBe(true)
     expect(server.timers.map((timer) => timer.delayMs)).toStrictEqual([SNAPSHOT_TIMEOUT_MS + 1])
-    expect(() => server.timers.forEach((timer) => timer.fire())).not.toThrow()
+  })
+
+  it('prints the "no reply" line for a player who stayed silent once the timer fires after three seconds', async () => {
+    const server = await startServer()
+    server.lines.length = 0
+    server.commands.get(KIT_COMMAND)?.(CONSOLE_SOURCE, ['debug', String(PLAYER_SOURCE)])
+    gameTime += SNAPSHOT_TIMEOUT_MS + 1
+    server.timers.forEach((timer) => timer.fire())
+    const noReplyLines = [english, french].map((bundle) => bundle[NO_REPLY_KEY].replace('{player}', String(PLAYER_SOURCE)))
+    expect(server.lines.some((line) => noReplyLines.some((noReply) => line.endsWith(noReply)))).toBe(true)
+  })
+
+  it('reports a failure while building the kit with one line instead of throwing', async () => {
+    vi.doMock(KIT_MODULE, () => ({ createServerKit: () => { throw new Error(KIT_FAILURE) } }))
+    const server = await startServer()
+    expect(server.lines.filter((line) => line.includes(KIT_FAILURE))).toHaveLength(1)
+    expect(server.commands.size).toBe(0)
   })
 
   it('answers an unknown subcommand with the list of subcommands', async () => {

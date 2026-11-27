@@ -2,7 +2,11 @@ import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing
 import { CallStatus, ContractErrorCode, ContractVersion, IconName, KitExport, type CallResult } from '@openmemorykit/ui/contract'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FromPage } from '../../../src/protocol/from-page'
+import { Intent } from '../../../src/protocol/intents'
 import { ToPage } from '../../../src/protocol/to-page'
+import { CommandKind, NetEvent } from '../../../src/shared/net/net-events'
+import { ReportKind } from '../../../src/shared/report/report-kind'
+import { KEYED_NOTIFICATION } from '../../fixtures/surfaces'
 
 const RESOURCE_NAME = 'omk_ui'
 const WRONG_NAME = 'omk_ui_copy'
@@ -12,6 +16,13 @@ const GARAGE = 'garage'
 const RESOURCE_STOP_EVENT = 'onResourceStop'
 const PAGE_CALLBACK_COUNT = Object.values(FromPage).length
 const VERSION_EXPORT = 'version'
+const KIT_MODULE = '../../../src/client/application/client-kit'
+const GLYPHS_COMMAND = 'omk_glyphs'
+const KEY_MAPPING_COUNT = 2
+const GLYPH_SET_ARGUMENT = 'xbox'
+const SNAPSHOT_TIMER_MS = 2001
+const SNAPSHOT_REQUEST_ID = 5
+const FIRST_EARLY_FAILURE = 'first early message failed'
 
 type Handler = (...args: never[]) => unknown
 type NuiCallback = (body: unknown, answerPage: (answer: unknown) => void) => void
@@ -25,9 +36,12 @@ interface ClientRecords {
 interface StartedClient extends ClientRecords {
   readonly natives: NativeRecorder
   readonly errors: unknown[][]
+  readonly lines: string[]
 }
 
 let started: StartedClient | null = null
+let gameTime = 0
+let invokingResource = GARAGE
 
 function installClientNatives(resourceName: string, records: ClientRecords): NativeRecorder {
   return installNatives({
@@ -39,17 +53,18 @@ function installClientNatives(resourceName: string, records: ClientRecords): Nat
     emit: () => undefined,
     emitNet: () => undefined,
     removeEventListener: () => undefined,
-    GetInvokingResource: () => GARAGE,
+    GetInvokingResource: () => invokingResource,
     RegisterCommand: () => undefined,
     RegisterKeyMapping: () => undefined,
     TriggerEvent: () => undefined,
     setTick: () => 1,
     clearTick: () => undefined,
     setTimeout: () => 1,
-    GetGameTimer: () => 0,
+    GetGameTimer: () => gameTime,
     GetConvar: (_name: string, fallback: string) => fallback,
     LoadResourceFile: () => null,
     GetResourceKvpString: () => null,
+    SetResourceKvp: () => undefined,
     SendNuiMessage: () => undefined,
     SetNuiFocus: () => undefined,
     SetNuiFocusKeepInput: () => undefined,
@@ -63,12 +78,15 @@ async function startClient(resourceName = RESOURCE_NAME, onConfigRead: (records:
   vi.resetModules()
   vi.stubGlobal('__OMK_VERSION__', KIT_VERSION)
   const errors: unknown[][] = []
+  const lines: string[] = []
+  gameTime = 0
+  invokingResource = GARAGE
   vi.spyOn(console, 'error').mockImplementation((...line: unknown[]) => void errors.push(line))
-  vi.spyOn(console, 'log').mockImplementation(() => undefined)
+  vi.spyOn(console, 'log').mockImplementation((line: unknown) => void lines.push(String(line)))
   const records: ClientRecords = { nuiCallbacks: new Map(), exportsByName: new Map(), eventHandlers: new Map() }
   const natives = installClientNatives(resourceName, records)
   Object.assign(globalThis.exports, { [RESOURCE_NAME]: { getConfig: () => (onConfigRead(records), {}) } })
-  started = { ...records, natives, errors }
+  started = { ...records, natives, errors, lines }
   await import(MAIN_PATH)
   return started
 }
@@ -86,7 +104,22 @@ function radialEntry(id: string): object {
   return { version: ContractVersion.V1, id, label: id, description: id, icon: IconName.List }
 }
 
+function sendFromServer(client: StartedClient, event: NetEvent, command: object): void {
+  invokingResource = ''
+  ;(client.eventHandlers.get(event) as ((payload: object) => void) | undefined)?.(command)
+  invokingResource = GARAGE
+}
+
+function reportKinds(client: StartedClient): readonly unknown[] {
+  return client.natives.callsOf('emitNet').map(([, envelope]) => (envelope as { readonly kind: unknown }).kind)
+}
+
+function becomeReady(client: StartedClient): void {
+  client.nuiCallbacks.get(FromPage.Ready)?.({ type: FromPage.Ready }, () => undefined)
+}
+
 afterEach(() => {
+  vi.doUnmock(KIT_MODULE)
   started?.natives.restore()
   started = null
   vi.unstubAllGlobals()
@@ -137,5 +170,72 @@ describe('client main', () => {
     expect(refused.status === CallStatus.Refused ? refused.errors[0]?.code : null).toBe(ContractErrorCode.QuotaExceeded)
     client.eventHandlers.get(RESOURCE_STOP_EVENT)?.(GARAGE as never)
     expect(callExport(client, KitExport.AddRadialEntry, radialEntry('third'))).toStrictEqual({ status: CallStatus.Done })
+  })
+
+  it('registers the two key mappings and the omk_glyphs command', async () => {
+    const client = await startClient()
+    expect(client.natives.callsOf('RegisterKeyMapping')).toHaveLength(KEY_MAPPING_COUNT)
+    expect(client.natives.callsOf('RegisterCommand').map(([name]) => name)).toContain(GLYPHS_COMMAND)
+  })
+
+  it('changes the glyph set when the omk_glyphs command runs', async () => {
+    const client = await startClient()
+    const glyphs = client.natives.callsOf('RegisterCommand').find(([name]) => name === GLYPHS_COMMAND)
+    ;(glyphs?.[1] as (source: number, args: string[]) => void)(0, [GLYPH_SET_ARGUMENT])
+    expect(sentToPage(client)).toContain(ToPage.GlyphSet)
+  })
+
+  it('answers a snapshot command without the page once the two-second timer fires', async () => {
+    const client = await startClient()
+    becomeReady(client)
+    sendFromServer(client, NetEvent.Command, { kind: CommandKind.Snapshot, requestId: SNAPSHOT_REQUEST_ID })
+    const timer = client.natives.callsOf('setTimeout').find(([, delayMs]) => delayMs === SNAPSHOT_TIMER_MS)
+    expect(timer).toBeDefined()
+    expect(reportKinds(client)).not.toContain(ReportKind.Snapshot)
+    gameTime += SNAPSHOT_TIMER_MS
+    ;(timer?.[0] as () => void)()
+    expect(reportKinds(client)).toContain(ReportKind.Snapshot)
+  })
+
+  it('moves the page when the server sends a command event', async () => {
+    const client = await startClient()
+    becomeReady(client)
+    sendFromServer(client, NetEvent.Command, { kind: CommandKind.Intent, intent: Intent.Down, count: 1 })
+    expect(sentToPage(client)).toContain(ToPage.Intent)
+  })
+
+  it('shows the notification of a server notify event on the page', async () => {
+    const client = await startClient()
+    becomeReady(client)
+    sendFromServer(client, NetEvent.Notify, { kind: CommandKind.Notify, notification: KEYED_NOTIFICATION })
+    expect(sentToPage(client)).toContain(ToPage.Notify)
+  })
+
+  it('sends the lines held back to the server once a server trace event turns the journal on', async () => {
+    const client = await startClient()
+    callExport(client, KitExport.AddRadialEntry, {})
+    expect(client.natives.callsOf('emitNet')).toStrictEqual([])
+    sendFromServer(client, NetEvent.Trace, { kind: CommandKind.Trace, active: true })
+    expect(reportKinds(client)).toContain(ReportKind.ContractRefused)
+  })
+
+  it('keeps the exports and the key mappings when the first replayed page message throws, and reports it', async () => {
+    const messages: string[] = []
+    const kit = { pageMessage: (type: string) => { messages.push(type); if (messages.length === 1) throw new Error(FIRST_EARLY_FAILURE) } }
+    vi.doMock(KIT_MODULE, () => ({ createClientKit: () => kit }))
+    const client = await startClient(RESOURCE_NAME, (records) => {
+      records.nuiCallbacks.get(FromPage.Ready)?.({ type: FromPage.Ready }, () => undefined)
+      records.nuiCallbacks.get(FromPage.Snapshot)?.({ type: FromPage.Snapshot }, () => undefined)
+    })
+    expect(messages).toStrictEqual([FromPage.Ready, FromPage.Snapshot])
+    expect(client.lines.filter((line) => line.includes(FIRST_EARLY_FAILURE))).toHaveLength(1)
+    expect([...client.exportsByName.keys()]).toEqual(expect.arrayContaining(Object.values(KitExport)))
+    expect(client.natives.callsOf('RegisterKeyMapping')).toHaveLength(KEY_MAPPING_COUNT)
+  })
+
+  it('reports a failure while building the kit with one line instead of throwing', async () => {
+    vi.doMock(KIT_MODULE, () => ({ createClientKit: () => { throw new Error(FIRST_EARLY_FAILURE) } }))
+    const client = await startClient()
+    expect(client.lines.filter((line) => line.includes(FIRST_EARLY_FAILURE))).toHaveLength(1)
   })
 })
