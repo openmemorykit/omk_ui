@@ -82,13 +82,21 @@ function holdLostItsConditions(session: ClientSession, hold: PromptHold): boolea
   return hold.held.source === HoldSource.Pad ? !readsInteractControl(session) : session.mode !== UiMode.Idle || session.paused
 }
 
-export function trackPromptFrame(ports: ClientPorts, store: SessionStore): void {
-  const session = store.read()
+function holdIsOnAnotherPrompt(session: ClientSession): boolean {
   const visible = visiblePrompt(session.registry)
-  if (visible === null || (session.prompt.phase === PromptPhase.Holding && !isHeldBy(session.prompt, visible))) {
-    if (session.prompt !== SHOWN_PROMPT) store.write({ ...session, prompt: SHOWN_PROMPT })
-    return
-  }
+  return visible === null || (session.prompt.phase === PromptPhase.Holding && !isHeldBy(session.prompt, visible))
+}
+
+export function dropHoldWithoutItsPrompt(store: SessionStore): boolean {
+  const session = store.read()
+  if (!holdIsOnAnotherPrompt(session)) return false
+  if (session.prompt !== SHOWN_PROMPT) store.write({ ...session, prompt: SHOWN_PROMPT })
+  return true
+}
+
+export function trackPromptFrame(ports: ClientPorts, store: SessionStore): void {
+  if (dropHoldWithoutItsPrompt(store)) return
+  const session = store.read()
   if (holdLostItsConditions(session, session.prompt)) {
     moveVisiblePrompt(ports, store, cancel)
     return
