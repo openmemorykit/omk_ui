@@ -1,10 +1,11 @@
-import { ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { expect } from 'vitest'
 import { BACK_HOLD_MS } from '../../../../src/page/domain/hold-detector'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import type { UiCommand } from '../../../../src/page/domain/page-commands'
 import type { UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
+import { PAGE_EVENT_MAX_REPLIES } from '../../../../src/protocol/page-event'
 import { fromPageStackSnapshot, type PageEvent } from '../../../../src/protocol/stack'
 import { events, initial, NOW, OPEN_RADIAL, sentOf } from './engine-helpers'
 import { droppedOwner, isTyping, openedBy, settled, shownConfirms, type Balance, type Draw } from './invariant-steps'
@@ -26,7 +27,8 @@ function expectNoReplyAfterClose(event: PageEvent): void {
   const closed = new Set<string>()
   event.replies.forEach(({ reply }) => {
     if (!PANEL_REPLIES.has(reply.kind) || !('panelId' in reply)) return
-    expect(closed.has(reply.panelId)).toBe(false)
+    const discardsANewOpening = reply.kind === ReplyKind.PanelClosed && reply.reason === CloseReason.Discarded
+    expect(closed.has(reply.panelId) && !discardsANewOpening).toBe(false)
     if (reply.kind === ReplyKind.PanelClosed) closed.add(reply.panelId)
   })
 }
@@ -61,6 +63,7 @@ export function runInvariantLoop(commands: readonly ((draw: Draw) => UiCommand)[
     const stepEvents = events(next.effects)
     expect(stepEvents.length).toBeLessThanOrEqual(1)
     stepEvents.forEach((event) => {
+      expect(event.replies.length).toBeLessThanOrEqual(PAGE_EVENT_MAX_REPLIES)
       expectNoReplyAfterClose(event)
       if (event.stack !== null) expect(fromPageStackSnapshot(event.stack)).not.toBeNull()
     })

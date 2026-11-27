@@ -1,4 +1,4 @@
-import { ReplyKind, type Reply } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind, type Reply } from '@openmemorykit/ui/contract'
 import { FromPage, type FromPageMessage } from '../../protocol/from-page'
 import type { OwnedReply, StackEntry, StackSnapshot } from '../../protocol/stack'
 import type { Frame, UiState } from './ui-state'
@@ -29,13 +29,14 @@ function instanceKey(reply: Reply): string | null {
 }
 
 const isSettling = (reply: Reply): boolean => reply.kind === ReplyKind.PanelClosed || reply.kind === ReplyKind.ConfirmAnswered
+const isDiscardedOpening = (reply: Reply): boolean => reply.kind === ReplyKind.PanelClosed && reply.reason === CloseReason.Discarded
 
 function keptReplies(replies: readonly OwnedReply[]): readonly OwnedReply[] {
   const settledKeys = new Set<string>()
   const kept: OwnedReply[] = []
   for (const owned of replies) {
     const key = instanceKey(owned.reply)
-    if (key !== null && settledKeys.has(key)) continue
+    if (key !== null && settledKeys.has(key) && !isDiscardedOpening(owned.reply)) continue
     if (key !== null && isSettling(owned.reply)) settledKeys.add(key)
     kept.push(owned)
   }

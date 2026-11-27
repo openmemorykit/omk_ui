@@ -26,7 +26,7 @@ import { handleTextInputFocused } from './keyboard-handler'
 import { settleMode } from './mode-change'
 import { PageCommandType, TimerKind, type UiCommand, type UiCommandOf, type UiCommandType } from './page-commands'
 import { handleOpenRadial, handleRadialEntries } from './radial-handler'
-import { handleClosePanel, handleDropOwner, handleOpenPanel, handlePushPanel, handleShowConfirm } from './stack-commands'
+import { handleCloseAll, handleClosePanel, handleDropOwner, handleOpenPanel, handlePushPanel, handleShowConfirm } from './stack-commands'
 import { settleTextEntry } from './text-entry'
 import { handleTimerFired } from './timers'
 import { unchanged, type CommandHandler, type Transition } from './ui-effects'
@@ -54,6 +54,7 @@ const HANDLERS: HandlerTable = {
   [ToPage.PromptProgress]: handlePromptProgress,
   [ToPage.HidePrompt]: handleHidePrompt,
   [ToPage.DropOwner]: handleDropOwner,
+  [ToPage.CloseAll]: handleCloseAll,
   [ToPage.GlyphSet]: handleGlyphSet,
   [ToPage.SnapshotRequest]: handleSnapshotRequest,
   [PageCommandType.LocalIntent]: handleLocalIntent,

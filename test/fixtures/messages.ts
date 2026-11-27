@@ -1,4 +1,4 @@
-import { FormOutcome } from '@openmemorykit/ui/contract'
+import { CloseReason, FormOutcome, ReplyKind } from '@openmemorykit/ui/contract'
 import { FromPage } from '../../src/protocol/from-page'
 import type { FromPageMessageOf } from '../../src/protocol/from-page'
 import { InputSource, Intent, IntentPhase, Modality } from '../../src/protocol/intents'
@@ -9,7 +9,7 @@ import { THEME_DEFAULTS } from '../../src/shared/config/config-schema'
 import { ReportKind } from '../../src/shared/report/report-kind'
 import { deepFrozen } from './frozen'
 import { FixtureOwner, OWNED_GARAGE_RADIAL_ENTRY, OWNED_HOLD_PROMPT, OWNED_KEYED_NOTIFICATION, OWNED_LIST_PANEL, OWNED_REMOVE_CONFIRM, OWNED_WHITELIST_RADIAL_ENTRY } from './owned'
-import { OWNED_REPLIES, FIRST_SUBMISSION_ID } from './replies'
+import { FIRST_SUBMISSION_ID } from './replies'
 import { HOLD_PROMPT_MS } from './surfaces'
 import { SHARED_STACK_OWNED, SHARED_STACK_SEQ, SHARED_STACK_SNAPSHOT } from './stack'
 
@@ -21,6 +21,11 @@ export const NEXT_COMMAND_SEQ = SHARED_STACK_SEQ.Push + 1
 export const BINDING_LABELS: BindingLabels = deepFrozen({ radial: 'F1', interact: 'E', pushToTalk: 'N' })
 
 export const ENGLISH_LOCALE: LocaleBundle = deepFrozen({ language: 'en', messages: { back: 'Back', closeAll: 'Close all' } })
+
+const BACK_FROM_ADD_EVENT = {
+  stack: { appliedCommandSeq: SHARED_STACK_SEQ.Push, entries: SHARED_STACK_SNAPSHOT.entries.slice(0, 1) },
+  replies: [{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: SHARED_STACK_OWNED[1].panel.id, reason: CloseReason.Back } }],
+}
 
 export const TO_PAGE_SAMPLES: Readonly<{ [Type in ToPage]: ToPageMessageOf<Type> }> = deepFrozen({
   [ToPage.Boot]: {
@@ -56,13 +61,14 @@ export const TO_PAGE_SAMPLES: Readonly<{ [Type in ToPage]: ToPageMessageOf<Type>
   [ToPage.PromptProgress]: { type: ToPage.PromptProgress, promptId: OWNED_HOLD_PROMPT.prompt.id, state: PromptState.Holding, holdMs: HOLD_PROMPT_MS },
   [ToPage.HidePrompt]: { type: ToPage.HidePrompt, promptId: OWNED_HOLD_PROMPT.prompt.id },
   [ToPage.DropOwner]: { type: ToPage.DropOwner, commandSeq: NEXT_COMMAND_SEQ, owner: FixtureOwner.Garage },
+  [ToPage.CloseAll]: { type: ToPage.CloseAll, commandSeq: NEXT_COMMAND_SEQ },
   [ToPage.GlyphSet]: { type: ToPage.GlyphSet, glyphSet: GlyphSet.PlayStation },
   [ToPage.SnapshotRequest]: { type: ToPage.SnapshotRequest, requestId: FIRST_SNAPSHOT_REQUEST_ID },
 })
 
 export const FROM_PAGE_SAMPLES: Readonly<{ [Type in FromPage]: FromPageMessageOf<Type> }> = deepFrozen({
   [FromPage.Ready]: { type: FromPage.Ready },
-  [FromPage.Event]: { type: FromPage.Event, event: { stack: SHARED_STACK_SNAPSHOT, replies: OWNED_REPLIES } },
+  [FromPage.Event]: { type: FromPage.Event, event: BACK_FROM_ADD_EVENT },
   [FromPage.Ack]: { type: FromPage.Ack, lastIntentSeq: FIRST_INTENT_SEQ },
   [FromPage.ModeChanged]: { type: FromPage.ModeChanged, mode: UiMode.Panels },
   [FromPage.Paused]: { type: FromPage.Paused, paused: true },

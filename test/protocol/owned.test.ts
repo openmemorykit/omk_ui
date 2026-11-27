@@ -113,7 +113,7 @@ describe('fromPageReply', () => {
   })
 
   it('covers one reply of each kind in the shared fixture', () => {
-    expect(OWNED_REPLIES.map((owned) => owned.reply.kind)).toStrictEqual(Object.values(ReplyKind))
+    expect(OWNED_REPLIES.map((owned) => owned.reply.kind).sort()).toStrictEqual(Object.values(ReplyKind).sort())
   })
 
   it.each(Object.values(ReplyKind).map((kind) => [kind]))('refuses a %s target that belongs to another owner', (kind) => {

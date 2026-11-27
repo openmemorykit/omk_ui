@@ -66,6 +66,11 @@ describe('pageEvent', () => {
     expect(asEvent(pageEvent(null, replies)).event.replies).toEqual([selected(LIST_ID), closed(LIST_ID, CloseReason.Back)])
   })
 
+  it('keeps the Discarded of a new opening after the closing of the instance it replaces', () => {
+    const replies = [closed(LIST_ID, CloseReason.ClosedByOwner), closed(LIST_ID, CloseReason.Discarded), selected(LIST_ID)]
+    expect(asEvent(pageEvent(null, replies)).event.replies).toEqual([closed(LIST_ID, CloseReason.ClosedByOwner), closed(LIST_ID, CloseReason.Discarded)])
+  })
+
   it('keeps a single ConfirmAnswered per confirmation', () => {
     const answer = whitelist(PAGE_REPLIES[ReplyKind.ConfirmAnswered])
     const refusal = whitelist({ ...PAGE_REPLIES[ReplyKind.ConfirmAnswered], confirmed: false })
