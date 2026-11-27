@@ -47,7 +47,7 @@ export function appView(state: UiState, translate: Translate): AppView {
   const column = columnView(state, translate) !== null
   const radial = radialView(state, translate) !== null
   const layer = layerOf(state, translate)
-  const layerAlone = !column && layer !== null
+  const layerAlone = !column && !radial && layer !== null
   const visible = column || radial || layerAlone || toastsView(state, translate).toasts.length > 0 || promptView(state, translate) !== null
   return Object.freeze({ lang: state.language, visible, layer, layerAlone, legend: legendHostOf(column, radial) })
 }

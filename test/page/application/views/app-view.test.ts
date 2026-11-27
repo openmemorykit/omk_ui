@@ -81,6 +81,12 @@ describe('appView', () => {
     expect(view.layer?.kind).toBe(AppLayerKind.Confirm)
   })
 
+  it('does not render a confirmation alone while the radial menu is open', () => {
+    const radial = radialState([radialEntry('a'), radialEntry('b'), radialEntry('c')]).radial
+    const view = appView({ ...confirmAlone(), radial, mode: UiMode.Radial }, translate)
+    expect(view).toMatchObject({ visible: true, layerAlone: false, legend: LegendHost.Radial })
+  })
+
   it('titles the keyboard with the label of its item and takes the language of the layer', () => {
     const view = appView(withLayers(panelsState([TEXT_ITEM], TEXT_ITEM.id), [keyboardLayer]), translate)
     expect(view.layer).toMatchObject({ kind: AppLayerKind.Keyboard, title: TEXT_ITEM.label, view: { itemId: TEXT_ITEM.id } })
