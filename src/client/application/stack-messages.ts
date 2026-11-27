@@ -4,6 +4,7 @@ import { ToPage, type ToPageMessage } from '../../protocol/to-page'
 import { StackCommandKind, type RegistryState, type StackCommand } from '../domain/owner-registry'
 import { UNAPPLIED_COMMANDS_MAX, type ShowConfirmCommand } from '../domain/registry-stack'
 import { declinedConfirmReply, deliverReplies, panelClosedReply } from './owner-replies'
+import { withPanelsSentBy } from './panels-on-page'
 import { forceBoot } from './page-link'
 import { rememberLink, type UseCaseContext } from './use-case-context'
 
@@ -37,12 +38,6 @@ function answerForUnreadyPage(context: UseCaseContext, previous: RegistryState, 
   deliverReplies(context, [...declined, ...closed.reverse()])
 }
 
-function rememberPanelsSent(context: UseCaseContext, registry: RegistryState, seq: number): void {
-  const { panelsOnPage } = context.memory.read()
-  const sent = registry.stack.filter((registered) => !panelsOnPage.some((onPage) => onPage.registered === registered)).map((registered) => ({ registered, seq }))
-  rememberLink(context, { panelsOnPage: [...panelsOnPage, ...sent] })
-}
-
 export function sendStackCommand(context: UseCaseContext, previous: RegistryState, command: StackCommand | null): void {
   if (command === null) return
   const { registry, link } = context.store.read()
@@ -54,7 +49,7 @@ export function sendStackCommand(context: UseCaseContext, previous: RegistryStat
     forceBoot(context)
     return
   }
-  rememberPanelsSent(context, registry, command.seq)
+  rememberLink(context, { panelsOnPage: withPanelsSentBy(context.memory.read().panelsOnPage, registry, command) })
   const message = stackMessage(command, registry)
   if (message !== null) context.ports.nui.send(message)
 }

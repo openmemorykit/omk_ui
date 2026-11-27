@@ -16,10 +16,12 @@ export interface PageSimulator {
   process(): void
   pressBack(): void
   crash(): void
+  postUnreconcilableSnapshot(): void
   isAlive(): boolean
   panelCount(): number
 }
 
+const UNRECONCILABLE_SEQ_GAP = 99
 const PortMethod = { Send: 'send', SendBoot: 'sendBoot' } as const
 
 const isSentMessage = (effect: UiEffect): effect is Extract<UiEffect, { readonly type: typeof UiEffectType.SendToHost }> => effect.type === UiEffectType.SendToHost
@@ -68,6 +70,11 @@ export function createPageSimulator(harness: UseCaseHarness): PageSimulator {
       token = null
       inbox = []
       alive = false
+    },
+    postUnreconcilableSnapshot() {
+      if (token === null) return
+      const appliedCommandSeq = harness.store.read().registry.commandSeq + UNRECONCILABLE_SEQ_GAP
+      applyPageEvent(harness.context, { event: { stack: { appliedCommandSeq, entries: [] }, replies: [] }, [SESSION_TOKEN_FIELD]: token })
     },
     isAlive: () => alive,
     panelCount: () => state.stack.length,

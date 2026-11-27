@@ -4,7 +4,9 @@ import type { FromPage } from '../../protocol/from-page'
 import { ToPage } from '../../protocol/to-page'
 import { ReportKind } from '../../shared/report/report-kind'
 import { buildBootMessage } from './boot-message'
+import type { RegistryState } from '../domain/owner-registry'
 import { deliverReplies, panelClosedReply } from './owner-replies'
+import { panelsLostByPage, panelsShownByBoot } from './panels-on-page'
 import type { RandomSource } from './ports'
 import type { PageLink } from './session-state'
 import { ONE_LINE_PER_MINUTE_MS, traceLimited, traceLine } from './trace'
@@ -31,22 +33,30 @@ function isTooSoon(link: PageLink, now: number): boolean {
 }
 
 function closePanelsLostByPage(context: UseCaseContext): void {
-  const { stack } = context.store.read().registry
-  const lost = context.memory.read().panelsOnPage.filter(({ registered }) => !stack.includes(registered))
-  deliverReplies(context, lost.reverse().map(({ registered }) => panelClosedReply(registered.owner, registered.panel.id, CloseReason.ClosedByOwner)))
+  const lost = panelsLostByPage(context.memory.read().panelsOnPage, context.store.read().registry)
+  deliverReplies(context, [...lost].reverse().map(({ owner, panelId }) => panelClosedReply(owner, panelId, CloseReason.ClosedByOwner)))
+}
+
+function bootSeqPassingInFlightCommands(registry: RegistryState, pageWasReady: boolean): number {
+  return pageWasReady ? registry.commandSeq + 1 : registry.commandSeq
 }
 
 function bootPage(context: UseCaseContext, token: string, readyAt: number): void {
   const { ports, store } = context
   const session = store.read()
-  const registry = { ...session.registry, unapplied: [] }
+  const registry = { ...session.registry, unapplied: [], commandSeq: bootSeqPassingInFlightCommands(session.registry, session.link.ready) }
   const queued = session.link.queuedNotifications
   const link: PageLink = { ...session.link, ready: true, token, lastReadyAt: readyAt, unackedSince: null, lastAckSeq: session.link.intentSeq, queuedNotifications: [] }
   store.write({ ...session, registry, link })
-  rememberLink(context, { panelsOnPage: registry.stack.map((registered) => ({ registered, seq: registry.commandSeq })), bootCommandSeq: registry.commandSeq })
+  rememberLink(context, { panelsOnPage: panelsShownByBoot(registry), bootCommandSeq: registry.commandSeq })
   ports.nui.sendBoot(buildBootMessage(ports, registry), token)
   queued.forEach((notification) => ports.nui.send({ type: ToPage.Notify, notification }))
   ports.events.emitReady()
+}
+
+function closeLostPanelsThenBoot(context: UseCaseContext, token: string, readyAt: number): void {
+  if (context.store.read().link.ready) closePanelsLostByPage(context)
+  bootPage(context, token, readyAt)
 }
 
 export function receiveReady(context: UseCaseContext): void {
@@ -55,15 +65,14 @@ export function receiveReady(context: UseCaseContext): void {
   const { link } = store.read()
   if (isTooSoon(link, now)) return
   const readyCount = context.memory.read().readyCount + 1
-  if (link.ready) closePanelsLostByPage(context)
   rememberLink(context, { readyCount })
   if (readyCount > FIRST_READY) traceLine(ports, store, { at: now, kind: ReportKind.PageReloaded, data: { readyCount } })
-  bootPage(context, freshToken(ports.random, readyCount), now)
+  closeLostPanelsThenBoot(context, freshToken(ports.random, readyCount), now)
 }
 
 export function forceBoot(context: UseCaseContext): void {
   const { token, lastReadyAt } = context.store.read().link
-  if (token !== null && lastReadyAt !== null) bootPage(context, token, lastReadyAt)
+  if (token !== null && lastReadyAt !== null) closeLostPanelsThenBoot(context, token, lastReadyAt)
 }
 
 function carriesToken(body: unknown, token: string | null): boolean {

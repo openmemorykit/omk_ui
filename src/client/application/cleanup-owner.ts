@@ -1,5 +1,6 @@
 import { isNamespaceOwner } from '../../protocol/namespaced-id'
 import { dropOwner } from '../domain/owner-registry'
+import { panelsWithoutOwner } from './panels-on-page'
 import { afterPromptsChanged } from './prompt-sync'
 import { endReservation } from './reservation'
 import { sendStackCommand } from './stack-messages'
@@ -13,7 +14,7 @@ export function cleanupOwner(context: UseCaseContext, resourceName: string): voi
   const queuedNotifications = session.link.queuedNotifications.filter(({ owner }) => owner !== resourceName)
   context.store.write({ ...session, registry, link: { ...session.link, queuedNotifications } })
   if (session.gate.reservedFor === resourceName) endReservation(context)
-  rememberLink(context, { panelsOnPage: context.memory.read().panelsOnPage.filter(({ registered }) => registered.owner !== resourceName) })
+  rememberLink(context, { panelsOnPage: panelsWithoutOwner(context.memory.read().panelsOnPage, resourceName) })
   sendStackCommand(context, session.registry, command)
   afterPromptsChanged(context, session.registry)
 }

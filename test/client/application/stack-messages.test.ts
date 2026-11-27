@@ -2,12 +2,14 @@ import { CloseReason, KitExport } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { handleContractCall } from '../../../src/client/application/contract-call'
 import { sendStackCommand } from '../../../src/client/application/stack-messages'
-import { closeAll, dropOwner, EMPTY_REGISTRY, openPanel, StackCommandKind, type RegistryState } from '../../../src/client/domain/owner-registry'
+import { closeAll, closePanel, dropOwner, EMPTY_REGISTRY, openPanel, StackCommandKind, type RegistryState } from '../../../src/client/domain/owner-registry'
 import { UNAPPLIED_COMMANDS_MAX } from '../../../src/client/domain/registry-stack'
 import { ToPage } from '../../../src/protocol/to-page'
 import { FixtureOwner } from '../../fixtures/owned'
 import { LIST_PANEL } from '../../fixtures/panels'
 import { createHarness, createReadyHarness } from './use-case-harness'
+
+const FORCED_BOOT_SEQ_STEP = 2
 
 function openRepeatedly(times: number): RegistryState {
   return Array.from({ length: times }).reduce<RegistryState>((registry) => {
@@ -58,8 +60,20 @@ describe('sendStackCommand', () => {
     harness.store.write({ ...harness.store.read(), registry: next.registry })
     sendStackCommand(harness.context, full, next.command)
     expect(harness.ports.nui.sentOfType(ToPage.OpenPanel)).toStrictEqual([])
-    expect(harness.ports.nui.boots.map((boot) => boot.message.commandSeq)).toStrictEqual([0, UNAPPLIED_COMMANDS_MAX + 1])
+    expect(harness.ports.nui.boots.map((boot) => boot.message.commandSeq)).toStrictEqual([0, UNAPPLIED_COMMANDS_MAX + FORCED_BOOT_SEQ_STEP])
     expect(harness.store.read().registry.unapplied).toStrictEqual([])
+  })
+
+  it('tells the owner of a panel it closed when the 257th command forces a Boot', () => {
+    const harness = createReadyHarness()
+    handleContractCall(harness.context, KitExport.OpenPanel, FixtureOwner.Whitelist, [LIST_PANEL])
+    const opened = harness.store.read().registry
+    const closed = closePanel(opened, FixtureOwner.Whitelist, LIST_PANEL.id)
+    if (!closed.ok) throw new Error('the open panel must close')
+    const full = { ...closed.registry, unapplied: openRepeatedly(UNAPPLIED_COMMANDS_MAX).unapplied }
+    harness.store.write({ ...harness.store.read(), registry: full })
+    sendStackCommand(harness.context, full, closed.command)
+    expect(harness.ports.replies.attempts.map((attempt) => attempt.reply)).toMatchObject([{ panelId: LIST_PANEL.id, reason: CloseReason.ClosedByOwner }])
   })
 
   it('answers locally with CloseAll for panels closed by a CloseAll before the page is ready', () => {

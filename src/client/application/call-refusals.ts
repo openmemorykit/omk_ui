@@ -1,6 +1,6 @@
 import { ContractErrorCode, MAX_REPORTED_ERRORS, refusedCall, type CallResult, type ContractError, type KitExport, type OpenBlocker } from '@openmemorykit/ui/contract'
 import { ReportKind } from '../../shared/report/report-kind'
-import { ONE_LINE_PER_SECOND_MS, printConsoleLimited } from './console-lines'
+import { ONE_LINE_PER_SECOND_MS, printLimitedLine } from './limited-console'
 import { traceLimited, traceLine } from './trace'
 import type { UseCaseContext } from './use-case-context'
 
@@ -25,7 +25,7 @@ function traceContractRefused(context: UseCaseContext, call: ContractCall, error
   const reported = errors.map(({ path, code }) => ({ path, code }))
   traceLine(ports, store, { at: ports.clock.now(), kind: ReportKind.ContractRefused, data: { owner: call.owner, errors: reported } })
   const described = reported.map(({ path, code }) => `${path} ${code}`).join(ERROR_SEPARATOR)
-  printConsoleLimited(context, `${ReportKind.ContractRefused}:${call.owner}:${call.name}`, `${call.owner} ${call.name} refused: ${described}`, ONE_LINE_PER_SECOND_MS)
+  printLimitedLine(context, `${ReportKind.ContractRefused}:${call.owner}:${call.name}`, ONE_LINE_PER_SECOND_MS, `${call.owner} ${call.name} refused: ${described}`)
 }
 
 export function refuseCall(context: UseCaseContext, call: ContractCall, errors: readonly ContractError[]): CallResult {

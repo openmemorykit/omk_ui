@@ -3,11 +3,10 @@ import { toPageConfirm, toPagePanel, toPagePrompt, type OwnedConfirm, type Owned
 import { GlyphSet } from '../../protocol/page-vocabulary'
 import { ToPage, type BindingLabels, type LocaleBundle, type ToPageMessageOf } from '../../protocol/to-page'
 import { radialOrder, visiblePrompt, type RegistryState } from '../domain/owner-registry'
+import { FALLBACK_LOCALE, LOCALE_CONVAR } from './glyph-set'
 import type { ClientPorts } from './ports'
 
 export const BindingCommand = { Radial: '+omk_ui_radial', Interact: '+omk_ui_interact' } as const
-export const LOCALE_CONVAR = 'omk_ui_locale'
-export const FALLBACK_LOCALE = 'en'
 export const DEFAULT_GLYPH_SET = GlyphSet.Xbox
 const LOCALE_NAME_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/
 

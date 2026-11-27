@@ -87,7 +87,16 @@ const crash: Step = (world) => {
   world.page.crash()
 }
 
-const STEPS: readonly Step[] = [open, open, push, close, deliver, deliver, deliver, pressBack, pressBack, crash]
+const update: Step = (world) => {
+  const panel = pick(world.draw, PANELS)
+  handleContractCall(world.harness.context, KitExport.UpdatePanel, pick(world.draw, OWNERS), [{ ...panel, title: `${panel.title} again` }])
+}
+
+const unreconcilableSnapshot: Step = (world) => {
+  world.page.postUnreconcilableSnapshot()
+}
+
+const STEPS: readonly Step[] = [open, open, push, close, update, update, deliver, deliver, deliver, pressBack, pressBack, crash, unreconcilableSnapshot]
 
 function reloadIfCrashed(world: World): void {
   if (world.page.isAlive()) return
@@ -127,6 +136,15 @@ describe('one PanelClosed per opening answered Done', () => {
 })
 
 describe('a forged Ready', () => {
+  it('sends no reply for a panel that was updated and is still open', () => {
+    const harness = createReadyHarness()
+    handleContractCall(harness.context, KitExport.OpenPanel, FixtureOwner.Whitelist, [LIST_PANEL])
+    handleContractCall(harness.context, KitExport.UpdatePanel, FixtureOwner.Whitelist, [{ ...LIST_PANEL, title: 'Updated' }])
+    harness.ports.clock.advance(READY_INTERVAL_MS)
+    receiveReady(harness.context)
+    expect(harness.ports.replies.attempts).toStrictEqual([])
+  })
+
   it('costs only a Boot: same registry, same panels on the page, no reply', () => {
     const harness = createReadyHarness()
     const page = createPageSimulator(harness)

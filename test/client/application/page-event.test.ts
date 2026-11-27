@@ -2,6 +2,7 @@ import { CloseReason, KitExport, OpenBlocker, ReplyKind } from '@openmemorykit/u
 import { describe, expect, it } from 'vitest'
 import { handleContractCall } from '../../../src/client/application/contract-call'
 import { applyPageEvent } from '../../../src/client/application/page-event'
+import { READY_INTERVAL_MS, receiveReady } from '../../../src/client/application/page-link'
 import { firstOpenBlocker, OpenPurpose, openConditionsFrom } from '../../../src/client/domain/open-blockers'
 import { PAGE_EVENT_MAX_REPLIES } from '../../../src/protocol/page-event'
 import { ToPage } from '../../../src/protocol/to-page'
@@ -99,6 +100,25 @@ describe('applyPageEvent', () => {
   it('forces a Boot when the snapshot cannot be reconciled, and drops the event', () => {
     const harness = withListOpen()
     sendEvent(harness, FUTURE_SEQ, [], [backFromList])
+    expect(harness.ports.nui.boots).toHaveLength(TWO_BOOTS)
+    expect(harness.ports.replies.attempts).toStrictEqual([])
+  })
+
+  it('tells the owner of a panel it closed before the forced Boot, once', () => {
+    const harness = withListOpen()
+    handleContractCall(harness.context, KitExport.ClosePanel, FixtureOwner.Whitelist, [LIST_PANEL.id])
+    sendEvent(harness, FUTURE_SEQ, [], [])
+    expect(harness.ports.nui.boots).toHaveLength(TWO_BOOTS)
+    expect(harness.ports.replies.attempts.map((attempt) => attempt.reply)).toMatchObject([{ kind: ReplyKind.PanelClosed, panelId: LIST_PANEL.id, reason: CloseReason.ClosedByOwner }])
+  })
+
+  it('ignores an event the page sent before a Boot of a page that was already ready, replies included', () => {
+    const harness = withListOpen()
+    const openedSeq = harness.store.read().registry.commandSeq
+    harness.ports.clock.advance(READY_INTERVAL_MS)
+    receiveReady(harness.context)
+    sendEvent(harness, openedSeq, [LIST_ENTRY], [backFromList])
+    expect(harness.ports.nui.boots.map((boot) => boot.message.commandSeq)).toStrictEqual([0, openedSeq + 1])
     expect(harness.ports.nui.boots).toHaveLength(TWO_BOOTS)
     expect(harness.ports.replies.attempts).toStrictEqual([])
   })

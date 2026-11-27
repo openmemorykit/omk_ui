@@ -2,13 +2,20 @@ import { CALL_DONE, CallStatus, ContractErrorCode, KitExport, RADIAL_ENTRIES_PER
 import { describe, expect, it } from 'vitest'
 import { cleanupOwner } from '../../../src/client/application/cleanup-owner'
 import { handleContractCall } from '../../../src/client/application/contract-call'
-import { PromptPhase, SHOWN_PROMPT } from '../../../src/client/domain/hold-prompt'
+import { trackPromptFrame } from '../../../src/client/application/track-prompts'
+import { HoldSource, PromptPhase, SHOWN_PROMPT, type PromptHold } from '../../../src/client/domain/hold-prompt'
 import { ToPage } from '../../../src/protocol/to-page'
 import { FixtureOwner, OWNED_GARAGE_RADIAL_ENTRY, OWNED_HOLD_PROMPT, OWNED_PLAIN_NOTIFICATION, OWNED_WHITELIST_RADIAL_ENTRY } from '../../fixtures/owned'
 import { GARAGE_RADIAL_ENTRY, HOLD_PROMPT, PLAIN_NOTIFICATION, WHITELIST_RADIAL_ENTRY } from '../../fixtures/surfaces'
 import { createHarness, createReadyHarness, type UseCaseHarness } from './use-case-harness'
 
 const EXTRA_ENTRY_IDS = ['second', 'third'] as const
+
+function holdingOn(harness: UseCaseHarness, owner: string): PromptHold {
+  const hold: PromptHold = { phase: PromptPhase.Holding, startedAt: harness.ports.clock.now(), held: { owner, promptId: HOLD_PROMPT.id, source: HoldSource.Command } }
+  harness.store.write({ ...harness.store.read(), prompt: hold })
+  return hold
+}
 
 function call(harness: UseCaseHarness, name: KitExport, owner: string, ...args: readonly unknown[]): CallResult {
   return handleContractCall(harness.context, name, owner, args)
@@ -89,10 +96,30 @@ describe('prompt display after a change', () => {
     expect(harness.ports.nui.sent).toHaveLength(sentBefore)
   })
 
-  it('forgets a hold in progress, since a hold does not know which prompt it holds', () => {
+  it('keeps a hold on the visible prompt when an older prompt is hidden beneath it', () => {
     const harness = createReadyHarness()
-    harness.store.write({ ...harness.store.read(), prompt: { phase: PromptPhase.Holding, startedAt: harness.ports.clock.now() } })
     call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Whitelist, HOLD_PROMPT)
+    const hold = holdingOn(harness, FixtureOwner.Whitelist)
+    call(harness, KitExport.HidePrompt, FixtureOwner.Garage, HOLD_PROMPT.id)
+    expect(harness.store.read().prompt).toBe(hold)
+  })
+
+  it('keeps a hold on a prompt its owner shows again', () => {
+    const harness = createReadyHarness()
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
+    const hold = holdingOn(harness, FixtureOwner.Garage)
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
+    expect(harness.store.read().prompt).toBe(hold)
+  })
+
+  it('leaves the cancellation of a hold covered by another prompt to the next frame', () => {
+    const harness = createReadyHarness()
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Garage, HOLD_PROMPT)
+    const hold = holdingOn(harness, FixtureOwner.Garage)
+    call(harness, KitExport.ShowPrompt, FixtureOwner.Whitelist, HOLD_PROMPT)
+    expect(harness.store.read().prompt).toBe(hold)
+    trackPromptFrame(harness.ports, harness.store)
     expect(harness.store.read().prompt).toBe(SHOWN_PROMPT)
   })
 
