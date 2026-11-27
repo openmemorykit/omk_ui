@@ -1,3 +1,4 @@
+import { isPlainObject } from '@openmemorykit/core/shared'
 import { ReportKind } from '../../shared/report/report-kind'
 import { JSON_MAX_DEPTH } from '../../shared/report/json-value'
 import type { ReportEnvelope } from '../../shared/report/report-envelope'
@@ -45,11 +46,6 @@ class Budget {
     this.characters += characters
     return this.nodes <= TRACE_LINE_MAX_NODES && this.characters <= TRACE_LINE_MAX_BYTES
   }
-}
-
-function isPlainObject(value: object): boolean {
-  const prototype: unknown = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
 }
 
 function ownDataValues(value: object, keys: readonly string[], children: unknown[]): boolean {
