@@ -1,19 +1,19 @@
 import type { ControlsPort } from '../application/ports'
+import { INTERACT_CONTROL } from '../application/track-prompts'
 import { ControlGroup, PUSH_TO_TALK_CONTROL } from '../domain/focus-policy'
 import { PAD_INTENTS, PadControl, type PadReading } from '../domain/pad-snapshot'
 import { guardNative, type FailureReporter } from './native-guard'
 
 const KEYBOARD_PAD_INDEX = 2
 const SIGNED_BINDING_FLAG = 0x80000000
-const INTERACT_CONTROL = 51
 const BOTH_GROUPS: readonly ControlGroup[] = Object.freeze([ControlGroup.Main, ControlGroup.Frontend])
-const MAIN_GROUP_ONLY: readonly ControlGroup[] = Object.freeze([ControlGroup.Main])
-const GAMEPLAY_CONTROLS: ReadonlySet<number> = new Set([PadControl.NextCamera, INTERACT_CONTROL, PUSH_TO_TALK_CONTROL])
+const MAIN_GROUP: readonly ControlGroup[] = Object.freeze([ControlGroup.Main])
+const CONTROLS_READ_ON_MAIN_GROUP_ONLY_BY_SPEC: ReadonlySet<number> = new Set([PadControl.NextCamera, INTERACT_CONTROL, PUSH_TO_TALK_CONTROL])
 const PAD_BUTTON_CONTROLS: readonly PadControl[] = Object.freeze(PAD_INTENTS.map(([control]) => control))
 const NEUTRAL_READING: PadReading = Object.freeze({ held: new Set<PadControl>(), stick: Object.freeze({ x: 0, y: 0 }) })
 
 function groupsOf(control: number): readonly ControlGroup[] {
-  return GAMEPLAY_CONTROLS.has(control) ? MAIN_GROUP_ONLY : BOTH_GROUPS
+  return CONTROLS_READ_ON_MAIN_GROUP_ONLY_BY_SPEC.has(control) ? MAIN_GROUP : BOTH_GROUPS
 }
 
 function isHeld(control: number): boolean {

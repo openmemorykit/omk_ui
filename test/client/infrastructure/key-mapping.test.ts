@@ -1,7 +1,8 @@
 import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FailureReporter } from '../../../src/client/infrastructure/native-guard'
-import { registerKeyMappings, type KeyMappingOptions } from '../../../src/client/infrastructure/key-mapping'
+import { BindingCommand } from '../../../src/client/application/boot-message'
+import { KeyCommand, registerKeyMappings, type KeyMappingOptions } from '../../../src/client/infrastructure/key-mapping'
 
 const SUGGESTION_REMOVAL_DELAY_MS = 500
 const DEFAULT_KEY_INDEX = 3
@@ -143,5 +144,9 @@ describe('key mapping', () => {
     expect(onFailure.mock.calls.map(([source]) => source)).toEqual(['keyMapping.omk_ui_radial'])
     expect(handlers.has('+omk_ui_interact')).toBe(true)
     expect(handlers.has('omk_glyphs')).toBe(true)
+  })
+
+  it('names its hold commands as the application binding commands without the plus sign', () => {
+    expect([`+${KeyCommand.Radial}`, `+${KeyCommand.Interact}`]).toEqual([BindingCommand.Radial, BindingCommand.Interact])
   })
 })

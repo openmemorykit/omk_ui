@@ -1,6 +1,6 @@
 import { registerHoldCommand, KeyMapper } from '@openmemorykit/core/client'
 import { GlyphSet } from '../../protocol/page-vocabulary'
-import type { FailureReporter } from './native-guard'
+import { guardNative, type FailureReporter } from './native-guard'
 
 export const KeyCommand = { Radial: 'omk_ui_radial', Interact: 'omk_ui_interact', Glyphs: 'omk_glyphs' } as const
 export const DEFAULT_RADIAL_KEY = 'F1'
@@ -29,17 +29,7 @@ export interface KeyMappingOptions {
 }
 
 function shielded(onFailure: FailureReporter, source: string, handler: () => void): () => void {
-  return () => {
-    try {
-      handler()
-    } catch (error) {
-      try {
-        onFailure(source, error)
-      } catch {
-        return
-      }
-    }
-  }
+  return () => guardNative(onFailure, source, undefined, handler)
 }
 
 function registerBinding(command: string, binding: HoldBinding, defaultKey: string, onFailure: FailureReporter): void {
