@@ -9,7 +9,11 @@ const ui = useUi()
 const view = computed(() => promptView(ui.state.value, ui.translate))
 const columnSide = computed(() => themeView(ui.state.value.settings, ui.viewport.value).side)
 const ringState = computed(() => view.value?.state ?? 'idle')
-const ringStyle = computed(() => ({ '--ring-ms': `${view.value?.ringMs ?? 0}ms` }))
+const ringStyle = computed(() => ({
+  '--ring-ms': `${view.value?.ringMs ?? 0}ms`,
+  '--ring-right-from': `${view.value?.ringFrom.right ?? 0}deg`,
+  '--ring-left-from': `${view.value?.ringFrom.left ?? 0}deg`,
+}))
 </script>
 
 <template>
@@ -109,6 +113,14 @@ const ringStyle = computed(() => ({ '--ring-ms': `${view.value?.ringMs ?? 0}ms` 
   animation: omk-ring-left calc(var(--ring-ms) / 2) linear calc(var(--ring-ms) / 2) both;
 }
 
+.omk-prompt__ring[data-state="cancelled"] .omk-prompt__half--right .omk-prompt__arc {
+  animation: omk-ring-recede-right var(--ring-ms) linear both;
+}
+
+.omk-prompt__ring[data-state="cancelled"] .omk-prompt__half--left .omk-prompt__arc {
+  animation: omk-ring-recede-left var(--ring-ms) linear both;
+}
+
 .omk-prompt__ring[data-state="completed"] .omk-prompt__half--right .omk-prompt__arc {
   transform: rotate(45deg);
 }
@@ -145,6 +157,16 @@ const ringStyle = computed(() => ({ '--ring-ms': `${view.value?.ringMs ?? 0}ms` 
 
 @keyframes omk-ring-right {
   from { transform: rotate(-135deg); }
+  to { transform: rotate(45deg); }
+}
+
+@keyframes omk-ring-recede-right {
+  from { transform: rotate(var(--ring-right-from)); }
+  to { transform: rotate(-135deg); }
+}
+
+@keyframes omk-ring-recede-left {
+  from { transform: rotate(var(--ring-left-from)); }
   to { transform: rotate(45deg); }
 }
 

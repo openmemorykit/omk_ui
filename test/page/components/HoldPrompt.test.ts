@@ -3,6 +3,7 @@ import { PromptMode } from '@openmemorykit/ui/contract'
 import { shallowRef } from 'vue'
 import { describe, expect, it } from 'vitest'
 import HoldPrompt from '../../../src/page/components/HoldPrompt.vue'
+import holdPromptSource from '../../../src/page/components/HoldPrompt.vue?raw'
 import { UI_CONTEXT } from '../../../src/page/components/use-ui'
 import { createInitialState, type UiState } from '../../../src/page/domain/ui-state'
 import { Modality } from '../../../src/protocol/intents'
@@ -12,10 +13,11 @@ import { REDUCED_MOTION_CUT_SELECTOR } from '../theme/reduced-motion'
 
 const HOLD_MS = 1_500
 const ARC_COUNT = 2
+const HELD_AT_CANCEL = 0.62
 const VIEWPORT = { width: 1920, height: 1080 }
 
-function stateWith(mode: PromptMode, state: PromptState | null, overrides: Partial<UiState> = {}): UiState {
-  return { ...createInitialState(), prompt: { prompt: prompt(mode, HOLD_MS), state, holdMs: HOLD_MS }, ...overrides }
+function stateWith(mode: PromptMode, state: PromptState | null, overrides: Partial<UiState> = {}, heldFraction = 0): UiState {
+  return { ...createInitialState(), prompt: { prompt: prompt(mode, HOLD_MS), state, holdMs: HOLD_MS, holdStartedAt: null, heldFraction }, ...overrides }
 }
 
 function render(state: UiState): VueWrapper {
@@ -59,6 +61,19 @@ describe('HoldPrompt', () => {
   it('shows the cancelled ring', () => {
     const ring = render(stateWith(PromptMode.Hold, PromptState.Cancelled)).get('.omk-prompt__ring')
     expect(ring.attributes('data-state')).toBe(PromptState.Cancelled)
+  })
+
+  it('starts the recede of a cancelled ring where the hold stopped', () => {
+    const ring = render(stateWith(PromptMode.Hold, PromptState.Cancelled, {}, HELD_AT_CANCEL)).get('.omk-prompt__ring')
+    expect(ring.attributes('style')).toContain('--ring-right-from: 45deg')
+    expect(ring.attributes('style')).toContain('--ring-left-from: 88.2deg')
+    expect(ring.attributes('style')).toContain('--ring-ms: 80ms')
+  })
+
+  it('recedes the arcs from that start to the empty ring in the cancel duration', () => {
+    expect(holdPromptSource).toMatch(/\[data-state="cancelled"\][^{]*arc[^{]*\{[^}]*animation: omk-ring-recede-right var\(--ring-ms\)/)
+    expect(holdPromptSource).toMatch(/@keyframes omk-ring-recede-right \{\s*from \{ transform: rotate\(var\(--ring-right-from\)\); \}\s*to \{ transform: rotate\(-135deg\); \}/)
+    expect(holdPromptSource).toMatch(/@keyframes omk-ring-recede-left \{\s*from \{ transform: rotate\(var\(--ring-left-from\)\); \}\s*to \{ transform: rotate\(45deg\); \}/)
   })
 
   it('shows the completed ring', () => {
