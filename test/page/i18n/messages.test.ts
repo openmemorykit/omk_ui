@@ -14,6 +14,7 @@ const TWO = 2
 const THREE = 3
 const FORMAL_YOU = /\b(vous|votre|vos)\b/i
 const PLURAL_SUFFIX = /\.(one|other)$/
+const KNOWN_PREFIX = /^(ui|log|keybind|glyphs)\./
 
 const frMessages: Readonly<Record<string, string>> = french
 const enMessages: Readonly<Record<string, string>> = english
@@ -42,8 +43,8 @@ describe('locale files', () => {
     }
   })
 
-  it('prefix every key with ui. and leave log.* to milestone 3', () => {
-    expect(frKeys.every((key) => key.startsWith('ui.'))).toBe(true)
+  it('prefix every key with ui. for the page, or log., keybind. and glyphs. for the scripts', () => {
+    expect(frKeys.filter((key) => !KNOWN_PREFIX.test(key))).toStrictEqual([])
   })
 
   it('never use "vous" in french', () => {
