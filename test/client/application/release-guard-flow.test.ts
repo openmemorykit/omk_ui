@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { applyEscapeReleased, applyModeChanged, applyPaused } from '../../../src/client/application/apply-focus'
+import { applyEscapeReleased } from '../../../src/client/application/apply-escape-released'
+import { applyModeChanged } from '../../../src/client/application/apply-mode-changed'
+import { applyPaused } from '../../../src/client/application/apply-paused'
 import { FocusReleaseReason } from '../../../src/client/application/release-focus'
 import { pumpFrame } from '../../../src/client/application/pump-inputs'
 import { ControlGroup } from '../../../src/client/domain/focus-policy'
