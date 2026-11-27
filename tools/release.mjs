@@ -6,7 +6,25 @@ import { createZip } from './zip.mjs'
 
 const FOLDER = 'omk_ui'
 const OUTPUT = 'release'
-const REQUIRED = ['fxmanifest.lua', 'web/index.html']
+const REQUIRED = [
+  'fxmanifest.lua',
+  'config.lua',
+  'client/config_export.lua',
+  'server/config_export.lua',
+  'dist/client.js',
+  'dist/server.js',
+  'web/index.html',
+]
+const DELIVERED = [
+  /^fxmanifest\.lua$/,
+  /^config\.lua$/,
+  /^(client|server)\/config_export\.lua$/,
+  /^dist\/(client|server)\.js$/,
+  /^web\/(index\.html|(assets|fonts)\/[^/]+)$/,
+  /^locales\/[^/]+\.json$/,
+  /^locales\/overrides\/([^/]+\.json|\.gitkeep)$/,
+  /^branding\/[^/]+$/,
+]
 const ROOT_FILES = ['LICENSE', 'THIRD_PARTY.md']
 
 export function archiveName(version) {
@@ -14,7 +32,7 @@ export function archiveName(version) {
 }
 
 export function buildArchive(root) {
-  const delivered = collectFiles(join(root, FOLDER))
+  const delivered = collectFiles(join(root, FOLDER)).filter((file) => DELIVERED.some((pattern) => pattern.test(file.path)))
   for (const required of REQUIRED) {
     if (!delivered.some((file) => file.path === required)) throw new Error(`${FOLDER}/${required} absent : lance npm run build`)
   }

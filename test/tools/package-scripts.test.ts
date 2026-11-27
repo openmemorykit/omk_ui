@@ -10,6 +10,32 @@ describe('package scripts', () => {
   })
 })
 
+describe('scripts build', () => {
+  it('builds dist/client.js and dist/server.js with tools/scripts.mjs', () => {
+    expect(scripts['build:scripts']).toBe('node tools/scripts.mjs')
+  })
+
+  it('runs after the page build, in build', () => {
+    expect(scripts['build']).toBe('node tools/fonts.mjs && vite build && npm run build:scripts')
+  })
+
+  it('stays out of the preview builds', () => {
+    expect(scripts['build:preview']).not.toContain('build:scripts')
+  })
+})
+
+describe('typecheck script', () => {
+  const programs = readSource('tools/typecheck.mjs')
+
+  it.each(['pure', 'test', 'client', 'server', 'test.client', 'test.server'])('checks the %s program with tsc', (name) => {
+    expect(programs).toContain(`['tsc', '${name}']`)
+  })
+
+  it.each(['page', 'test.page'])('checks the %s program with vue-tsc', (name) => {
+    expect(programs).toContain(`['vue-tsc', '${name}']`)
+  })
+})
+
 describe('check script', () => {
   const steps = (scripts['check'] ?? '').split(' && ')
 

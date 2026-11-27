@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "lib": ["ES2020"], "types": ["@citizenfx/client"], "resolveJsonModule": true },
+  "include": ["src/client", "src/protocol", "src/shared", "preview/scenarios", "preview/runtime", "src/build-globals.d.ts"]
+}

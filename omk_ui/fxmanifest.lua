@@ -8,6 +8,18 @@ version '0.2.0'
 repository 'https://github.com/openmemorykit/omk_ui'
 license 'MIT'
 
+shared_script 'config.lua'
+
+client_scripts {
+  'client/config_export.lua',
+  'dist/client.js',
+}
+
+server_scripts {
+  'server/config_export.lua',
+  'dist/server.js',
+}
+
 ui_page 'web/index.html'
 
 files {
