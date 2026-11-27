@@ -25,5 +25,7 @@ function exportHandler(name: KitExportName, callKit: KitExportCaller, onFailure:
 
 export function registerKitExports(callKit: KitExportCaller, onFailure: NativeFailureHandler): void {
   const names: readonly KitExportName[] = [...Object.values(KitExport), ...Object.values(KitQuery)]
-  for (const name of names) globalThis.exports(name, exportHandler(name, callKit, onFailure))
+  for (const name of names) {
+    guardedNativeCall(onFailure, `register export ${name}`, () => globalThis.exports(name, exportHandler(name, callKit, onFailure)), undefined)
+  }
 }

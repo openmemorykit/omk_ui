@@ -30,6 +30,17 @@ function setUp(callExport: (name: string, owner: string | null, args: readonly u
 }
 
 describe('registerKitExports', () => {
+  it('reports a registration that throws and still registers the following exports', () => {
+    const registeredNames: string[] = []
+    const boom = new Error('taken')
+    natives = installNatives({ GetInvokingResource: () => invoking })
+    vi.stubGlobal('exports', (name: string) => { if (registeredNames.length === 0) { registeredNames.push('failed'); throw boom } registeredNames.push(name) })
+    registerKitExports(() => null, (operation, cause) => { failures.push([operation, cause]) })
+    const expected = [...Object.values(KitExport), ...KIT_QUERIES]
+    expect(registeredNames).toEqual(['failed', ...expected.slice(1)])
+    expect(failures).toEqual([[`register export ${expected[0]}`, boom]])
+  })
+
   it('registers every kit export plus version and isOpen', () => {
     const calls: Call[] = []
     const fake = setUp((name, owner, args) => { calls.push({ name, owner, args }); return null })

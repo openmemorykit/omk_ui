@@ -1,6 +1,6 @@
 import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FailureReporter } from '../../../src/client/infrastructure/native-guard'
+import type { NativeFailureHandler } from '../../../src/client/infrastructure/guarded-native-call'
 import { BindingCommand } from '../../../src/client/application/boot-message'
 import { KeyCommand, registerKeyMappings, type KeyMappingOptions } from '../../../src/client/infrastructure/key-mapping'
 
@@ -119,7 +119,7 @@ describe('key mapping', () => {
 
   it('keeps an exception from a handler out of the command and reports it', () => {
     const failure = new Error('handler broke')
-    const onFailure = vi.fn<FailureReporter>()
+    const onFailure = vi.fn<NativeFailureHandler>()
     registerKeyMappings(options({ radial: { description: RADIAL_DESCRIPTION, onPress: () => { throw failure }, onRelease: vi.fn() }, glyphs: { onCommand: () => { throw failure } }, onFailure }))
     expect(() => {
       fire('+omk_ui_radial')
@@ -139,7 +139,7 @@ describe('key mapping', () => {
       RegisterKeyMapping: () => undefined,
       TriggerEvent: () => undefined,
     })
-    const onFailure = vi.fn<FailureReporter>()
+    const onFailure = vi.fn<NativeFailureHandler>()
     expect(() => registerKeyMappings(options({ onFailure }))).not.toThrow()
     expect(onFailure.mock.calls.map(([source]) => source)).toEqual(['keyMapping.omk_ui_radial'])
     expect(handlers.has('+omk_ui_interact')).toBe(true)

@@ -82,4 +82,12 @@ describe('createServerLink', () => {
     netHandlers.get(NetEvent.Command)?.({ kind: 'nothing' })
     expect(rejected.map((event) => event.reason)).toEqual([RejectionReason.Shape])
   })
+
+  it.each([NetEvent.Notify, NetEvent.Command])('reports a listener of %s that throws and lets nothing escape the net handler', (name) => {
+    const link = setUp()
+    const boom = new Error('listener')
+    link.events.onFromServer(name, () => { throw boom })
+    expect(() => netHandlers.get(name)?.(NET_COMMAND_SAMPLES[name === NetEvent.Notify ? CommandKind.Notify : CommandKind.Close])).not.toThrow()
+    expect(failures).toEqual([[`listener of ${name}`, boom]])
+  })
 })

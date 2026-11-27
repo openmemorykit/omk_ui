@@ -111,6 +111,16 @@ function registered(): { readonly callbacks: Map<string, Callback>; readonly ord
 }
 
 describe('registerNuiCallbacks', () => {
+  it('reports a registration that throws and still registers the following callbacks', () => {
+    const registeredTypes: string[] = []
+    const boom = new Error('taken')
+    install({ RegisterNuiCallback: (type: string) => { if (registeredTypes.length === 0) { registeredTypes.push('failed'); throw boom } registeredTypes.push(type) } })
+    registerNuiCallbacks(() => undefined, onFailure)
+    const types = Object.values(FromPage)
+    expect(registeredTypes).toEqual(['failed', ...types.slice(1)])
+    expect(failures).toEqual([[`register NUI callback ${types[0]}`, boom]])
+  })
+
   it('registers one callback per FromPage member, named by its value, before returning', () => {
     const { callbacks } = registered()
     registerNuiCallbacks(() => undefined, onFailure)
