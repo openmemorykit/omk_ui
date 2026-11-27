@@ -23,6 +23,7 @@ const START_AT = 10_000
 const RADIAL_DEMO_OWNERS = ['garage', 'jobs', 'phone', 'settings', 'whitelist'].map(demoOwnerOf)
 const CLAIMED_DEMO_OWNER = 'omk_ui_demo_x'
 const SERVER_OWNER = 'omk_ui'
+const GARAGE_OWNER = 'garage'
 const ASK_ID = 4
 const QUESTION = 'Do you see the panel?'
 const INTENT_COUNT = 3
@@ -126,6 +127,19 @@ describe('createClientKit: server commands', () => {
     fromPage(harness, FromPage.ModeChanged, { mode: UiMode.Radial })
     harness.kit.serverCommand({ kind: CommandKind.Close })
     expect(harness.ports.nui.sentOfType(ToPage.CloseAll)).toStrictEqual([{ type: ToPage.CloseAll, commandSeq: 1 }])
+  })
+
+  it('also removes the radial entries of the demos, so the next Boot has none of them', () => {
+    const harness = readyKit()
+    harness.kit.callExport(KitExport.AddRadialEntry, GARAGE_OWNER, [GARAGE_RADIAL_ENTRY])
+    harness.kit.serverCommand({ kind: CommandKind.Demo, demo: DemoName.Radial })
+    fromPage(harness, FromPage.ModeChanged, { mode: UiMode.Radial })
+    harness.kit.serverCommand({ kind: CommandKind.Close })
+    fromPage(harness, FromPage.ModeChanged, { mode: UiMode.Idle })
+    harness.ports.clock.advance(ONE_MINUTE_MS)
+    harness.kit.pageMessage(FromPage.Ready, { type: FromPage.Ready })
+    const owners = harness.ports.nui.boots.at(-1)?.message.radialEntries.map((entry) => entry.owner)
+    expect(owners).toStrictEqual([GARAGE_OWNER])
   })
 
   it('sends no CloseAll while nothing is open', () => {
