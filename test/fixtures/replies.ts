@@ -45,6 +45,12 @@ export const REPLY_OWNER: Readonly<Record<ReplyKind, string>> = deepFrozen({
   [ReplyKind.PromptCompleted]: FixtureOwner.Garage,
 })
 
-export const OWNED_REPLIES: readonly OwnedReply[] = deepFrozen(
-  Object.values(ReplyKind).map((kind) => ({ owner: REPLY_OWNER[kind], reply: PAGE_REPLIES[kind] })),
-)
+export const OWNED_REPLIES: readonly OwnedReply[] = deepFrozen([
+  { owner: FixtureOwner.Whitelist, reply: PAGE_REPLIES[ReplyKind.ItemSelected] },
+  { owner: FixtureOwner.Whitelist, reply: PAGE_REPLIES[ReplyKind.ValueChanged] },
+  { owner: FixtureOwner.Whitelist, reply: PAGE_REPLIES[ReplyKind.FormSubmitted] },
+  { owner: FixtureOwner.Whitelist, reply: PAGE_REPLIES[ReplyKind.ConfirmAnswered] },
+  { owner: FixtureOwner.Whitelist, reply: PAGE_REPLIES[ReplyKind.PanelClosed] },
+  { owner: FixtureOwner.Whitelist, reply: PAGE_REPLIES[ReplyKind.RadialSelected] },
+  { owner: FixtureOwner.Garage, reply: PAGE_REPLIES[ReplyKind.PromptCompleted] },
+])

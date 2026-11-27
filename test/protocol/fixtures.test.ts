@@ -13,9 +13,17 @@ import {
   ReplySchema,
 } from '@openmemorykit/ui/contract'
 import { validateContract, ValidationStatus } from '@openmemorykit/ui/validation'
+import { FromPage } from '../../src/protocol/from-page'
 import { toPagePanel } from '../../src/protocol/owned'
+import * as itemFixtures from '../fixtures/items'
+import * as messageFixtures from '../fixtures/messages'
+import * as ownedFixtures from '../fixtures/owned'
+import * as panelFixtures from '../fixtures/panels'
+import * as replyFixtures from '../fixtures/replies'
+import * as stackFixtures from '../fixtures/stack'
+import * as surfaceFixtures from '../fixtures/surfaces'
 import { ITEM_BY_KIND, PLAYERS_SECTION, PURGE_ACTION, REMOVE_ALL_ACTION, NOTIFY_TOGGLE } from '../fixtures/items'
-import { FROM_PAGE_SAMPLES, TO_PAGE_SAMPLES } from '../fixtures/messages'
+import { FROM_PAGE_SAMPLES } from '../fixtures/messages'
 import { OWNED_ADD_PANEL, OWNED_LIST_PANEL, OWNED_REMOVE_CONFIRM, OWNED_WHITELIST_RADIAL_ENTRY } from '../fixtures/owned'
 import { ADD_PANEL, LIST_PANEL } from '../fixtures/panels'
 import { LOCAL_REPLIES, PAGE_REPLIES } from '../fixtures/replies'
@@ -86,13 +94,22 @@ describe('shared fixtures', () => {
     expect(SHARED_STACK_SNAPSHOT.entries).toStrictEqual(SHARED_STACK_OWNED.map(({ owner, panel }) => ({ panelId: panel.id, owner })))
   })
 
+  it('samples an event the page can send: no closed panel is still on its stack', () => {
+    const { stack, replies } = FROM_PAGE_SAMPLES[FromPage.Event].event
+    const closedIds = replies.flatMap(({ reply }) => (reply.kind === ReplyKind.PanelClosed ? [reply.panelId] : []))
+    expect(closedIds.length).toBeGreaterThan(0)
+    expect(stack?.entries.filter((entry) => closedIds.includes(entry.panelId))).toEqual([])
+  })
+
   it('has one local reply of each kind, the page form under the same key', () => {
     expect(Object.keys(LOCAL_REPLIES).sort()).toStrictEqual(Object.values(ReplyKind).sort())
     expect(Object.keys(PAGE_REPLIES)).toStrictEqual(Object.keys(LOCAL_REPLIES))
   })
 
-  it('is frozen to the last level', () => {
-    const fixtures = [ITEM_BY_KIND, LIST_PANEL, ADD_PANEL, OWNED_LIST_PANEL, SHARED_STACK_PANELS, SHARED_STACK_OWNED, SHARED_STACK_SNAPSHOT, LOCAL_REPLIES, PAGE_REPLIES, TO_PAGE_SAMPLES, FROM_PAGE_SAMPLES]
-    expect(fixtures.every(isDeepFrozen)).toBe(true)
+  const fixtureModules = { itemFixtures, messageFixtures, ownedFixtures, panelFixtures, replyFixtures, stackFixtures, surfaceFixtures }
+  const everyFixture = Object.entries(fixtureModules).flatMap(([moduleName, exported]) => Object.entries(exported).map(([name, value]) => [`${moduleName}.${name}`, value] as const))
+
+  it.each(everyFixture)('%s is frozen to the last level', (_name, fixture) => {
+    expect(isDeepFrozen(fixture)).toBe(true)
   })
 })

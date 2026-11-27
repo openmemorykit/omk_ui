@@ -1,4 +1,5 @@
 import { IDENTIFIER_PATTERN } from '@openmemorykit/ui/contract'
+import { RESERVED_OBJECT_KEYS } from '../shared/reserved-keys'
 
 export const NAMESPACE_SEPARATOR = '/'
 export const OWNER_MAX_LENGTH = 64
@@ -7,7 +8,7 @@ export const NAMESPACED_ID_MAX_LENGTH = OWNER_MAX_LENGTH + NAMESPACE_SEPARATOR.l
 
 const PROTOTYPE_PROPERTY = 'prototype'
 const RESERVED_LOCAL_IDS: ReadonlySet<string> = new Set(['constructor', PROTOTYPE_PROPERTY, '__proto__'])
-const RESERVED_OWNERS: ReadonlySet<string> = new Set([...Object.getOwnPropertyNames(Object.prototype), PROTOTYPE_PROPERTY])
+const RESERVED_OWNERS: ReadonlySet<string> = new Set(RESERVED_OBJECT_KEYS)
 
 export interface NamespacedParts {
   readonly owner: string

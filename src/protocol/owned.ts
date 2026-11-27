@@ -45,6 +45,11 @@ export function fromPageStackEntry(entry: StackEntry): StackEntryOwner | null {
   return localPanelId === null ? null : { owner: entry.owner, localPanelId }
 }
 
+function unknownReplyKind(reply: never): null {
+  void reply
+  return null
+}
+
 function localizeReply(reply: Reply, owner: string): Reply | null {
   switch (reply.kind) {
     case ReplyKind.ItemSelected:
@@ -67,7 +72,7 @@ function localizeReply(reply: Reply, owner: string): Reply | null {
       return promptId === null ? null : { ...reply, promptId }
     }
     default:
-      return null
+      return unknownReplyKind(reply)
   }
 }
 

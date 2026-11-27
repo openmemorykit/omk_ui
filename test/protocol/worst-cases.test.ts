@@ -29,13 +29,13 @@ describe('worst cases from the page', () => {
     ['a 10 MB id without separator', hugeText],
     ['a 10 MB id of separators', hugeSlashes],
     ['a 10 MB id with a valid prefix', `whitelist/${hugeText}`],
-  ])('refuses %s without reading it', (_name, namespaced) => {
+  ])('refuses %s within budget', (_name, namespaced) => {
     let result: unknown = {}
     expect(measure(() => { result = splitNamespacedId(namespaced) })).toBeLessThan(HUGE_BUDGET_MS)
     expect(result).toBeNull()
   })
 
-  it('refuses a snapshot of a million entries without reading them', () => {
+  it('refuses a snapshot of a million entries within budget', () => {
     const entries: readonly StackEntry[] = Array.from({ length: HUGE_ENTRY_COUNT }, (_unused, index) => ({ panelId: `whitelist/level-${index}`, owner: FixtureOwner.Whitelist }))
     let result: unknown = {}
     expect(measure(() => { result = fromPageStackSnapshot({ appliedCommandSeq: 1, entries }) })).toBeLessThan(HUGE_BUDGET_MS)

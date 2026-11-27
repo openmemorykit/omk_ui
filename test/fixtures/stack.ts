@@ -10,7 +10,7 @@ export interface LocalStackPanel {
   readonly panel: Panel
 }
 
-export const SHARED_STACK_SEQ = { Open: 1, Push: 2 } as const
+export const SHARED_STACK_SEQ = Object.freeze({ Open: 1, Push: 2 } as const)
 
 export const SHARED_STACK_PANELS: readonly [LocalStackPanel, LocalStackPanel] = deepFrozen([
   { owner: FixtureOwner.Whitelist, panel: LIST_PANEL },
