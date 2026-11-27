@@ -2,7 +2,7 @@ import type { ValueOf } from '@openmemorykit/core/shared'
 import type { HostBridge } from '../../application/ports'
 import { FromPage, type FromPageMessage } from '../../../protocol/from-page'
 import { ToPage, type ToPageMessage } from '../../../protocol/to-page'
-import { createOriginJournal } from './origin-journal'
+import { createOriginJournal, ORIGIN_PENDING_MAX } from './origin-journal'
 
 export const SESSION_TOKEN_KEY = 'sessionToken'
 export const SESSION_TOKEN_MAX_LENGTH = 128
@@ -19,6 +19,8 @@ export const HostWarning = {
   ListenerFailed: 'listenerFailed',
   MessageUnreadable: 'messageUnreadable',
   QueuedBeforeBoot: 'queuedBeforeBoot',
+  PendingDropped: 'pendingDropped',
+  OriginJournalFailed: 'originJournalFailed',
 } as const
 export type HostWarning = ValueOf<typeof HostWarning>
 
@@ -121,15 +123,17 @@ function createPoster(resourceName: string, post: typeof fetch, warn: Warn): Pos
 }
 
 interface PendingErrors {
-  readonly add: (message: FromPageMessage) => void
+  readonly add: (message: FromPageMessage) => boolean
   readonly flush: () => void
 }
 
-function createPendingErrors(post: (message: FromPageMessage) => void): PendingErrors {
+function createPendingErrors(post: (message: FromPageMessage) => void, capacity: number): PendingErrors {
   const pending: FromPageMessage[] = []
   return {
     add(message) {
-      if (pending.length < PENDING_PAGE_ERRORS_MAX) pending.push(message)
+      if (pending.length >= capacity) return false
+      pending.push(message)
+      return true
     },
     flush: () => pending.splice(START).forEach(post),
   }
@@ -137,7 +141,7 @@ function createPendingErrors(post: (message: FromPageMessage) => void): PendingE
 
 function keepUntilBoot(message: FromPageMessage, pending: PendingErrors, warn: Warn): void {
   if (message.type === FromPage.PageError) warn(HostWarning.QueuedBeforeBoot, message.message)
-  pending.add(message)
+  if (!pending.add(message)) warn(HostWarning.PendingDropped, `queue of ${String(PENDING_PAGE_ERRORS_MAX)} page errors is full`)
 }
 
 function createSender(currentToken: TokenReader, poster: Poster, ready: () => void, pending: PendingErrors, warn: Warn): (message: FromPageMessage) => void {
@@ -173,18 +177,18 @@ function notify(registrations: ReadonlySet<Registration>, message: ToPageMessage
   }
 }
 
-function recordOrigin(journal: (event: MessageEvent<unknown>) => void, event: MessageEvent<unknown>): void {
+function recordOrigin(journal: (event: MessageEvent<unknown>) => void, event: MessageEvent<unknown>, warn: Warn): void {
   try {
     journal(event)
-  } catch {
-    return
+  } catch (error) {
+    warn(HostWarning.OriginJournalFailed, describeError(error))
   }
 }
 
 function createMessageHandler(journal: (event: MessageEvent<unknown>) => void, adoptToken: (token: string) => void, registrations: ReadonlySet<Registration>, warn: Warn): (event: MessageEvent<unknown>) => void {
   return (event) => {
     try {
-      recordOrigin(journal, event)
+      recordOrigin(journal, event, warn)
       const read = readMessage(event.data, warn)
       if (read === null) return
       if (read.token !== null) adoptToken(read.token)
@@ -229,13 +233,20 @@ export function createFivemHost(win: Window, resourceName: string, post: typeof 
   const poster = createPoster(resourceName, post, gate)
   const registrations = new Set<Registration>()
   const retry = createReadyRetry(win, poster, () => token === null && registrations.size > 0)
-  const pending = createPendingErrors((message) => send(message))
+  const pending = createPendingErrors((message) => send(message), PENDING_PAGE_ERRORS_MAX)
+  const pendingOrigins = createPendingErrors((message) => send(message), ORIGIN_PENDING_MAX)
   const send = createSender(currentToken, poster, retry.send, pending, gate)
   const adoptToken = (next: string): void => {
     token = next
     pending.flush()
+    pendingOrigins.flush()
   }
-  const onMessage = createMessageHandler(createOriginJournal(win, (message) => (token === null ? pending.add(message) : send(message))), adoptToken, registrations, gate)
+  const reportOrigin = (message: FromPageMessage): boolean => {
+    if (token === null) return pendingOrigins.add(message)
+    send(message)
+    return true
+  }
+  const onMessage = createMessageHandler(createOriginJournal(win, reportOrigin), adoptToken, registrations, gate)
   return {
     send,
     listen(listener) {

@@ -23,7 +23,7 @@ export function createKeyboardSource(target: Window, dispatch: Dispatch, read: (
   function onKeyDown(event: KeyboardEvent): void {
     if (event.code === KeyCode.Tab) event.preventDefault()
     if (event.repeat) {
-      if (pressed.has(event.code)) event.preventDefault()
+      if (pressed.has(event.code) && !read().textFieldFocused) event.preventDefault()
       return
     }
     const state = read()

@@ -1,6 +1,7 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { HostWarning, PENDING_PAGE_ERRORS_MAX, SESSION_TOKEN_KEY, WARNING_INTERVAL_MS } from '../../../../src/page/infrastructure/host/fivem-host'
+import { ORIGIN_LINE_PREFIX } from '../../../../src/page/infrastructure/host/origin-journal'
 import { FromPage, type FromPageMessage } from '../../../../src/protocol/from-page'
 import { ReportKind } from '../../../../src/shared/report/report-kind'
 import { FROM_PAGE_SAMPLES } from '../../../fixtures/messages'
@@ -106,7 +107,7 @@ describe('page errors before the first boot', () => {
   const FIRST = 1
   const SECOND = 2
   const errorNumber = (position: number): FromPageMessage => ({ ...ERROR, message: `startup failure ${String(position)}` })
-  const isOriginLine = (body: unknown): boolean => (body as { message: string }).message.startsWith('message origin')
+  const isOriginLine = (body: unknown): boolean => (body as { message: string }).message.startsWith(ORIGIN_LINE_PREFIX)
   const errorsSent = (): readonly unknown[] => harness.calls().filter((call) => call.url === urlOf(FromPage.PageError)).map((call) => call.body).filter((body) => !isOriginLine(body))
 
   it('keeps a page error raised before boot and posts it with the token when the first boot arrives', () => {
@@ -136,6 +137,12 @@ describe('page errors before the first boot', () => {
     const messages = errorsSent().map((body) => (body as { message: string }).message)
     expect(messages).toHaveLength(PENDING_PAGE_ERRORS_MAX)
     expect(messages[0]).toBe('startup failure 0')
+  })
+
+  it('warns once when the queue is full, instead of dropping an error without a trace', () => {
+    harness.attach()
+    for (let position = 0; position < PENDING_PAGE_ERRORS_MAX + DROPS; position += 1) harness.host.send(errorNumber(position))
+    expect(harness.warnings.filter((line) => line.includes(HostWarning.PendingDropped))).toHaveLength(1)
   })
 
   it('does not post a queued error when the boot is refused', () => {

@@ -151,6 +151,14 @@ describe('keyboard source', () => {
     expect(commands).toEqual([press(Intent.Confirm, PRESS)])
   })
 
+  it('leaves the repeat of a held arrow to a text field, so that the caret keeps moving', () => {
+    state = { ...BASE, textFieldFocused: true }
+    fire('keydown', { code: 'ArrowLeft' })
+    const repeated = fire('keydown', { code: 'ArrowLeft', repeat: true })
+    expect(repeated.defaultPrevented).toBe(false)
+    expect(commands).toEqual([press(Intent.Left, PRESS)])
+  })
+
   it('leaves the repeat of a key it does not hold to the page', () => {
     const repeated = fire('keydown', { code: 'KeyP', key: 'p', repeat: true })
     expect(repeated.defaultPrevented).toBe(false)
