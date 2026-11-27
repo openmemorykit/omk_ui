@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ReportKind } from '../../../src/shared/report/report-kind'
+import type { JsonObject } from '../../../src/shared/report/json-value'
 import { appendTrace, EMPTY_TRACE, TRACE_LINE_MAX_BYTES, type TraceLine } from '../../../src/client/domain/trace-buffer'
+import { freeFormTraceLine } from './free-form-trace-line'
 
 const TIMESTAMP = 1
 const TWO_BYTE_TEXT = 'é'
@@ -13,8 +14,8 @@ const BYTES_PER_THREE_BYTE_CHARACTER = 3
 const BYTES_PER_FOUR_BYTE_CHARACTER = 4
 const ESCAPED_SURROGATE_BYTES = 6
 
-function lineWith(data: TraceLine['data']): TraceLine {
-  return { at: TIMESTAMP, kind: ReportKind.ModeChanged, data }
+function lineWith(data: JsonObject): TraceLine {
+  return freeFormTraceLine(TIMESTAMP, data)
 }
 
 function sizeOfText(text: string): number {

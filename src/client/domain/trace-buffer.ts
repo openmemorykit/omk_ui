@@ -1,5 +1,6 @@
 import { ReportKind } from '../../shared/report/report-kind'
-import { JSON_MAX_DEPTH, type JsonObject } from '../../shared/report/json-value'
+import { JSON_MAX_DEPTH } from '../../shared/report/json-value'
+import type { ReportEnvelope } from '../../shared/report/report-envelope'
 
 export const TRACE_CAPACITY = 100
 export const TRACE_MAX_BYTES = 65_536
@@ -17,11 +18,7 @@ const LOW_SURROGATE_START = 0xdc00
 const LOW_SURROGATE_END = 0xdfff
 const SURROGATE_PAIR_BYTES = 4
 
-export interface TraceLine {
-  readonly at: number
-  readonly kind: ReportKind
-  readonly data: JsonObject
-}
+export type TraceLine = ReportEnvelope
 
 export interface TraceBuffer {
   readonly lines: readonly TraceLine[]
