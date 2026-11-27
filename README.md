@@ -42,7 +42,7 @@ Settings are in `config.lua`, read at start by both scripts. An invalid value fa
 
 - `theme`: `accent` (`#RRGGBB`), `side` (`left`, `right`), `scale` (0.9 to 1.1), `font` (`sofiaSansSemiCondensed`, `archivoNarrow`), `logo` (a png or webp file name in `branding/`, 256 x 256 at most), `monogram` (1 or 2 characters, shown without a logo)
 - `input`: `padHoldMs` (200 to 800), `padHoldGesture` (`true`, `false`), `vehicleSpeedLimit` (0 to 200 km/h, drivers only; the opening is refused above it), `cameraSkippedModes` (a list among 0, 1, 2 and 4)
-- `trace.onStart`: `true` to start with the trace on, for the players already connected when the resource starts; use `trace on <id>` for the others (see Console commands)
+- `trace.onStart`: in 0.3.0 this turns the trace on for no client, because the switch is sent when the resource starts, before the client script is loaded; use `omk_ui trace on <id>` (see Console commands). `ask` turns the trace on for the targeted player if everyone is traced
 
 Convars, in `server.cfg`:
 
@@ -74,7 +74,7 @@ add_ace group.admin omk_ui.admin allow
 
 Intents: `up`, `down`, `left`, `right`, `confirm`, `back`, `tabNext`, `tabPrev`, `radial`, `erase`, `space`, `submit`.
 
-The trace is off by default: no client traffic. `trace on all` targets the players connected at that moment; a player who joins later is not covered, so use `trace on <id>` for them. `trace.onStart = true` in `config.lua` starts with the trace on. The demos register radial entries that stay until `omk_ui close` or a restart, so F1 has something to open. The demos use the same data as the preview (below).
+The trace is off by default: no client traffic. `trace on all` targets the players connected at that moment; a player who joins later is not covered, so use `trace on <id>` for them. `trace.onStart = true` in `config.lua` does not turn the trace on for any client in 0.3.0; use `omk_ui trace on <id>`. The demos register radial entries that stay until `omk_ui close` or a restart, so F1 has something to open. The demos use the same data as the preview (below).
 
 For developers: the calls of the kit (exports, contract) are read in `preview/scenarios/`. `src/client/application/demos/` replays these scenarios in game with `omk_ui demo`. A guide to create a menu from scratch will come with the SDK (milestone 4).
 
@@ -183,7 +183,7 @@ Les réglages sont dans `config.lua`, lu au démarrage par les deux scripts. Une
 
 - `theme` : `accent` (`#RRGGBB`), `side` (`left`, `right`), `scale` (0,9 à 1,1), `font` (`sofiaSansSemiCondensed`, `archivoNarrow`), `logo` (un nom de fichier png ou webp dans `branding/`, 256 x 256 au plus), `monogram` (1 ou 2 caractères, affiché sans logo)
 - `input` : `padHoldMs` (200 à 800), `padHoldGesture` (`true`, `false`), `vehicleSpeedLimit` (0 à 200 km/h, conducteurs seulement ; l'ouverture est refusée au-delà), `cameraSkippedModes` (une liste parmi 0, 1, 2 et 4)
-- `trace.onStart` : `true` pour démarrer avec le journal actif, pour les joueurs déjà connectés au démarrage de la ressource ; utilise `trace on <id>` pour les autres (voir Commandes console)
+- `trace.onStart` : en 0.3.0, cette option n'active le journal d'aucun client, car l'activation part au démarrage de la ressource, avant le chargement du script client ; utilise `omk_ui trace on <id>` (voir Commandes console). `ask` active le journal du joueur visé si tout le monde est tracé
 
 Convars, dans `server.cfg` :
 
@@ -215,7 +215,7 @@ add_ace group.admin omk_ui.admin allow
 
 Intentions : `up`, `down`, `left`, `right`, `confirm`, `back`, `tabNext`, `tabPrev`, `radial`, `erase`, `space`, `submit`.
 
-Le journal est coupé par défaut : aucun trafic client. `trace on all` vise les joueurs connectés à ce moment ; un joueur qui arrive ensuite n'est pas couvert, donc utilise `trace on <id>` pour lui. `trace.onStart = true` dans `config.lua` démarre avec le journal actif. Les démos enregistrent des entrées radiales qui restent jusqu'à `omk_ui close` ou un redémarrage, pour que F1 ait quelque chose à ouvrir. Elles utilisent les mêmes données que l'aperçu (plus bas).
+Le journal est coupé par défaut : aucun trafic client. `trace on all` vise les joueurs connectés à ce moment ; un joueur qui arrive ensuite n'est pas couvert, donc utilise `trace on <id>` pour lui. `trace.onStart = true` dans `config.lua` n'active le journal d'aucun client en 0.3.0 ; utilise `omk_ui trace on <id>`. Les démos enregistrent des entrées radiales qui restent jusqu'à `omk_ui close` ou un redémarrage, pour que F1 ait quelque chose à ouvrir. Elles utilisent les mêmes données que l'aperçu (plus bas).
 
 Pour les développeurs : les appels du kit (exports, contrat) se lisent dans `preview/scenarios/`. `src/client/application/demos/` rejoue ces scénarios en jeu par `omk_ui demo`. Un guide pour créer un menu de zéro viendra avec le SDK (jalon 4).
 
