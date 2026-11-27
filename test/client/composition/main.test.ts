@@ -18,6 +18,9 @@ const PAGE_CALLBACK_COUNT = Object.values(FromPage).length
 const VERSION_EXPORT = 'version'
 const KIT_MODULE = '../../../src/client/application/client-kit'
 const GLYPHS_COMMAND = 'omk_glyphs'
+const SEND_NUI_NATIVE = 'SendNuiMessage'
+const EMIT_NATIVE = 'emit'
+const READY_EVENT = 'omk_ui:ready'
 const KEY_MAPPING_COUNT = 2
 const GLYPH_SET_ARGUMENT = 'xbox'
 const SNAPSHOT_TIMER_MS = 2001
@@ -148,6 +151,16 @@ describe('client main', () => {
   it('replays a ready the page sent before the kit was built', async () => {
     const client = await startClient(RESOURCE_NAME, (records) => records.nuiCallbacks.get(FromPage.Ready)?.({ type: FromPage.Ready }, () => undefined))
     expect(sentToPage(client)).toContain(ToPage.Boot)
+  })
+
+  it('replays an early ready after the key mappings and the exports exist, and announces omk_ui:ready after the exports', async () => {
+    const client = await startClient(RESOURCE_NAME, (records) => records.nuiCallbacks.get(FromPage.Ready)?.({ type: FromPage.Ready }, () => undefined))
+    const names = client.natives.calls.map((call) => call.name)
+    const bootAt = client.natives.calls.findIndex((call) => call.name === SEND_NUI_NATIVE && String(call.args[0]).includes(ToPage.Boot))
+    const readyAt = client.natives.calls.findIndex((call) => call.name === EMIT_NATIVE && call.args[0] === READY_EVENT)
+    expect(bootAt).toBeGreaterThan(names.lastIndexOf('RegisterKeyMapping'))
+    expect(bootAt).toBeGreaterThan(names.lastIndexOf('exports'))
+    expect(readyAt).toBeGreaterThan(names.lastIndexOf('exports'))
   })
 
   it('registers the exports, which answer with the kit version', async () => {
