@@ -1,6 +1,7 @@
 import { guardedCall } from '../../shared/guarded-call'
+import { KIT_RESOURCE_NAME } from '../../shared/kit-resource'
 
-export const KIT_RESOURCE_NAME = 'omk_ui'
+export { KIT_RESOURCE_NAME }
 
 const IGNORE_REFUSAL_FAILURE = (): void => undefined
 
