@@ -50,7 +50,7 @@ body {
   box-shadow: var(--shadow-surface);
 }
 
-[data-surface][data-dimmed]::after, [data-dimmed] [data-surface]::after {
+[data-surface][data-dimmed]::after, [data-dimmed]:not([data-surface]) [data-surface]::after {
   content: '';
   position: absolute;
   inset: 0;
