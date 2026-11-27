@@ -1,6 +1,6 @@
 import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createFrameLoops, FrameLoopName } from '../../../src/client/infrastructure/frame-loop'
+import { createFrameLoops, FrameLoopOperation } from '../../../src/client/infrastructure/frame-loop'
 
 const PUMP_HANDLE = 11
 const IDLE_HANDLE = 12
@@ -61,8 +61,18 @@ describe('frame loops', () => {
     const loops = createFrameLoops({ onPumpFrame: () => { throw failure }, onIdleFrame: vi.fn(), onFailure })
     loops.pump.start()
     expect(() => tasks[0]?.()).not.toThrow()
-    expect(onFailure).toHaveBeenCalledWith(FrameLoopName.Pump, failure)
+    expect(onFailure).toHaveBeenCalledWith(FrameLoopOperation.Pump, failure)
     expect(loops.pump.isRunning()).toBe(true)
+  })
+
+  it('names the idle loop when it is the idle tick that fails', () => {
+    install()
+    const failure = new Error('idle broke')
+    const onFailure = vi.fn()
+    const loops = createFrameLoops({ onPumpFrame: vi.fn(), onIdleFrame: () => { throw failure }, onFailure })
+    loops.idle.start()
+    tasks[0]?.()
+    expect(onFailure).toHaveBeenCalledWith(FrameLoopOperation.Idle, failure)
   })
 
   it('keeps going when the failure reporter itself throws', () => {

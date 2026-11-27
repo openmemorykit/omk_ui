@@ -8,9 +8,9 @@ const DROP_REASON = 'Exiting'
 
 let natives: ServerEventNatives | null = null
 
-function installDropped(playerDropped: (source: number) => void, failures: unknown[] = []): ServerEventNatives {
+function installDropped(playerDropped: (source: number) => void, failures: unknown[][] = []): ServerEventNatives {
   natives = installServerEventNatives()
-  registerPlayerDropped(playerDropped, (error) => failures.push(error))
+  registerPlayerDropped(playerDropped, (operation, failure) => failures.push([operation, failure]))
   return natives
 }
 
@@ -43,11 +43,11 @@ describe('player dropped event', () => {
 
   it('keeps a failing handler inside the event handler and reports it', () => {
     const failure = new Error('drop failed')
-    const failures: unknown[] = []
+    const failures: unknown[][] = []
     const installed = installDropped(() => {
       throw failure
     }, failures)
     expect(() => installed.trigger(PLAYER_DROPPED_EVENT, PLAYER, DROP_REASON)).not.toThrow()
-    expect(failures).toStrictEqual([failure])
+    expect(failures).toStrictEqual([['playerDropped', failure]])
   })
 })

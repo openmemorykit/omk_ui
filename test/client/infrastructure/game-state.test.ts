@@ -1,6 +1,6 @@
 import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { NativeFailureHandler } from '../../../src/client/infrastructure/guarded-native-call'
+import type { FailureHandler } from '../../../src/shared/guarded-call'
 import { createGameStatePort } from '../../../src/client/infrastructure/game-state'
 
 const PED = 100
@@ -67,7 +67,7 @@ describe('game state port', () => {
   it('keeps native failures out of the caller and reports each one', () => {
     const throwing = (): never => { throw new Error('native failed') }
     natives = installNatives({ IsPauseMenuActive: throwing, IsScreenFadedOut: throwing, IsNuiFocused: throwing, PlayerPedId: throwing, GetGameBuildNumber: throwing, GetActiveScreenResolution: throwing })
-    const onFailure = vi.fn<NativeFailureHandler>()
+    const onFailure = vi.fn<FailureHandler>()
     const game = createGameStatePort(onFailure)
     expect([game.isPauseMenuActive(), game.isScreenFaded(), game.isNuiFocused(), game.drivenVehicleSpeed(), game.gameBuild()]).toEqual([false, false, false, null, 0])
     expect(game.resolution()).toEqual({ width: 1920, height: 1080 })

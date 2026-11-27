@@ -1,23 +1,13 @@
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 import type { LocaleWarning } from '../../shared/locales/locale-warning'
 import { createMergedLocaleSource } from '../../shared/locales/merged-locale-source'
 import type { LocaleSource } from '../../shared/ports'
 
-export type LocaleFailureHandler = (operation: string, failure: unknown) => void
-
-function readResourceFile(path: string, onFailure: LocaleFailureHandler): string | null {
-  try {
-    const content: unknown = LoadResourceFile(GetCurrentResourceName(), path)
-    return typeof content === 'string' ? content : null
-  } catch (failure) {
-    try {
-      onFailure(`LoadResourceFile ${path}`, failure)
-    } catch {
-      return null
-    }
-    return null
-  }
+function readResourceFile(path: string, onFailure: FailureHandler): string | null {
+  const content: unknown = guardedCall(onFailure, `LoadResourceFile ${path}`, () => LoadResourceFile(GetCurrentResourceName(), path), null)
+  return typeof content === 'string' ? content : null
 }
 
-export function createServerLocaleSource(onWarning: (warning: LocaleWarning) => void, onFailure: LocaleFailureHandler): LocaleSource {
+export function createServerLocaleSource(onWarning: (warning: LocaleWarning) => void, onFailure: FailureHandler): LocaleSource {
   return createMergedLocaleSource({ readFile: (path) => readResourceFile(path, onFailure), onWarning })
 }

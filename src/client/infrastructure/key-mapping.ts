@@ -1,6 +1,6 @@
 import { registerHoldCommand, KeyMapper } from '@openmemorykit/core/client'
 import { GlyphSet } from '../../protocol/page-vocabulary'
-import { guardedNativeCall, type NativeFailureHandler } from './guarded-native-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 export const KeyCommand = { Radial: 'omk_ui_radial', Interact: 'omk_ui_interact', Glyphs: 'omk_glyphs' } as const
 export const DEFAULT_RADIAL_KEY = 'F1'
@@ -25,14 +25,14 @@ export interface KeyMappingOptions {
   readonly radial: HoldBinding
   readonly interact: HoldBinding
   readonly glyphs: GlyphsCommand
-  readonly onFailure: NativeFailureHandler
+  readonly onFailure: FailureHandler
 }
 
-function shielded(onFailure: NativeFailureHandler, source: string, handler: () => void): () => void {
-  return () => guardedNativeCall(onFailure, source, handler, undefined)
+function shielded(onFailure: FailureHandler, source: string, handler: () => void): () => void {
+  return () => guardedCall(onFailure, source, handler, undefined)
 }
 
-function registerBinding(command: string, binding: HoldBinding, defaultKey: string, onFailure: NativeFailureHandler): void {
+function registerBinding(command: string, binding: HoldBinding, defaultKey: string, onFailure: FailureHandler): void {
   registerHoldCommand({
     name: command,
     description: binding.description,
@@ -43,7 +43,7 @@ function registerBinding(command: string, binding: HoldBinding, defaultKey: stri
   })
 }
 
-function registerGlyphsCommand(glyphs: GlyphsCommand, onFailure: NativeFailureHandler): void {
+function registerGlyphsCommand(glyphs: GlyphsCommand, onFailure: FailureHandler): void {
   RegisterCommand(KeyCommand.Glyphs, (_source: number, args: unknown) => {
     shielded(onFailure, `keyMapping.${KeyCommand.Glyphs}`, () => glyphs.onCommand(Array.isArray(args) ? args.map(String) : []))()
   }, false)

@@ -1,7 +1,7 @@
 import { DEFAULT_CONFIG } from '../../shared/config/config-schema'
 import { ConfigWarningKind, readConfig, type ConfigReading } from '../../shared/config/read-config'
 import type { ConfigSource } from '../../shared/ports'
-import { guardedNativeCall, type NativeFailureHandler } from './guarded-native-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 const KIT_RESOURCE = 'omk_ui'
 const CONFIG_EXPORT = 'getConfig'
@@ -17,6 +17,6 @@ function configExport(): ConfigExport {
   return getConfig
 }
 
-export function createConfigSource(onFailure: NativeFailureHandler): ConfigSource {
-  return { read: () => guardedNativeCall(onFailure, `exports.${KIT_RESOURCE}.${CONFIG_EXPORT}`, () => readConfig(configExport()()), UNAVAILABLE) }
+export function createConfigSource(onFailure: FailureHandler): ConfigSource {
+  return { read: () => guardedCall(onFailure, `exports.${KIT_RESOURCE}.${CONFIG_EXPORT}`, () => readConfig(configExport()()), UNAVAILABLE) }
 }

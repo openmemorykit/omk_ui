@@ -1,13 +1,13 @@
 import { createFrameLoop } from '@openmemorykit/core/client'
+import type { FailureHandler } from '../../shared/guarded-call'
 import type { LoopPort } from '../application/ports'
 
-export const FrameLoopName = { Pump: 'pump', Idle: 'idle' } as const
-export type FrameLoopName = (typeof FrameLoopName)[keyof typeof FrameLoopName]
+export const FrameLoopOperation = { Pump: 'frame loop pump', Idle: 'frame loop idle' } as const
 
 export interface FrameLoopsOptions {
   readonly onPumpFrame: () => void
   readonly onIdleFrame: () => void
-  readonly onFailure: (loop: FrameLoopName, error: unknown) => void
+  readonly onFailure: FailureHandler
 }
 
 export interface FrameLoops {
@@ -17,7 +17,7 @@ export interface FrameLoops {
 
 export function createFrameLoops(options: FrameLoopsOptions): FrameLoops {
   return {
-    pump: createFrameLoop(options.onPumpFrame, (error) => options.onFailure(FrameLoopName.Pump, error)),
-    idle: createFrameLoop(options.onIdleFrame, (error) => options.onFailure(FrameLoopName.Idle, error)),
+    pump: createFrameLoop(options.onPumpFrame, (error) => options.onFailure(FrameLoopOperation.Pump, error)),
+    idle: createFrameLoop(options.onIdleFrame, (error) => options.onFailure(FrameLoopOperation.Idle, error)),
   }
 }

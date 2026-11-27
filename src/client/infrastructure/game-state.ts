@@ -1,5 +1,5 @@
 import type { GameStatePort, ScreenSize } from '../application/ports'
-import { guardedNativeCall, type NativeFailureHandler } from './guarded-native-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 const DRIVER_SEAT = -1
 const NO_VEHICLE = 0
@@ -19,13 +19,13 @@ function readResolution(): ScreenSize {
   return { width, height }
 }
 
-export function createGameStatePort(onFailure: NativeFailureHandler): GameStatePort {
+export function createGameStatePort(onFailure: FailureHandler): GameStatePort {
   return {
-    isPauseMenuActive: () => guardedNativeCall(onFailure, 'game.isPauseMenuActive', () => IsPauseMenuActive(), false),
-    isScreenFaded: () => guardedNativeCall(onFailure, 'game.isScreenFaded', () => IsScreenFadedOut() || IsScreenFadingOut(), false),
-    isNuiFocused: () => guardedNativeCall(onFailure, 'game.isNuiFocused', () => IsNuiFocused(), false),
-    drivenVehicleSpeed: () => guardedNativeCall(onFailure, 'game.drivenVehicleSpeed', speedWhenDriving, null),
-    gameBuild: () => guardedNativeCall(onFailure, 'game.gameBuild', () => GetGameBuildNumber(), UNKNOWN_BUILD),
-    resolution: () => guardedNativeCall(onFailure, 'game.resolution', readResolution, FALLBACK_RESOLUTION),
+    isPauseMenuActive: () => guardedCall(onFailure, 'game.isPauseMenuActive', () => IsPauseMenuActive(), false),
+    isScreenFaded: () => guardedCall(onFailure, 'game.isScreenFaded', () => IsScreenFadedOut() || IsScreenFadingOut(), false),
+    isNuiFocused: () => guardedCall(onFailure, 'game.isNuiFocused', () => IsNuiFocused(), false),
+    drivenVehicleSpeed: () => guardedCall(onFailure, 'game.drivenVehicleSpeed', speedWhenDriving, null),
+    gameBuild: () => guardedCall(onFailure, 'game.gameBuild', () => GetGameBuildNumber(), UNKNOWN_BUILD),
+    resolution: () => guardedCall(onFailure, 'game.resolution', readResolution, FALLBACK_RESOLUTION),
   }
 }

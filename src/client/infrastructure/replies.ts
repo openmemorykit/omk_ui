@@ -1,6 +1,6 @@
 import type { Reply } from '@openmemorykit/ui/contract'
 import type { OwnerReplyPort } from '../application/ports'
-import { guardedNativeCall, type NativeFailureHandler } from './guarded-native-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 const REPLY_EXPORT = 'omk_ui_reply'
 
@@ -12,10 +12,10 @@ function replyExportOf(owner: string): ReplyExport {
   return replyExport
 }
 
-export function createOwnerReplyPort(onFailure: NativeFailureHandler): OwnerReplyPort {
+export function createOwnerReplyPort(onFailure: FailureHandler): OwnerReplyPort {
   return {
     deliver: (owner, reply) =>
-      guardedNativeCall(onFailure, `${REPLY_EXPORT} of ${owner}`, () => {
+      guardedCall(onFailure, `${REPLY_EXPORT} of ${owner}`, () => {
         replyExportOf(owner)(reply)
         return true
       }, false),

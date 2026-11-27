@@ -2,7 +2,7 @@ import type { NativeRecorder } from '@openmemorykit/core/testing'
 import { installNatives } from '@openmemorykit/core/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OmkSubcommand } from '../../../src/server/application/omk-subcommand'
-import { ADMIN_PERMISSION, KIT_COMMAND_NAME, registerKitCommand, type CommandReply, type KitCommandHandlers } from '../../../src/server/infrastructure/kit-command'
+import { ADMIN_PERMISSION, KIT_COMMAND_NAME, KitCommandOperation, registerKitCommand, type CommandReply, type KitCommandHandlers } from '../../../src/server/infrastructure/kit-command'
 
 const CONSOLE = 0
 const ADMIN = 3
@@ -10,7 +10,6 @@ const PLAYER = 4
 const REPLY_LINE = '[omk_ui] kit 1.0.0'
 const CHAT_EVENT = 'chat:addMessage'
 const BOGUS = 'bogus'
-const TWO_FAILURES = 2
 
 type CommandHandler = (source: number, args: string[]) => void
 
@@ -24,7 +23,7 @@ interface CommandHarness {
   readonly ran: Ran[]
   readonly unknown: string[]
   readonly denied: number[]
-  readonly failures: unknown[]
+  readonly failures: unknown[][]
   type(source: number, args: string[]): void
 }
 
@@ -55,7 +54,7 @@ function installCommand(aceAllowed: boolean, overrides: Partial<KitCommandHandle
     unknownSubcommand: (name) => harness.unknown.push(name),
     denied: (source) => harness.denied.push(source),
     ...overrides,
-  }, (error) => harness.failures.push(error))
+  }, (operation, failure) => harness.failures.push([operation, failure]))
   return harness
 }
 
@@ -121,7 +120,7 @@ describe('kit command omk_ui', () => {
       },
     })
     expect(() => harness.type(CONSOLE, [OmkSubcommand.Config])).not.toThrow()
-    expect(harness.failures).toStrictEqual([failure])
+    expect(harness.failures).toStrictEqual([['omk_ui config', failure]])
   })
 
   it('keeps a failing usage or denial handler inside the command handler', () => {
@@ -135,7 +134,7 @@ describe('kit command omk_ui', () => {
     })
     expect(() => harness.type(CONSOLE, [BOGUS])).not.toThrow()
     expect(() => harness.type(PLAYER, [OmkSubcommand.Version])).not.toThrow()
-    expect(harness.failures).toHaveLength(TWO_FAILURES)
+    expect(harness.failures.map(([operation]) => operation)).toStrictEqual([KitCommandOperation.Usage, KitCommandOperation.Denied])
   })
 
   it('keeps a late reply that fails (the player left) from breaking whoever calls it', () => {
@@ -152,7 +151,7 @@ describe('kit command omk_ui', () => {
     })
     harness.type(ADMIN, [OmkSubcommand.Debug, String(PLAYER)])
     expect(() => reply.current?.(REPLY_LINE)).not.toThrow()
-    expect(harness.failures).toStrictEqual([failure])
+    expect(harness.failures).toStrictEqual([[KitCommandOperation.Reply, failure]])
   })
 
   it('survives a failure handler that fails too', () => {

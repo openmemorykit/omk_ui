@@ -1,5 +1,5 @@
 import { isPlayerSource } from '@openmemorykit/core/shared'
-import { runGuarded, type FailureHandler } from './guarded-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 export const PLAYER_DROPPED_EVENT = 'playerDropped'
 
@@ -10,6 +10,6 @@ function eventSource(): number {
 export function registerPlayerDropped(playerDropped: (source: number) => void, onFailure: FailureHandler): void {
   on(PLAYER_DROPPED_EVENT, () => {
     const source = eventSource()
-    if (isPlayerSource(source)) runGuarded(() => playerDropped(source), onFailure)
+    if (isPlayerSource(source)) guardedCall(onFailure, PLAYER_DROPPED_EVENT, () => playerDropped(source), undefined)
   })
 }
