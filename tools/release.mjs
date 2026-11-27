@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { collectFiles } from './sizes.mjs'
 import { createZip } from './zip.mjs'
 
-const FOLDER = 'omk_ui'
+export const FOLDER = 'omk_ui'
 const OUTPUT = 'release'
 const REQUIRED = [
   'fxmanifest.lua',
@@ -31,14 +31,18 @@ export function archiveName(version) {
   return `${FOLDER}-${version}.zip`
 }
 
-export function buildArchive(root) {
+// The files of the delivered folder, relative to it, with the licence files at its root.
+export function collectDeliveredEntries(root) {
   const delivered = collectFiles(join(root, FOLDER)).filter((file) => DELIVERED.some((pattern) => pattern.test(file.path)))
   for (const required of REQUIRED) {
     if (!delivered.some((file) => file.path === required)) throw new Error(`${FOLDER}/${required} absent : lance npm run build`)
   }
   const copied = ROOT_FILES.map((name) => ({ path: name, data: readFileSync(join(root, name)) }))
-  const entries = [...delivered, ...copied].map((file) => ({ name: `${FOLDER}/${file.path}`, data: file.data }))
-  return createZip(entries.sort((left, right) => (left.name < right.name ? -1 : 1)))
+  return [...delivered, ...copied].sort((left, right) => (left.path < right.path ? -1 : 1))
+}
+
+export function buildArchive(root) {
+  return createZip(collectDeliveredEntries(root).map((file) => ({ name: `${FOLDER}/${file.path}`, data: file.data })))
 }
 
 function main() {
