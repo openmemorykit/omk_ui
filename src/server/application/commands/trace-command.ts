@@ -20,6 +20,7 @@ function applyTrace(context: ServerContext, active: boolean, player: number | nu
   } else if (active) traces.activate(player)
   else traces.deactivate(player)
   ports.clients.send(player ?? ALL_CLIENTS, { kind: CommandKind.Trace, active })
+  if (player === null && active) return log.translate('log.command.traceAllOn', { count: ports.players.list().length })
   const target = player === null ? log.translate('log.trace.allPlayers') : String(player)
   return log.translate('log.command.trace', { state: log.translate(active ? 'log.word.on' : 'log.word.off'), target })
 }

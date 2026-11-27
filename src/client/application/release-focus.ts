@@ -17,7 +17,7 @@ export type FocusReleaseReason = ValueOf<typeof FocusReleaseReason>
 
 export function releaseFocus(ports: ClientPorts, store: SessionStore, reason: FocusReleaseReason): void {
   const session = store.read()
-  if (session.paused) return
+  if (session.paused && reason !== FocusReleaseReason.KitStopping) return
   ports.nui.setFocus(false, false)
   ports.nui.setKeepInput(false)
   if (!isPumpNeeded(session)) ports.pump.stop()

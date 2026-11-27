@@ -25,5 +25,6 @@ export const ReportKind = {
   PageUnresponsive: 'pageUnresponsive',
   Snapshot: 'snapshot',
   ConfirmAsked: 'confirmAsked',
+  DemoReply: 'demoReply',
 } as const
 export type ReportKind = ValueOf<typeof ReportKind>

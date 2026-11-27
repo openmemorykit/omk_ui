@@ -9,6 +9,7 @@ import { buildScripts, readVersion, scriptOptions } from '../../tools/scripts.mj
 const BUILD_TIMEOUT = 60_000
 const RESOURCE_NAME = 'omk_ui'
 const WRONG_NAME = 'omk_ui_copy'
+const NATIVE_MISSING = /is not defined/
 
 function temporaryFolder(): string {
   return mkdtempSync(join(tmpdir(), 'omk-scripts-'))
@@ -30,11 +31,17 @@ async function buildRepository(): Promise<{ client: string; server: string }> {
   return { client: readFileSync(join(distFolder, 'client.js'), 'utf8'), server: readFileSync(join(distFolder, 'server.js'), 'utf8') }
 }
 
-function runWithResourceName(code: string, resourceName: string): string[] {
+interface SandboxOutput {
+  readonly errors: string[]
+  readonly lines: string[]
+}
+
+function runWithResourceName(code: string, resourceName: string): SandboxOutput {
   const errors: string[] = []
-  const sandbox = { GetCurrentResourceName: () => resourceName, console: { error: (line: string) => errors.push(line), log: () => undefined } }
-  runInNewContext(code, sandbox)
-  return errors
+  const lines: string[] = []
+  const console = { error: (line: string) => errors.push(line), log: (line: string) => lines.push(line) }
+  runInNewContext(code, { GetCurrentResourceName: () => resourceName, GetGameTimer: () => 0, console })
+  return { errors, lines }
 }
 
 describe('tools/scripts options', () => {
@@ -94,10 +101,18 @@ describe('tools/scripts build', () => {
     expect(server).not.toContain('@citizenfx')
   }, BUILD_TIMEOUT)
 
-  it.each(['client', 'server'] as const)('refuses to start the %s script under another folder name', async (side) => {
+  it.each(['client', 'server'] as const)('refuses to start the %s script under another folder name with one line, touching no other native', async (side) => {
     const built = await buildRepository()
-    expect(runWithResourceName(built[side], RESOURCE_NAME)).toEqual([])
-    expect(runWithResourceName(built[side], WRONG_NAME)).toHaveLength(1)
+    const { errors } = runWithResourceName(built[side], WRONG_NAME)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toContain(`${RESOURCE_NAME} refuses to start`)
+  }, BUILD_TIMEOUT)
+
+  it.each(['client', 'server'] as const)('goes past the name check of the %s script under omk_ui and reports the first native the sandbox lacks without throwing', async (side) => {
+    const built = await buildRepository()
+    const { errors, lines } = runWithResourceName(built[side], RESOURCE_NAME)
+    expect(errors).toStrictEqual([])
+    expect(lines.some((line) => NATIVE_MISSING.test(line))).toBe(true)
   }, BUILD_TIMEOUT)
 
   it('fails the build on an esbuild warning', async () => {

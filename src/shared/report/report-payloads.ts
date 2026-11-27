@@ -82,4 +82,5 @@ export const ReportPayloadSchema = {
     owners: v.pipe(v.array(OwnerUsageSchema), v.maxLength(SNAPSHOT_MAX_OWNERS)),
   }),
   [ReportKind.ConfirmAsked]: ownStrictObject({ askId: Text, outcome: oneOf(AskOutcome), reason: v.exactOptional(v.picklist([...Object.values(OpenBlocker), ...Object.values(ContractErrorCode)])) }),
+  [ReportKind.DemoReply]: ownStrictObject({ owner: Owner, reply: oneOf(ReplyKind) }),
 } as const satisfies Readonly<Record<ReportKind, v.GenericSchema>>

@@ -49,6 +49,13 @@ describe('releaseFocus', () => {
     expect(store.read()).toBe(before)
   })
 
+  it('gives the focus back even during a pause when the kit stops', () => {
+    const ports = pumpingPorts()
+    releaseFocus(ports, createSessionStore({ ...INITIAL_CLIENT_SESSION, paused: true }), FocusReleaseReason.KitStopping)
+    expect(ports.nui.focusChanges).toStrictEqual([{ focus: false, cursor: false }])
+    expect(ports.nui.keepInputChanges.at(-1)).toBe(false)
+  })
+
   it('writes a FocusApplied line with the reason', () => {
     const ports = pumpingPorts()
     const store = createSessionStore(INITIAL_CLIENT_SESSION)

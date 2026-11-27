@@ -32,6 +32,7 @@ export const PAYLOAD_SAMPLES = deepFrozen({
   [ReportKind.PageUnresponsive]: { silentMs: 5000, intentSeq: 12, lastAckSeq: 10 },
   [ReportKind.Snapshot]: { client: { mode: UiMode.Idle }, page: null, owners: [{ owner: 'garage', radialEntries: 1, panels: 2, prompts: 0, confirms: 0 }] },
   [ReportKind.ConfirmAsked]: { askId: 'question', outcome: AskOutcome.Confirmed },
+  [ReportKind.DemoReply]: { owner: 'omk_ui_demo_whitelist', reply: ReplyKind.RadialSelected },
 }) satisfies Readonly<Record<ReportKind, object>>
 
 export interface SampleReport { readonly kind: ReportKind; readonly at: number; readonly data: object }

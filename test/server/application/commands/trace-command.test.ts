@@ -9,9 +9,15 @@ const USAGE = `${LOG_PREFIX} omk_ui trace on|off [id|all]`
 describe('omk_ui trace', () => {
   it('turns the journal on for everybody, by default, and tells every client', () => {
     const harness = createServerHarness()
-    expect(run(harness, OmkSubcommand.Trace, 'on')).toStrictEqual([`${LOG_PREFIX} Journal activé pour tous les joueurs`])
+    run(harness, OmkSubcommand.Trace, 'on')
     expect(harness.context.traces.isEveryoneTraced).toBe(true)
     expect(harness.ports.clients.sent).toStrictEqual([{ target: ALL_CLIENTS, command: { kind: CommandKind.Trace, active: true } }])
+  })
+
+  it('says how many players it reaches and that the ones who join later are not reached', () => {
+    const harness = createServerHarness()
+    const players = harness.ports.players.list().length
+    expect(run(harness, OmkSubcommand.Trace, 'on', 'all')).toStrictEqual([`${LOG_PREFIX} Journal activé pour les ${players} joueurs présents ; ceux qui arrivent ensuite ne sont pas visés (omk_ui trace on <id>)`])
   })
 
   it('turns it on for one player only', () => {
