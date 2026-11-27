@@ -5,6 +5,7 @@ import { transition } from '../../../../src/page/domain/intent-engine'
 import type { UiCommand } from '../../../../src/page/domain/page-commands'
 import type { UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
+import { PAGE_EVENT_MAX_REPLIES } from '../../../../src/protocol/page-event'
 import { fromPageStackSnapshot, type PageEvent } from '../../../../src/protocol/stack'
 import { events, initial, NOW, OPEN_RADIAL, sentOf } from './engine-helpers'
 import { droppedOwner, isTyping, openedBy, settled, shownConfirms, type Balance, type Draw } from './invariant-steps'
@@ -62,6 +63,7 @@ export function runInvariantLoop(commands: readonly ((draw: Draw) => UiCommand)[
     const stepEvents = events(next.effects)
     expect(stepEvents.length).toBeLessThanOrEqual(1)
     stepEvents.forEach((event) => {
+      expect(event.replies.length).toBeLessThanOrEqual(PAGE_EVENT_MAX_REPLIES)
       expectNoReplyAfterClose(event)
       if (event.stack !== null) expect(fromPageStackSnapshot(event.stack)).not.toBeNull()
     })
