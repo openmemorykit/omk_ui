@@ -9,13 +9,14 @@ import type { StackEntry, StackSnapshot } from '../../protocol/stack'
 export const StackCommandKind = { Open: 'open', Push: 'push', Close: 'close', DropOwner: 'dropOwner', ShowConfirm: 'showConfirm' } as const
 export type StackCommandKind = ValueOf<typeof StackCommandKind>
 
-export interface StackCommand {
-  readonly kind: StackCommandKind
-  readonly seq: number
-  readonly owner: string
-  readonly panel: OwnedPanel | null
-  readonly panelId: string | null
-}
+interface NumberedCommand { readonly seq: number; readonly owner: string }
+export interface OpenCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.Open; readonly panel: OwnedPanel }
+export interface PushCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.Push; readonly panel: OwnedPanel; readonly parentId: string }
+export interface CloseCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.Close; readonly panelId: string }
+export interface DropOwnerCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.DropOwner }
+export interface ShowConfirmCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.ShowConfirm }
+
+export type StackCommand = OpenCommand | PushCommand | CloseCommand | DropOwnerCommand | ShowConfirmCommand
 
 export interface RegisteredPanel { readonly owner: string; readonly panel: Panel }
 
@@ -25,7 +26,8 @@ export interface StackState {
   readonly unapplied: readonly StackCommand[]
 }
 
-export type CommandDraft = Omit<StackCommand, 'seq'>
+type WithoutSeq<Command> = Command extends StackCommand ? Omit<Command, 'seq'> : never
+export type CommandDraft = WithoutSeq<StackCommand>
 
 export interface IssuedCommand<State extends StackState> {
   readonly registry: State
@@ -48,28 +50,26 @@ export function topPanel(stack: readonly RegisteredPanel[]): RegisteredPanel | n
   return stack[stack.length - 1] ?? null
 }
 
-function openedEntry(command: StackCommand): StackEntry | null {
-  return command.panel === null ? null : { panelId: command.panel.panel.id, owner: command.owner }
+function openedEntry(command: OpenCommand | PushCommand): StackEntry {
+  return { panelId: command.panel.panel.id, owner: command.owner }
 }
 
-function replayPush(entries: readonly StackEntry[], command: StackCommand): readonly StackEntry[] {
+function replayPush(entries: readonly StackEntry[], command: PushCommand): readonly StackEntry[] {
   const pushed = openedEntry(command)
   const parent = entries[entries.length - 1]
-  if (pushed === null || parent === undefined || parent.panelId !== command.panelId || entries.length >= STACK_MAX_DEPTH) return entries
+  if (parent === undefined || parent.panelId !== command.parentId || entries.length >= STACK_MAX_DEPTH) return entries
   return entries.some((entry) => entry.panelId === pushed.panelId) ? entries : [...entries, pushed]
 }
 
-function replayClose(entries: readonly StackEntry[], command: StackCommand): readonly StackEntry[] {
+function replayClose(entries: readonly StackEntry[], command: CloseCommand): readonly StackEntry[] {
   const closedAt = entries.findIndex((entry) => entry.panelId === command.panelId)
   return closedAt < 0 ? entries : entries.slice(0, closedAt)
 }
 
 function replayCommand(entries: readonly StackEntry[], command: StackCommand): readonly StackEntry[] {
   switch (command.kind) {
-    case StackCommandKind.Open: {
-      const opened = openedEntry(command)
-      return opened === null ? entries : [opened]
-    }
+    case StackCommandKind.Open:
+      return [openedEntry(command)]
     case StackCommandKind.Push:
       return replayPush(entries, command)
     case StackCommandKind.Close:

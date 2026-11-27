@@ -137,7 +137,7 @@ describe('dropOwner', () => {
     ]
     const registry = steps.reduce((current, step) => registryAfter(step(current)), EMPTY_REGISTRY)
     const dropped = dropOwner(registry, Whitelist)
-    expect(dropped.command).toStrictEqual({ kind: StackCommandKind.DropOwner, seq: 3, owner: Whitelist, panel: null, panelId: null })
+    expect(dropped.command).toStrictEqual({ kind: StackCommandKind.DropOwner, seq: 3, owner: Whitelist })
     expect(dropped.registry).toStrictEqual({
       radialEntries: [{ owner: Garage, entry: GARAGE_RADIAL_ENTRY }],
       stack: [],
