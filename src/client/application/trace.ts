@@ -6,7 +6,7 @@ export const ONE_LINE_PER_MINUTE_MS = 60_000
 export const LIMITED_TRACE_KEYS_MAX = 256
 
 function sendNewestLine(ports: ClientPorts, buffer: TraceBuffer): void {
-  buffer.lines.slice(-1).forEach((newest) => ports.server.report({ kind: newest.kind, at: newest.at, data: newest.data }))
+  buffer.lines.slice(-1).forEach((newest) => ports.server.report(newest))
 }
 
 function recordLine(ports: ClientPorts, store: SessionStore, line: TraceLine): void {

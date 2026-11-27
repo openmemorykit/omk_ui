@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FocusReleaseReason, releaseFocus } from '../../../src/client/application/release-focus'
 import { createSessionStore, INITIAL_CLIENT_SESSION, type ClientSession } from '../../../src/client/application/session-state'
+import { safeParseReportEnvelope } from '../../../src/shared/report/report-envelope'
 import { ReportKind } from '../../../src/shared/report/report-kind'
 import { UiMode } from '../../../src/protocol/page-vocabulary'
 import { createClientPortsFake, type ClientPortsFake } from '../fakes/client-ports-fake'
@@ -62,6 +63,15 @@ describe('releaseFocus', () => {
     const session: ClientSession = { ...INITIAL_CLIENT_SESSION, mode: UiMode.Idle, trace: { ...INITIAL_CLIENT_SESSION.trace, active: true } }
     releaseFocus(ports, createSessionStore(session), FocusReleaseReason.KitStopping)
     expect(ports.server.reports.map((report) => report.kind)).toStrictEqual([ReportKind.FocusApplied])
+  })
+
+  it.each(Object.values(FocusReleaseReason))('sends a line that the report schema accepts for the reason %s', (reason) => {
+    const ports = pumpingPorts()
+    const session: ClientSession = { ...INITIAL_CLIENT_SESSION, trace: { ...INITIAL_CLIENT_SESSION.trace, active: true } }
+    releaseFocus(ports, createSessionStore(session), reason)
+    const [sent] = ports.server.reports
+    expect(safeParseReportEnvelope(sent).success).toBe(true)
+    expect(sent?.data).toStrictEqual({ focus: false, cursor: false, keepInput: false, reason })
   })
 
   it('names every reason once, in camelCase', () => {
