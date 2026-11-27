@@ -4,7 +4,7 @@ The `omk_ui` FiveM resource of OMK, an open source FiveM suite written in TypeSc
 
 ## Status
 
-Version 0.1.0. Nothing is usable in game yet. The repository holds the pure logic of the three sides (protocol, shared code, domain of the page, the client and the server), the page (Vue 3, built for the Chromium 103 of FiveM) and their tests. The client and server scripts arrive at milestone 3.
+Version 0.2.0. Nothing is usable in game yet. The repository holds the pure logic of the three sides (protocol, shared code, domain of the page, the client and the server), the page (Vue 3, built for the Chromium 103 of FiveM) and their tests. The client and server scripts arrive at milestone 3.
 
 ## Server installation
 
@@ -84,7 +84,7 @@ La ressource FiveM `omk_ui` d'OMK, une suite FiveM open source écrite en TypeSc
 
 ## État
 
-Version 0.1.0. Rien n'est encore utilisable en jeu. Le dépôt contient la logique pure des trois côtés (protocole, code partagé, domaine de la page, du client et du serveur), la page (Vue 3, construite pour le Chromium 103 de FiveM) et leurs tests. Les scripts client et serveur arrivent au jalon 3.
+Version 0.2.0. Rien n'est encore utilisable en jeu. Le dépôt contient la logique pure des trois côtés (protocole, code partagé, domaine de la page, du client et du serveur), la page (Vue 3, construite pour le Chromium 103 de FiveM) et leurs tests. Les scripts client et serveur arrivent au jalon 3.
 
 ## Installation sur un serveur
 
