@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as v from 'valibot'
 import { TEXT_MAX_LENGTH } from '@openmemorykit/ui/contract'
 import { createSerializationFake, EmptyTableShape } from '@openmemorykit/core/testing'
-import { CommandKind, DemoName, INTENT_COUNT_MAX, INTENT_COUNT_MIN, NET_EVENT_SCHEMAS, NetEvent, netEventOf } from '../../../src/shared/net/net-events'
+import { CommandKind, DemoName, INTENT_COUNT_MAX, INTENT_COUNT_MIN, CLIENT_EVENT_SCHEMAS, SERVER_EVENT_SCHEMAS, NetEvent, netEventOf } from '../../../src/shared/net/net-events'
 import type { ServerToClientCommand } from '../../../src/shared/net/net-events'
 import { NET_COMMAND_SAMPLES } from '../../fixtures/net-commands'
 
@@ -13,7 +13,7 @@ const SPEC_INTENT_COUNT_MAX = 50
 const HALF = 0.5
 const PROTOTYPE_NAMES = ['__proto__', 'constructor', 'toString', 'prototype']
 
-const accepts = (event: NetEvent, payload: unknown): boolean => v.safeParse(NET_EVENT_SCHEMAS[event], payload).success
+const accepts = (event: NetEvent, payload: unknown): boolean => v.safeParse(CLIENT_EVENT_SCHEMAS[event], payload).success
 const parseCommand = (command: ServerToClientCommand): boolean => accepts(netEventOf(command), command)
 const withOwnKey = (command: ServerToClientCommand, key: string): unknown => JSON.parse(`{"${key}":{"polluted":true},${JSON.stringify(command).slice(1)}`)
 const intentWithCount = (count: unknown): unknown => ({ ...NET_COMMAND_SAMPLES[CommandKind.Intent], count })
@@ -122,7 +122,13 @@ describe('net events', () => {
     expect(accepts(NetEvent.Trace, { kind: CommandKind.Trace, active: 'yes' })).toBe(false)
   })
 
-  it('leaves the report event open: the server reads it with ReportIntake then readReport', () => {
+  it('leaves the report out of the schemas the server listens with: it reads it raw, with ReportIntake then readReport', () => {
+    expect(Object.keys(SERVER_EVENT_SCHEMAS)).toStrictEqual([NetEvent.Trace, NetEvent.Notify, NetEvent.Command])
+    expect(Object.keys(SERVER_EVENT_SCHEMAS)).not.toContain(NetEvent.Report)
+  })
+
+  it('keeps the report in the schemas of the client, which only emits it, and leaves it open', () => {
+    expect(Object.keys(CLIENT_EVENT_SCHEMAS)).toStrictEqual([NetEvent.Trace, NetEvent.Notify, NetEvent.Command, NetEvent.Report])
     ;[null, { kind: UNKNOWN_KIND }, JSON.parse('{"__proto__":1}') as unknown].forEach((payload) => expect(accepts(NetEvent.Report, payload)).toBe(true))
   })
 })

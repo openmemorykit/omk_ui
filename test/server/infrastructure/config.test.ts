@@ -34,9 +34,9 @@ describe('server config source', () => {
 
   it('falls back to the defaults with a warning, and reports the failure, when getConfig cannot be called', () => {
     installExports()
-    const failures: unknown[] = []
-    const reading = createConfigSource((error) => failures.push(error)).read()
+    const failures: unknown[][] = []
+    const reading = createConfigSource((operation, failure) => failures.push([operation, failure])).read()
     expect(reading).toStrictEqual({ config: DEFAULT_CONFIG, warnings: [{ key: ROOT_KEY, kind: ConfigWarningKind.Invalid }] })
-    expect(failures).toHaveLength(1)
+    expect(failures.map(([operation]) => operation)).toStrictEqual(['exports.omk_ui.getConfig'])
   })
 })

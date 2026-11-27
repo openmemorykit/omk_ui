@@ -1,9 +1,8 @@
 import { GlyphSet } from '../../protocol/page-vocabulary'
 import { ToPage } from '../../protocol/to-page'
 import type { ClientPorts } from './ports'
+import { FALLBACK_LOCALE, requestedLocale } from './requested-locale'
 
-export const LOCALE_CONVAR = 'omk_ui_locale'
-export const FALLBACK_LOCALE = 'en'
 export const GlyphMessageKey = { Usage: 'glyphs.usage', Changed: 'glyphs.changed' } as const
 
 const GLYPH_NAME_KEY_PREFIX = 'glyphs.set.'
@@ -16,8 +15,7 @@ export function parseGlyphSet(word: string | undefined): GlyphSet | null {
 }
 
 function playerMessages(ports: ClientPorts): ReadonlyMap<string, string> {
-  const locale = ports.convars.read(LOCALE_CONVAR) ?? FALLBACK_LOCALE
-  const bundle = ports.locales.read(locale) ?? ports.locales.read(FALLBACK_LOCALE)
+  const bundle = ports.locales.read(requestedLocale(ports)) ?? ports.locales.read(FALLBACK_LOCALE)
   return new Map(bundle === null ? [] : Object.entries(bundle.messages))
 }
 

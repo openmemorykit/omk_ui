@@ -20,11 +20,11 @@ interface Notified {
 
 let recorder: NativeRecorder | null = null
 
-function installExport(invoker: unknown, notify: (target: number, notification: unknown, caller: string | null) => CallResult, failures: unknown[] = []): ExportsFake {
+function installExport(invoker: unknown, notify: (target: number, notification: unknown, caller: string | null) => CallResult, failures: unknown[][] = []): ExportsFake {
   recorder = installNatives({ GetInvokingResource: () => invoker })
   const fake = createExportsFake(createSerializationFake(EmptyTableShape.List), KIT_RESOURCE_NAME)
   vi.stubGlobal('exports', fake.exports)
-  registerNotifyExport(notify, (error) => failures.push(error))
+  registerNotifyExport(notify, (operation, failure) => failures.push([operation, failure]))
   return fake
 }
 
@@ -78,11 +78,11 @@ describe('server export notify', () => {
 
   it('returns a refusal and reports the failure when the handler fails, without throwing to the caller', () => {
     const failure = new Error('notify failed')
-    const failures: unknown[] = []
+    const failures: unknown[][] = []
     const fake = installExport(CALLER, () => {
       throw failure
     }, failures)
     expect(callNotify(fake, PLAYER, NOTIFICATION)).toStrictEqual({ status: CallStatus.Refused, errors: [] })
-    expect(failures).toStrictEqual([failure])
+    expect(failures).toStrictEqual([['export notify', failure]])
   })
 })

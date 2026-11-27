@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { receiveReport } from '../../../src/server/application/receive-report'
 import { NetEvent } from '../../../src/shared/net/net-events'
 import { ReportKind } from '../../../src/shared/report/report-kind'
-import { registerReportEvent } from '../../../src/server/infrastructure/report-event'
+import { registerRawReportEvent } from '../../../src/server/infrastructure/report-event'
 import { sampleReport } from '../../fixtures/reports'
 import { createServerHarness, PLAYER } from '../application/server-harness'
 import { installServerEventNatives, type ServerEventNatives } from './server-adapter-natives'
@@ -21,10 +21,10 @@ interface Received {
 
 let natives: ServerEventNatives | null = null
 
-function installReportEvent(report: (source: number, raw: unknown) => void, failures: unknown[] = []): { readonly natives: ServerEventNatives } {
+function installReportEvent(report: (source: number, raw: unknown) => void, failures: unknown[][] = []): { readonly natives: ServerEventNatives } {
   const installed = installServerEventNatives()
   natives = installed
-  registerReportEvent(report, (error) => failures.push(error))
+  registerRawReportEvent(report, (operation, failure) => failures.push([operation, failure]))
   return { natives: installed }
 }
 
@@ -58,7 +58,7 @@ describe('report event omk_ui:report', () => {
 
   it('refuses a source that is not a player (console, or a local trigger by another resource)', () => {
     const received: Received[] = []
-    const failures: unknown[] = []
+    const failures: unknown[][] = []
     const { natives: installed } = installReportEvent((source, raw) => received.push({ source, raw }), failures)
     expect(() => {
       installed.trigger(NetEvent.Report, LOCAL_TRIGGER, sampleReport(ReportKind.ModeChanged))
@@ -101,11 +101,11 @@ describe('report event omk_ui:report', () => {
 
   it('keeps a failing report handler inside the event handler and reports it', () => {
     const failure = new Error('report failed')
-    const failures: unknown[] = []
+    const failures: unknown[][] = []
     const { natives: installed } = installReportEvent(() => {
       throw failure
     }, failures)
     expect(() => installed.trigger(NetEvent.Report, PLAYER, sampleReport(ReportKind.ModeChanged))).not.toThrow()
-    expect(failures).toStrictEqual([failure])
+    expect(failures).toStrictEqual([[NetEvent.Report, failure]])
   })
 })

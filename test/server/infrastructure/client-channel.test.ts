@@ -1,4 +1,3 @@
-import type { RejectedEvent } from '@openmemorykit/core/shared'
 import { NotificationTone } from '@openmemorykit/ui/contract'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ALL_CLIENTS } from '../../../src/server/application/ports'
@@ -15,10 +14,9 @@ const CLOSE: ServerToClientCommand = { kind: CommandKind.Close }
 
 let natives: ServerEventNatives | null = null
 
-function channelWith(implementations: Readonly<Record<string, (...args: never[]) => unknown>> = {}, failures: unknown[] = []): ReturnType<typeof createClientChannel> {
+function channelWith(implementations: Readonly<Record<string, (...args: never[]) => unknown>> = {}, failures: unknown[][] = []): ReturnType<typeof createClientChannel> {
   natives = installServerEventNatives(implementations)
-  const rejected: RejectedEvent[] = []
-  return createClientChannel(createKitServerEvents((event) => rejected.push(event)), (error) => failures.push(error))
+  return createClientChannel(createKitServerEvents(), (operation, failure) => failures.push([operation, failure]))
 }
 
 afterEach(() => {
@@ -50,13 +48,13 @@ describe('client channel', () => {
 
   it('keeps a failing emitNet inside the channel and reports it', () => {
     const failure = new Error('emitNet failed')
-    const failures: unknown[] = []
+    const failures: unknown[][] = []
     const channel = channelWith({
       emitNet: () => {
         throw failure
       },
     }, failures)
     expect(() => channel.send(PLAYER, CLOSE)).not.toThrow()
-    expect(failures).toStrictEqual([failure])
+    expect(failures).toStrictEqual([[`emitNet ${NetEvent.Command}`, failure]])
   })
 })

@@ -2,20 +2,14 @@ import { STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { toPageConfirm, toPagePanel, toPagePrompt, type OwnedConfirm, type OwnedPrompt } from '../../protocol/owned'
 import { GlyphSet } from '../../protocol/page-vocabulary'
 import { ToPage, type BindingLabels, type LocaleBundle, type ToPageMessageOf } from '../../protocol/to-page'
-import { isLocaleName } from '../../shared/locales/locale-name'
 import { radialOrder, visiblePrompt, type RegistryState } from '../domain/owner-registry'
-import { FALLBACK_LOCALE, LOCALE_CONVAR } from './glyph-set'
 import type { ClientPorts } from './ports'
+import { FALLBACK_LOCALE, requestedLocale } from './requested-locale'
 
 export const BindingCommand = { Radial: '+omk_ui_radial', Interact: '+omk_ui_interact' } as const
 export const DEFAULT_GLYPH_SET = GlyphSet.Xbox
 
 export type BootMessage = ToPageMessageOf<typeof ToPage.Boot>
-
-export function requestedLocale(ports: ClientPorts): string {
-  const requested = ports.convars.read(LOCALE_CONVAR)
-  return requested !== null && isLocaleName(requested) ? requested : FALLBACK_LOCALE
-}
 
 function bootLocale(ports: ClientPorts): LocaleBundle {
   return ports.locales.read(requestedLocale(ports)) ?? ports.locales.read(FALLBACK_LOCALE) ?? { language: FALLBACK_LOCALE, messages: {} }

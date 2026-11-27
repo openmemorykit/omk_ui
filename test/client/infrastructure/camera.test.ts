@@ -1,6 +1,6 @@
 import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { NativeFailureHandler } from '../../../src/client/infrastructure/guarded-native-call'
+import type { FailureHandler } from '../../../src/shared/guarded-call'
 import { createCameraPort } from '../../../src/client/infrastructure/camera'
 import { CameraViewMode } from '../../../src/shared/config/camera-view-mode'
 
@@ -35,7 +35,7 @@ describe('camera port', () => {
     const failure = new Error('native failed')
     const throwing = (): never => { throw failure }
     natives = installNatives({ GetCamActiveViewModeContext: throwing, GetCamViewModeForContext: throwing, SetCamViewModeForContext: throwing })
-    const onFailure = vi.fn<NativeFailureHandler>()
+    const onFailure = vi.fn<FailureHandler>()
     const camera = createCameraPort(onFailure)
     expect(camera.context()).toBe(0)
     expect(camera.read(0)).toBe(CameraViewMode.ThirdPersonNear)

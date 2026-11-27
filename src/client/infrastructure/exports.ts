@@ -1,6 +1,6 @@
 import { ContractErrorCode, KitExport, refusedCall, type CallResult } from '@openmemorykit/ui/contract'
 import { KitQuery } from '../application/contract-call'
-import { guardedNativeCall, type NativeFailureHandler } from './guarded-native-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 export type KitExportName = KitExport | KitQuery
 export type KitExportCaller = (name: KitExportName, owner: string | null, args: readonly unknown[]) => unknown
@@ -19,13 +19,13 @@ function resultOfFailedCall(name: KitExportName): CallResult | boolean {
   return refusedCall([{ path: ROOT_PATH, code: ContractErrorCode.WrongType, detail: HANDLER_FAILED }])
 }
 
-function exportHandler(name: KitExportName, callKit: KitExportCaller, onFailure: NativeFailureHandler): (...args: unknown[]) => unknown {
-  return (...args) => guardedNativeCall(onFailure, `export ${name}`, () => callKit(name, invokingOwner(), args), resultOfFailedCall(name))
+function exportHandler(name: KitExportName, callKit: KitExportCaller, onFailure: FailureHandler): (...args: unknown[]) => unknown {
+  return (...args) => guardedCall(onFailure, `export ${name}`, () => callKit(name, invokingOwner(), args), resultOfFailedCall(name))
 }
 
-export function registerKitExports(callKit: KitExportCaller, onFailure: NativeFailureHandler): void {
+export function registerKitExports(callKit: KitExportCaller, onFailure: FailureHandler): void {
   const names: readonly KitExportName[] = [...Object.values(KitExport), ...Object.values(KitQuery)]
   for (const name of names) {
-    guardedNativeCall(onFailure, `register export ${name}`, () => globalThis.exports(name, exportHandler(name, callKit, onFailure)), undefined)
+    guardedCall(onFailure, `register export ${name}`, () => globalThis.exports(name, exportHandler(name, callKit, onFailure)), undefined)
   }
 }

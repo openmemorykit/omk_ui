@@ -2,7 +2,7 @@ import type { ControlsPort } from '../application/ports'
 import { INTERACT_CONTROL } from '../application/track-prompts'
 import { ControlGroup, PUSH_TO_TALK_CONTROL } from '../domain/focus-policy'
 import { PAD_INTENTS, PadControl, type PadReading } from '../domain/pad-snapshot'
-import { guardedNativeCall, type NativeFailureHandler } from './guarded-native-call'
+import { guardedCall, type FailureHandler } from '../../shared/guarded-call'
 
 const KEYBOARD_PAD_INDEX = 2
 const SIGNED_BINDING_FLAG = 0x80000000
@@ -35,8 +35,8 @@ function readBindingLabel(command: string): string {
   return GetControlInstructionalButton(0, GetHashKey(command) | SIGNED_BINDING_FLAG, true)
 }
 
-export function createControlsPort(onFailure: NativeFailureHandler): ControlsPort {
-  const guard = <Result>(source: string, fallback: Result, action: () => Result): Result => guardedNativeCall(onFailure, `controls.${source}`, action, fallback)
+export function createControlsPort(onFailure: FailureHandler): ControlsPort {
+  const guard = <Result>(source: string, fallback: Result, action: () => Result): Result => guardedCall(onFailure, `controls.${source}`, action, fallback)
   return {
     readPad: () => guard('readPad', NEUTRAL_READING, readPad),
     isUsingKeyboard: () => guard('isUsingKeyboard', true, () => IsUsingKeyboard(KEYBOARD_PAD_INDEX)),

@@ -31,7 +31,7 @@ function applyFrameBlocking(ports: ClientPorts, store: SessionStore, blockViewCo
   if (blockViewControl) ports.controls.disable(ControlGroup.Main, VIEW_CONTROL)
 }
 
-function sendIntent(ports: ClientPorts, link: PageLink, intent: IntentEvent): PageLink {
+export function sendIntent(ports: ClientPorts, link: PageLink, intent: IntentEvent): PageLink {
   const seq = link.intentSeq + 1
   ports.nui.send({ type: ToPage.Intent, ...intent, seq })
   const now = ports.clock.now()
