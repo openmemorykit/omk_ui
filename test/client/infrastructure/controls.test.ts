@@ -1,6 +1,6 @@
 import { installNatives, type NativeRecorder } from '@openmemorykit/core/testing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { FailureReporter } from '../../../src/client/infrastructure/native-guard'
+import type { NativeFailureHandler } from '../../../src/client/infrastructure/guarded-native-call'
 import { createControlsPort } from '../../../src/client/infrastructure/controls'
 import { ControlGroup } from '../../../src/client/domain/focus-policy'
 import { PAD_INTENTS, PadControl } from '../../../src/client/domain/pad-snapshot'
@@ -151,7 +151,7 @@ describe('controls port: failures', () => {
       GetHashKey: throwing,
       GetControlInstructionalButton: throwing,
     })
-    const onFailure = vi.fn<FailureReporter>()
+    const onFailure = vi.fn<NativeFailureHandler>()
     const controls = createControlsPort(onFailure)
     const reading = controls.readPad()
     expect(reading.held.size).toBe(0)
