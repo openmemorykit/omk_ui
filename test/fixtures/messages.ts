@@ -61,6 +61,7 @@ export const TO_PAGE_SAMPLES: Readonly<{ [Type in ToPage]: ToPageMessageOf<Type>
   [ToPage.PromptProgress]: { type: ToPage.PromptProgress, promptId: OWNED_HOLD_PROMPT.prompt.id, state: PromptState.Holding, holdMs: HOLD_PROMPT_MS },
   [ToPage.HidePrompt]: { type: ToPage.HidePrompt, promptId: OWNED_HOLD_PROMPT.prompt.id },
   [ToPage.DropOwner]: { type: ToPage.DropOwner, commandSeq: NEXT_COMMAND_SEQ, owner: FixtureOwner.Garage },
+  [ToPage.CloseAll]: { type: ToPage.CloseAll, commandSeq: NEXT_COMMAND_SEQ },
   [ToPage.GlyphSet]: { type: ToPage.GlyphSet, glyphSet: GlyphSet.PlayStation },
   [ToPage.SnapshotRequest]: { type: ToPage.SnapshotRequest, requestId: FIRST_SNAPSHOT_REQUEST_ID },
 })

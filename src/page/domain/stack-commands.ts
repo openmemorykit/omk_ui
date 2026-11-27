@@ -1,10 +1,10 @@
-import { ReplyKind } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind } from '@openmemorykit/ui/contract'
 import { splitNamespacedId } from '../../protocol/namespaced-id'
 import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
 import type { OwnedReply } from '../../protocol/stack'
 import type { ToPage } from '../../protocol/to-page'
 import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
-import { closePanelFrame, dropOwnerFrames, isConfirmShown, openPanelFrame, pushPanelFrame, showConfirmLayer, type StackChange } from './navigation'
+import { closeAllFrames, closePanelFrame, dropOwnerFrames, isConfirmShown, openPanelFrame, pushPanelFrame, showConfirmLayer, type StackChange } from './navigation'
 import type { UiCommandOf } from './page-commands'
 import { withRadialEntries } from './radial-navigation'
 import { Announcement, stackEvent, unchanged, UiEffectType, withEffects, type CommandHandler, type Transition, type UiEffect } from './ui-effects'
@@ -64,6 +64,11 @@ export const handleDropOwner: CommandHandler<UiCommandOf<typeof ToPage.DropOwner
   if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
   const dropped = withoutOwnerSurfaces(dropOwnerFrames(state, message.owner, message.commandSeq), message.owner)
   return stackTransition({ state: dropped, replies: NO_REPLIES })
+}
+
+export const handleCloseAll: CommandHandler<UiCommandOf<typeof ToPage.CloseAll>> = (state, message) => {
+  if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
+  return stackTransition(closeAllFrames({ ...state, appliedCommandSeq: message.commandSeq }, CloseReason.CloseAll))
 }
 
 export function confirmChange(state: UiState, confirm: OwnedConfirm, commandSeq: number): StackChange {

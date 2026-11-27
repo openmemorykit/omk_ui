@@ -4,7 +4,7 @@ import { isCommandSeq, type OwnedReply } from '../../protocol/stack'
 import { ToPage } from '../../protocol/to-page'
 import { bootPanels } from './boot'
 import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
-import { isAddressablePanel } from './navigation'
+import { closeAllFrames, isAddressablePanel, type StackChange } from './navigation'
 import { refusedConfirmReplies } from './stack-commands'
 import { stackEvent, unchanged, withEffects, type Transition } from './ui-effects'
 import type { UiState } from './ui-state'
@@ -46,13 +46,19 @@ function fallbackBase(state: UiState, command: UnknownRecord): UiState | null {
   return isNewerCommand(state.appliedCommandSeq, commandSeq) ? { ...state, appliedCommandSeq: commandSeq } : null
 }
 
+function fallbackChange(base: UiState, command: UnknownRecord): StackChange | null {
+  if (command.type === ToPage.CloseAll) return closeAllFrames(base, CloseReason.CloseAll)
+  const replies = owedReplies(base, command)
+  return replies === null ? null : { state: base, replies }
+}
+
 export function fallbackTransition(state: UiState, command: unknown): Transition {
   try {
     if (!isRecord(command)) return unchanged(state)
     const base = fallbackBase(state, command)
-    const replies = base === null ? null : owedReplies(base, command)
-    if (base === null || replies === null) return unchanged(state)
-    return withEffects(base, [stackEvent(base, replies)])
+    const change = base === null ? null : fallbackChange(base, command)
+    if (change === null) return unchanged(state)
+    return withEffects(change.state, [stackEvent(change.state, change.replies)])
   } catch {
     return unchanged(state)
   }

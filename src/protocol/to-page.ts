@@ -23,6 +23,7 @@ export const ToPage = {
   PromptProgress: 'promptProgress',
   HidePrompt: 'hidePrompt',
   DropOwner: 'dropOwner',
+  CloseAll: 'closeAll',
   GlyphSet: 'glyphSet',
   SnapshotRequest: 'snapshotRequest',
 } as const
@@ -89,6 +90,7 @@ interface PromptProgressMessage {
 
 interface HidePromptMessage { readonly type: typeof ToPage.HidePrompt; readonly promptId: string }
 interface DropOwnerMessage { readonly type: typeof ToPage.DropOwner; readonly commandSeq: number; readonly owner: string }
+interface CloseAllMessage { readonly type: typeof ToPage.CloseAll; readonly commandSeq: number }
 interface GlyphSetMessage { readonly type: typeof ToPage.GlyphSet; readonly glyphSet: GlyphSet }
 interface SnapshotRequestMessage { readonly type: typeof ToPage.SnapshotRequest; readonly requestId: number }
 
@@ -110,6 +112,7 @@ export type ToPageMessage =
   | PromptProgressMessage
   | HidePromptMessage
   | DropOwnerMessage
+  | CloseAllMessage
   | GlyphSetMessage
   | SnapshotRequestMessage
 

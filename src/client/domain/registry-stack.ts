@@ -6,7 +6,7 @@ import type { OwnedPanel } from '../../protocol/owned'
 import { fromPageStackSnapshot } from '../../protocol/stack'
 import type { StackEntry, StackSnapshot } from '../../protocol/stack'
 
-export const StackCommandKind = { Open: 'open', Push: 'push', Close: 'close', DropOwner: 'dropOwner', ShowConfirm: 'showConfirm' } as const
+export const StackCommandKind = { Open: 'open', Push: 'push', Close: 'close', DropOwner: 'dropOwner', ShowConfirm: 'showConfirm', CloseAll: 'closeAll' } as const
 export type StackCommandKind = ValueOf<typeof StackCommandKind>
 
 interface NumberedCommand { readonly seq: number; readonly owner: string }
@@ -15,8 +15,9 @@ export interface PushCommand extends NumberedCommand { readonly kind: typeof Sta
 export interface CloseCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.Close; readonly panelId: string }
 export interface DropOwnerCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.DropOwner }
 export interface ShowConfirmCommand extends NumberedCommand { readonly kind: typeof StackCommandKind.ShowConfirm }
+export interface CloseAllCommand { readonly kind: typeof StackCommandKind.CloseAll; readonly seq: number }
 
-export type StackCommand = OpenCommand | PushCommand | CloseCommand | DropOwnerCommand | ShowConfirmCommand
+export type StackCommand = OpenCommand | PushCommand | CloseCommand | DropOwnerCommand | ShowConfirmCommand | CloseAllCommand
 
 export interface RegisteredPanel { readonly owner: string; readonly panel: Panel }
 
@@ -74,6 +75,8 @@ function replayCommand(entries: readonly StackEntry[], command: StackCommand): r
       return replayPush(entries, command)
     case StackCommandKind.Close:
       return replayClose(entries, command)
+    case StackCommandKind.CloseAll:
+      return []
     default:
       return entries
   }

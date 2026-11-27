@@ -25,6 +25,8 @@ export type RegistryOutcome =
   | { readonly ok: true; readonly registry: RegistryState; readonly command: StackCommand | null }
   | { readonly ok: false; readonly error: ContractError }
 
+export interface RegistryChange { readonly registry: RegistryState; readonly command: StackCommand | null }
+
 export const RegistryErrorPath = { Root: '', Id: 'id' } as const
 export type RegistryErrorPath = ValueOf<typeof RegistryErrorPath>
 
@@ -151,6 +153,11 @@ export function dropOwner(registry: RegistryState, owner: string): IssuedCommand
     prompts: othersThan(registry.prompts, owner),
   }
   return issueCommand(remaining, othersThan(registry.stack, owner), { kind: StackCommandKind.DropOwner, owner })
+}
+
+export function closeAll(registry: RegistryState): RegistryChange {
+  if (registry.stack.length === 0 && registry.confirms.length === 0) return { registry, command: null }
+  return issueCommand(registry, [], { kind: StackCommandKind.CloseAll })
 }
 
 const compareText = (left: string, right: string): number => (left < right ? -1 : Number(left > right))
