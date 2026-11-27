@@ -17,6 +17,8 @@ export type GestureInput =
   | { readonly signal: typeof GestureSignal.Frame; readonly at: number }
   | { readonly signal: typeof GestureSignal.ModeChanged }
 
+type TimedInput = Exclude<GestureInput, { readonly signal: typeof GestureSignal.ModeChanged }>
+
 export const GestureDecision = { Open: 'open', CycleCamera: 'cycleCamera', Ignore: 'ignore' } as const
 export type GestureDecision = (typeof GestureDecision)[keyof typeof GestureDecision]
 
@@ -29,7 +31,7 @@ function step(state: GestureState, decision: GestureDecision, blockCameraControl
   return { state, decision, blockCameraControl }
 }
 
-function stepIdle(input: GestureInput, settings: GestureSettings): GestureStep {
+function stepIdle(input: TimedInput, settings: GestureSettings): GestureStep {
   if (input.signal !== GestureSignal.Press) return step(IDLE_GESTURE, GestureDecision.Ignore, false)
   if (input.modality === Modality.KeyboardMouse) {
     return step({ phase: GesturePhase.Held, modality: input.modality }, GestureDecision.Open, false)
@@ -38,8 +40,7 @@ function stepIdle(input: GestureInput, settings: GestureSettings): GestureStep {
   return step({ phase: GesturePhase.Pressed, startedAt: input.at }, GestureDecision.Ignore, true)
 }
 
-function stepPressed(state: Extract<GestureState, { phase: typeof GesturePhase.Pressed }>, input: GestureInput, settings: GestureSettings): GestureStep {
-  if (input.signal === GestureSignal.ModeChanged) return step(IDLE_GESTURE, GestureDecision.Ignore, false)
+function stepPressed(state: Extract<GestureState, { phase: typeof GesturePhase.Pressed }>, input: TimedInput, settings: GestureSettings): GestureStep {
   if (input.signal === GestureSignal.Press) return step(state, GestureDecision.Ignore, true)
   const heldLongEnough = input.at - state.startedAt >= settings.holdMs
   if (input.signal === GestureSignal.Frame) {
@@ -49,9 +50,8 @@ function stepPressed(state: Extract<GestureState, { phase: typeof GesturePhase.P
   return step(IDLE_GESTURE, heldLongEnough ? GestureDecision.Open : GestureDecision.CycleCamera, true)
 }
 
-function stepHeld(state: Extract<GestureState, { phase: typeof GesturePhase.Held }>, input: GestureInput): GestureStep {
+function stepHeld(state: Extract<GestureState, { phase: typeof GesturePhase.Held }>, input: TimedInput): GestureStep {
   const block = state.modality === Modality.Gamepad
-  if (input.signal === GestureSignal.ModeChanged) return step(IDLE_GESTURE, GestureDecision.Ignore, false)
   if (input.signal === GestureSignal.Release) return step(IDLE_GESTURE, GestureDecision.Ignore, block)
   return step(state, GestureDecision.Ignore, block)
 }
