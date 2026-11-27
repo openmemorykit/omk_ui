@@ -1,3 +1,4 @@
+import { isRecord } from '@openmemorykit/core/shared'
 import { ReplyKind } from '@openmemorykit/ui/contract'
 import type { ConfirmRequest, Notification, Panel, Prompt, RadialEntry, Reply } from '@openmemorykit/ui/contract'
 import { namespaceId, splitNamespacedId } from './namespaced-id'
@@ -31,8 +32,6 @@ export function toPageNotification(owner: string, notification: Notification): O
   const { key } = notification
   return { owner, notification: key === undefined ? notification : { ...notification, key: namespaceId(owner, key) } }
 }
-
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === 'object' && value !== null
 
 function localIdOf(namespacedId: string, owner: string): string | null {
   const parts = splitNamespacedId(namespacedId)

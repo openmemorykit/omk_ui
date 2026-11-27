@@ -1,3 +1,4 @@
+import { isRecord } from '@openmemorykit/core/shared'
 import { CONFIRMS_PER_OWNER, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { fromPageReply, type LocalReply } from './owned'
 import type { PageEvent, StackSnapshot } from './stack'
@@ -15,7 +16,7 @@ export interface ReceivedPageEvent {
 const isList = (value: unknown): value is readonly unknown[] => Array.isArray(value)
 
 export function receivePageEvent(event: PageEvent): ReceivedPageEvent | null {
-  if (typeof event !== 'object' || event === null) return null
+  if (!isRecord(event)) return null
   const { stack, replies: sent } = event
   if (!isList(sent) || sent.length > PAGE_EVENT_MAX_REPLIES) return null
   const replies = Object.freeze(sent.flatMap((owned) => fromPageReply(owned) ?? []))

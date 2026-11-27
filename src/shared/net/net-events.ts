@@ -1,7 +1,8 @@
-import type { ValueOf } from '@openmemorykit/core/shared'
+import { hasOwnKey, isRecord, type ValueOf } from '@openmemorykit/core/shared'
 import { NotificationSchema, TEXT_MAX_LENGTH } from '@openmemorykit/ui/contract'
 import * as v from 'valibot'
 import { Intent } from '../../protocol/intents'
+import { RESERVED_OBJECT_KEYS } from '../reserved-keys'
 
 export const NetEvent = { Trace: 'omk_ui:trace', Report: 'omk_ui:report', Notify: 'omk_ui:notify', Command: 'omk_ui:command' } as const
 export type NetEvent = ValueOf<typeof NetEvent>
@@ -27,8 +28,6 @@ export const ASK_TEXT_MIN_LENGTH = 1
 export const ASK_TEXT_MAX_LENGTH = TEXT_MAX_LENGTH
 const IDENTIFIER_MIN = 0
 const RESERVED_KEY_SCAN_DEPTH = 4
-const PROTOTYPE_PROPERTY = 'prototype'
-const RESERVED_KEYS: readonly string[] = Object.freeze([...Object.getOwnPropertyNames(Object.prototype), PROTOTYPE_PROPERTY])
 
 const RequestIdentifierSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(IDENTIFIER_MIN))
 
@@ -58,13 +57,13 @@ export type AskCommand = v.InferOutput<typeof AskCommandSchema>
 export type ServerToClientCommand = TraceCommand | NotifyCommand | SnapshotCommand | DemoCommand | IntentCommand | CloseCommand | AskCommand
 
 function isContainer(value: unknown): value is object {
-  return typeof value === 'object' && value !== null
+  return Array.isArray(value) || isRecord(value)
 }
 
 function hasReservedOwnKey(value: unknown, depth: number): boolean {
   if (!isContainer(value)) return false
   if (depth >= RESERVED_KEY_SCAN_DEPTH) return true
-  if (RESERVED_KEYS.some((key) => Object.prototype.hasOwnProperty.call(value, key))) return true
+  if (RESERVED_OBJECT_KEYS.some((key) => hasOwnKey(value, key))) return true
   return Object.values(value).some((child) => hasReservedOwnKey(child, depth + 1))
 }
 

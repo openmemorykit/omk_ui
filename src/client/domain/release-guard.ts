@@ -1,4 +1,4 @@
-import type { ValueOf } from '@openmemorykit/core/shared'
+import { isRecord, type ValueOf } from '@openmemorykit/core/shared'
 
 export const RELEASE_GUARD_CAP_MS = 2000
 export const VIEW_CONTROL = 0
@@ -69,10 +69,6 @@ function stepEscape(guard: ReleaseGuard & { readonly kind: typeof GuardKind.Esca
   if (input.signal === GuardSignal.PageBlurred) return ending(GuardEnd.Blurred)
   if (input.signal !== GuardSignal.Frame) return ending(GuardEnd.Capped)
   return isCapped(guard.startedAt, input.now) ? ending(GuardEnd.Capped) : staying(guard)
-}
-
-function isRecord(value: unknown): boolean {
-  return typeof value === 'object' && value !== null
 }
 
 export function stepReleaseGuard(guard: ReleaseGuard, input: GuardInput): GuardStep {
