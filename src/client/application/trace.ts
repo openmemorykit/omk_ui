@@ -25,7 +25,7 @@ export function traceLine(ports: ClientPorts, store: SessionStore, line: TraceLi
   }
 }
 
-function rememberedAt(lastLimitedAt: ReadonlyMap<string, number>, key: string, now: number): ReadonlyMap<string, number> {
+export function rememberedAt(lastLimitedAt: ReadonlyMap<string, number>, key: string, now: number): ReadonlyMap<string, number> {
   const remembered = new Map(lastLimitedAt)
   remembered.delete(key)
   remembered.set(key, now)
@@ -34,11 +34,15 @@ function rememberedAt(lastLimitedAt: ReadonlyMap<string, number>, key: string, n
   return remembered
 }
 
+export function limitedWindowStillOpen(lastLimitedAt: ReadonlyMap<string, number>, key: string, now: number, intervalMs: number): boolean {
+  const lastWrittenAt = lastLimitedAt.get(key)
+  return lastWrittenAt !== undefined && now - lastWrittenAt < intervalMs
+}
+
 export function traceLimited(ports: ClientPorts, store: SessionStore, line: TraceLine, key: string, intervalMs: number): void {
   const now = ports.clock.now()
   const session = store.read()
-  const lastWrittenAt = session.trace.lastLimitedAt.get(key)
-  if (lastWrittenAt !== undefined && now - lastWrittenAt < intervalMs) return
+  if (limitedWindowStillOpen(session.trace.lastLimitedAt, key, now, intervalMs)) return
   store.write({ ...session, trace: { ...session.trace, lastLimitedAt: rememberedAt(session.trace.lastLimitedAt, key, now) } })
   traceLine(ports, store, line)
 }

@@ -15,6 +15,7 @@ import { expectKeepInputNeverTurnedOn, linesOf, registryWithPrompt, storeWith, w
 
 const NOW = 3000
 const HOLD_ID = 'garage/open-door'
+const OTHER_OWNER = 'bank'
 
 afterEach(expectKeepInputNeverTurnedOn)
 
@@ -131,5 +132,90 @@ describe('control 51 on the pad', () => {
     ports.controls.setUsingKeyboard(false)
     pumpFrame(ports, storeWith({ registry: registryWithPrompt(HOLD_PROMPT), modality: Modality.Gamepad, mode: UiMode.Panels }), INPUT_DEFAULTS)
     expect(ports.controls.calls.filter((call) => call.args[0] === INTERACT_CONTROL)).toStrictEqual([])
+  })
+})
+
+describe('a hold that must not outlive its conditions', () => {
+  function padHold(): { ports: ReturnType<typeof watchedPorts>; store: ReturnType<typeof storeWith> } {
+    const ports = watchedPorts(NOW)
+    ports.controls.setUsingKeyboard(false)
+    const store = promptStore(HOLD_PROMPT, Modality.Gamepad)
+    ports.controls.pressControl(INTERACT_CONTROL)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    ports.controls.endFrame()
+    return { ports, store }
+  }
+
+  function expectCancelledWithoutReply(ports: ReturnType<typeof watchedPorts>, store: ReturnType<typeof storeWith>): void {
+    expect(ports.nui.sent.at(-1)).toStrictEqual(progress(PromptState.Cancelled))
+    expect(ports.replies.attempts).toStrictEqual([])
+    expect(store.read().prompt.phase).toBe(PromptPhase.Shown)
+  }
+
+  it('cancels a pad hold when a menu opens, even if the full duration then elapses', () => {
+    const { ports, store } = padHold()
+    store.write({ ...store.read(), mode: UiMode.Panels })
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    expectCancelledWithoutReply(ports, store)
+  })
+
+  it('cancels a pad hold when the kit pauses', () => {
+    const { ports, store } = padHold()
+    store.write({ ...store.read(), paused: true })
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    expectCancelledWithoutReply(ports, store)
+  })
+
+  it('cancels a pad hold when the modality switches to keyboard and mouse', () => {
+    const { ports, store } = padHold()
+    ports.controls.setUsingKeyboard(true)
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    expectCancelledWithoutReply(ports, store)
+  })
+
+  it('cancels a command hold when a menu opens', () => {
+    const ports = watchedPorts(NOW)
+    const store = promptStore()
+    interactPress(ports, store)
+    store.write({ ...store.read(), mode: UiMode.Panels })
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    expectCancelledWithoutReply(ports, store)
+  })
+
+  it('keeps a command hold through a modality switch', () => {
+    const ports = watchedPorts(NOW)
+    const store = promptStore()
+    interactPress(ports, store)
+    store.write({ ...store.read(), modality: Modality.Gamepad })
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    expect(ports.nui.sent.at(-1)).toStrictEqual(progress(PromptState.Completed))
+  })
+
+  it('does not complete another prompt that appeared during the hold', () => {
+    const ports = watchedPorts(NOW)
+    const store = promptStore()
+    interactPress(ports, store)
+    store.write({ ...store.read(), registry: { ...EMPTY_REGISTRY, prompts: [{ owner: FixtureOwner.Garage, prompt: HOLD_PROMPT }, { owner: FixtureOwner.Garage, prompt: PRESS_PROMPT }] } })
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    interactRelease(ports, store)
+    expect(ports.replies.attempts).toStrictEqual([])
+    expect(ports.nui.sent).toStrictEqual([progress(PromptState.Holding)])
+    expect(store.read().prompt.phase).toBe(PromptPhase.Shown)
+  })
+
+  it('does not complete a prompt of another owner with the same id', () => {
+    const ports = watchedPorts(NOW)
+    const store = promptStore()
+    interactPress(ports, store)
+    store.write({ ...store.read(), registry: { ...EMPTY_REGISTRY, prompts: [{ owner: FixtureOwner.Garage, prompt: HOLD_PROMPT }, { owner: OTHER_OWNER, prompt: HOLD_PROMPT }] } })
+    ports.clock.advance(HOLD_PROMPT_MS)
+    pumpFrame(ports, store, INPUT_DEFAULTS)
+    expect(ports.replies.attempts).toStrictEqual([])
   })
 })

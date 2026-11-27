@@ -1,7 +1,7 @@
 import type { ValueOf } from '@openmemorykit/core/shared'
 import type { ClientPorts } from './ports'
 import type { SessionStore } from './session-state'
-import { LIMITED_TRACE_KEYS_MAX, ONE_LINE_PER_MINUTE_MS } from './trace'
+import { limitedWindowStillOpen, ONE_LINE_PER_MINUTE_MS, rememberedAt } from './trace'
 
 export const FrameStep = {
   Modality: 'modality',
@@ -20,21 +20,11 @@ export const FRAME_STEP_FAILED_LINE = '[omk_ui] frame step failed, the loop keep
 
 const CONSOLE_KEY_PREFIX = 'console:'
 
-function rememberedAt(lastLimitedAt: ReadonlyMap<string, number>, key: string, now: number): ReadonlyMap<string, number> {
-  const remembered = new Map(lastLimitedAt)
-  remembered.delete(key)
-  remembered.set(key, now)
-  const oldest = remembered.keys().next()
-  if (remembered.size > LIMITED_TRACE_KEYS_MAX && oldest.done !== true) remembered.delete(oldest.value)
-  return remembered
-}
-
 export function printLimited(ports: ClientPorts, store: SessionStore, key: string, intervalMs: number, line: string): void {
   const now = ports.clock.now()
   const session = store.read()
   const consoleKey = `${CONSOLE_KEY_PREFIX}${key}`
-  const lastPrintedAt = session.trace.lastLimitedAt.get(consoleKey)
-  if (lastPrintedAt !== undefined && now - lastPrintedAt < intervalMs) return
+  if (limitedWindowStillOpen(session.trace.lastLimitedAt, consoleKey, now, intervalMs)) return
   store.write({ ...session, trace: { ...session.trace, lastLimitedAt: rememberedAt(session.trace.lastLimitedAt, consoleKey, now) } })
   ports.console.print(line)
 }
