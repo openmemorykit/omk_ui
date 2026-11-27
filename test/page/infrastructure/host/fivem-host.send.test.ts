@@ -1,6 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { HostWarning, SESSION_TOKEN_KEY, WARNING_INTERVAL_MS } from '../../../../src/page/infrastructure/host/fivem-host'
+import { HostWarning, PENDING_PAGE_ERRORS_MAX, SESSION_TOKEN_KEY, WARNING_INTERVAL_MS } from '../../../../src/page/infrastructure/host/fivem-host'
 import { FromPage, type FromPageMessage } from '../../../../src/protocol/from-page'
 import { ReportKind } from '../../../../src/shared/report/report-kind'
 import { FROM_PAGE_SAMPLES } from '../../../fixtures/messages'
@@ -98,6 +98,67 @@ describe('callbacks with token', () => {
     harness.host.send({ type: 'toString' } as unknown as FromPageMessage)
     expect(harness.post).not.toHaveBeenCalled()
     expect(harness.warnings[0]).toContain(HostWarning.UnknownCallback)
+  })
+})
+
+describe('page errors before the first boot', () => {
+  const ERROR = FROM_PAGE_SAMPLES[FromPage.PageError]
+  const FIRST = 1
+  const SECOND = 2
+  const errorNumber = (position: number): FromPageMessage => ({ ...ERROR, message: `startup failure ${String(position)}` })
+  const isOriginLine = (body: unknown): boolean => (body as { message: string }).message.startsWith('message origin')
+  const errorsSent = (): readonly unknown[] => harness.calls().filter((call) => call.url === urlOf(FromPage.PageError)).map((call) => call.body).filter((body) => !isOriginLine(body))
+
+  it('keeps a page error raised before boot and posts it with the token when the first boot arrives', () => {
+    harness.attach()
+    harness.post.mockClear()
+    harness.host.send(ERROR)
+    expect(harness.post).not.toHaveBeenCalled()
+    harness.boot(TOKEN)
+    expect(errorsSent()).toEqual([{ ...ERROR, [SESSION_TOKEN_KEY]: TOKEN }])
+  })
+
+  it('posts the queued errors once, in order, and not again at the next boot', () => {
+    harness.attach()
+    harness.post.mockClear()
+    harness.host.send(errorNumber(FIRST))
+    harness.host.send(errorNumber(SECOND))
+    harness.boot(TOKEN)
+    harness.boot(NEXT_TOKEN)
+    expect(errorsSent().map((body) => (body as { message: string }).message)).toEqual([`startup failure ${String(FIRST)}`, `startup failure ${String(SECOND)}`])
+  })
+
+  it('keeps the first errors only, up to a bound, so that a loop cannot fill the memory', () => {
+    harness.attach()
+    harness.post.mockClear()
+    for (let position = 0; position < PENDING_PAGE_ERRORS_MAX + DROPS; position += 1) harness.host.send(errorNumber(position))
+    harness.boot(TOKEN)
+    const messages = errorsSent().map((body) => (body as { message: string }).message)
+    expect(messages).toHaveLength(PENDING_PAGE_ERRORS_MAX)
+    expect(messages[0]).toBe('startup failure 0')
+  })
+
+  it('does not post a queued error when the boot is refused', () => {
+    harness.attach()
+    harness.post.mockClear()
+    harness.host.send(ERROR)
+    harness.boot('')
+    expect(errorsSent()).toEqual([])
+  })
+
+  it('shows the content of an error queued before boot in the console, because nobody else can read it yet', () => {
+    harness.attach()
+    harness.host.send(ERROR)
+    expect(harness.warnings[0]).toContain(HostWarning.QueuedBeforeBoot)
+    expect(harness.warnings[0]).toContain(ERROR.type === FromPage.PageError ? ERROR.message : '')
+  })
+
+  it('still drops every other callback before boot', () => {
+    harness.attach()
+    harness.post.mockClear()
+    harness.host.send(EVENT)
+    harness.boot(TOKEN)
+    expect(harness.calls().filter((call) => call.url === urlOf(FromPage.Event))).toEqual([])
   })
 })
 

@@ -2,12 +2,14 @@ import type { ValueOf } from '@openmemorykit/core/shared'
 import type { HostBridge } from '../../application/ports'
 import { FromPage, type FromPageMessage } from '../../../protocol/from-page'
 import { ToPage, type ToPageMessage } from '../../../protocol/to-page'
+import { createOriginJournal } from './origin-journal'
 
 export const SESSION_TOKEN_KEY = 'sessionToken'
 export const SESSION_TOKEN_MAX_LENGTH = 128
 export const WARNING_INTERVAL_MS = 60_000
 export const READY_RETRY_DELAY_MS = 2_000
 export const READY_MAX_RETRIES = 5
+export const PENDING_PAGE_ERRORS_MAX = 10
 
 export const HostWarning = {
   BootRefused: 'bootRefused',
@@ -16,6 +18,7 @@ export const HostWarning = {
   CallbackFailed: 'callbackFailed',
   ListenerFailed: 'listenerFailed',
   MessageUnreadable: 'messageUnreadable',
+  QueuedBeforeBoot: 'queuedBeforeBoot',
 } as const
 export type HostWarning = ValueOf<typeof HostWarning>
 
@@ -26,6 +29,7 @@ const JSON_CONTENT_TYPE = 'application/json; charset=UTF-8'
 const LINE_PREFIX = '[omk_ui] host'
 const DETAIL_MAX_LENGTH = 200
 const REDACTED = '<session token>'
+const START = 0
 const UNKNOWN_ERROR = 'unknown error'
 const TO_PAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(ToPage))
 const FROM_PAGE_TYPES: ReadonlySet<unknown> = new Set(Object.values(FromPage))
@@ -116,13 +120,33 @@ function createPoster(resourceName: string, post: typeof fetch, warn: Warn): Pos
   }
 }
 
-function createSender(currentToken: TokenReader, poster: Poster, ready: () => void, warn: Warn): (message: FromPageMessage) => void {
+interface PendingErrors {
+  readonly add: (message: FromPageMessage) => void
+  readonly flush: () => void
+}
+
+function createPendingErrors(post: (message: FromPageMessage) => void): PendingErrors {
+  const pending: FromPageMessage[] = []
+  return {
+    add(message) {
+      if (pending.length < PENDING_PAGE_ERRORS_MAX) pending.push(message)
+    },
+    flush: () => pending.splice(START).forEach(post),
+  }
+}
+
+function keepUntilBoot(message: FromPageMessage, pending: PendingErrors, warn: Warn): void {
+  if (message.type === FromPage.PageError) warn(HostWarning.QueuedBeforeBoot, message.message)
+  pending.add(message)
+}
+
+function createSender(currentToken: TokenReader, poster: Poster, ready: () => void, pending: PendingErrors, warn: Warn): (message: FromPageMessage) => void {
   return (message) => {
     const { type } = message
     if (!FROM_PAGE_TYPES.has(type)) return warn(HostWarning.UnknownCallback, 'message type outside FromPage')
     if (type === FromPage.Ready) return ready()
     const token = currentToken()
-    if (token === null) return warn(HostWarning.SendWithoutToken, type)
+    if (token === null) return type === FromPage.PageError ? keepUntilBoot(message, pending, warn) : warn(HostWarning.SendWithoutToken, type)
     poster(type, { ...message, [SESSION_TOKEN_KEY]: token })
   }
 }
@@ -149,9 +173,18 @@ function notify(registrations: ReadonlySet<Registration>, message: ToPageMessage
   }
 }
 
-function createMessageHandler(adoptToken: (token: string) => void, registrations: ReadonlySet<Registration>, warn: Warn): (event: MessageEvent<unknown>) => void {
+function recordOrigin(journal: (event: MessageEvent<unknown>) => void, event: MessageEvent<unknown>): void {
+  try {
+    journal(event)
+  } catch {
+    return
+  }
+}
+
+function createMessageHandler(journal: (event: MessageEvent<unknown>) => void, adoptToken: (token: string) => void, registrations: ReadonlySet<Registration>, warn: Warn): (event: MessageEvent<unknown>) => void {
   return (event) => {
     try {
+      recordOrigin(journal, event)
       const read = readMessage(event.data, warn)
       if (read === null) return
       if (read.token !== null) adoptToken(read.token)
@@ -196,8 +229,13 @@ export function createFivemHost(win: Window, resourceName: string, post: typeof 
   const poster = createPoster(resourceName, post, gate)
   const registrations = new Set<Registration>()
   const retry = createReadyRetry(win, poster, () => token === null && registrations.size > 0)
-  const send = createSender(currentToken, poster, retry.send, gate)
-  const onMessage = createMessageHandler((next) => void (token = next), registrations, gate)
+  const pending = createPendingErrors((message) => send(message))
+  const send = createSender(currentToken, poster, retry.send, pending, gate)
+  const adoptToken = (next: string): void => {
+    token = next
+    pending.flush()
+  }
+  const onMessage = createMessageHandler(createOriginJournal(win, (message) => (token === null ? pending.add(message) : send(message))), adoptToken, registrations, gate)
   return {
     send,
     listen(listener) {
