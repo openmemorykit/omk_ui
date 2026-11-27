@@ -14,12 +14,8 @@ const view = computed(() => columnView(state.value, translate))
 const enterClass = shallowRef(PUSH)
 const list = useTemplateRef<HTMLElement>('list')
 
-const rowsBefore = computed(() => `calc(${String(view.value?.windowStart ?? NO_ROWS)} * var(--row-height))`)
-const rowsAfter = computed(() => {
-  const current = view.value
-  const hidden = current === null ? NO_ROWS : current.rowCount - current.windowStart - current.rows.length
-  return `calc(${String(hidden)} * var(--row-height))`
-})
+const rowsBefore = computed(() => `calc(${String(view.value?.hiddenBefore ?? NO_ROWS)} * var(--row-height))`)
+const rowsAfter = computed(() => `calc(${String(view.value?.hiddenAfter ?? NO_ROWS)} * var(--row-height))`)
 
 function revealActive(): void {
   const wanted = view.value?.activeDescendant ?? null
@@ -28,14 +24,22 @@ function revealActive(): void {
   options.find((option) => option.id === wanted)?.scrollIntoView({ block: 'nearest' })
 }
 
+function takeFocus(): void {
+  if (view.value?.covered === false) list.value?.focus({ preventScroll: true })
+}
+
 watch(
-  () => view.value?.crumbs.length ?? NO_ROWS,
+  () => view.value?.depth ?? NO_ROWS,
   (depth, before) => {
     enterClass.value = depth < before ? POP : PUSH
   },
 )
 watch(() => [view.value?.panelId, view.value?.activeDescendant], revealActive, { flush: 'post' })
-onMounted(revealActive)
+watch(() => [view.value?.panelId, view.value?.covered], takeFocus, { flush: 'post' })
+onMounted(() => {
+  revealActive()
+  takeFocus()
+})
 </script>
 
 <template>
@@ -48,7 +52,7 @@ onMounted(revealActive)
         <span v-if="view.subtitle !== null" class="omk-banner__subtitle">{{ view.subtitle }}</span>
       </span>
     </header>
-    <nav class="omk-crumbs omk-surface-deep">
+    <nav v-if="view.crumbs.length > 0" class="omk-crumbs omk-surface-deep">
       <template v-for="(crumb, index) in view.crumbs" :key="crumb.id">
         <svg v-if="index > 0" class="omk-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="CHEVRON_RIGHT" /></svg>
         <span class="omk-crumbs__crumb" :class="{ 'is-current': index === view.crumbs.length - 1 }">{{ crumb.title }}</span>
@@ -57,7 +61,7 @@ onMounted(revealActive)
     <div class="omk-column__body">
       <div v-if="view.covered" class="omk-column__layer omk-surface-raised"><slot name="layer" /></div>
       <div class="omk-rows">
-        <div :key="view.panelId" ref="list" class="omk-rows__list" :class="enterClass" role="listbox" :aria-label="view.title" :aria-activedescendant="view.activeDescendant ?? undefined">
+        <div :key="view.panelId" ref="list" class="omk-rows__list" :class="enterClass" role="listbox" tabindex="-1" :aria-label="view.title" :aria-activedescendant="view.activeDescendant ?? undefined">
           <div class="omk-rows__spacer" aria-hidden="true" :style="{ height: rowsBefore }" />
           <template v-for="entry in view.rows" :key="entry.id">
             <ItemRow v-if="entry.kind === ColumnRowKind.Item" :row="entry.row" />
@@ -72,7 +76,7 @@ onMounted(revealActive)
           <svg class="omk-icon omk-foot__arrow" :class="{ 'is-on': view.canScrollUp }" viewBox="0 0 24 24"><path :d="CHEVRON_UP" /></svg>
           <svg class="omk-icon omk-foot__arrow" :class="{ 'is-on': view.canScrollDown }" viewBox="0 0 24 24"><path :d="CHEVRON_DOWN" /></svg>
         </span>
-        <span v-if="view.counter !== null" class="omk-foot__position"><span class="omk-foot__count">{{ view.counter.position }}</span> <span class="omk-foot__total">/ {{ view.counter.total }}</span></span>
+        <span v-if="view.counter !== null" class="omk-foot__position">{{ view.counter.text }}</span>
       </footer>
     </div>
     <p v-if="view.description !== null" class="omk-description omk-secondary">
@@ -206,7 +210,7 @@ onMounted(revealActive)
   color: var(--ink-faint);
 }
 
-.omk-foot__arrow.is-on, .omk-foot__count {
+.omk-foot__arrow.is-on {
   color: var(--ink);
 }
 

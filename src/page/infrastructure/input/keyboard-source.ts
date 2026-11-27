@@ -22,7 +22,10 @@ export function createKeyboardSource(target: Window, dispatch: Dispatch, read: (
 
   function onKeyDown(event: KeyboardEvent): void {
     if (event.code === KeyCode.Tab) event.preventDefault()
-    if (event.repeat) return
+    if (event.repeat) {
+      if (pressed.has(event.code)) event.preventDefault()
+      return
+    }
     const state = read()
     if (event.code === state.pushToTalkCode) return
     const outcome = mapKey({ code: event.code, key: event.key, shift: event.shiftKey, inTextField: state.textFieldFocused }, state.bindings)

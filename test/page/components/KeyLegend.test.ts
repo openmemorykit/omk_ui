@@ -19,6 +19,8 @@ function render(state: UiState): VueWrapper {
 
 const radial = (overrides: Partial<UiState> = {}): UiState => ({ ...radialState([radialEntry('a')]), ...overrides })
 
+const BACK_GLYPHS = 2
+
 describe('KeyLegend', () => {
   it('renders nothing when the view has no legend', () => {
     expect(render(createInitialState()).find('[data-surface="legend"]').exists()).toBe(false)
@@ -60,13 +62,15 @@ describe('KeyLegend', () => {
     expect(labels).toContain('t:ui.glyph.pad.leftStick')
   })
 
-  it('marks a hold entry with the translated hold word and a data attribute', () => {
+  it('shows escape and B once, with back and, after the hold word, close all', () => {
     const item = { ...itemOf(ItemKind.Action), id: 'focused' }
     const wrapper = render(panelsState([item], 'focused'))
     const holds = wrapper.findAll('[data-hold="true"]')
     expect(holds).toHaveLength(1)
-    expect(holds[0]?.text()).toContain(`t:ui.legend.${LegendAction.CloseAll}`)
+    expect(holds[0]?.text()).toContain(`t:ui.legend.${LegendAction.Back}`)
     expect(holds[0]?.text()).toContain('t:ui.prompt.hold')
+    expect(holds[0]?.text()).toContain(`t:ui.legend.${LegendAction.CloseAll}`)
+    expect(holds[0]?.findAll('[role="img"]')).toHaveLength(BACK_GLYPHS)
     expect(wrapper.findAll('[data-hold="false"] .omk-legend__hold')).toHaveLength(0)
   })
 })

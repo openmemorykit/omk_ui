@@ -23,7 +23,7 @@ export interface Survey {
   readonly texts: readonly SurveyText[]
   readonly surfaces: readonly SurveySurface[]
   readonly radial: Box | null
-  readonly column: { readonly dimmed: boolean; readonly opacityProduct: number; readonly veilColor: string } | null
+  readonly column: { readonly dimmed: boolean; readonly opacityProduct: number; readonly veilColor: string; readonly veilDisplay?: string } | null
   readonly animations: readonly SurveyAnimation[]
   readonly essentialAnimated: number
 }

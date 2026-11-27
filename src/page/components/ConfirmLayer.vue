@@ -20,24 +20,24 @@ function choiceClasses(choice: ChoiceView): Record<string, boolean> {
 </script>
 
 <template>
-  <section class="omk-confirm omk-surface-raised omk-surface-lifted omk-anim-rise" data-surface="confirm" role="dialog" aria-modal="true" :aria-label="view.title">
+  <section class="omk-confirm omk-surface-raised omk-surface-lifted omk-anim-rise" data-surface="confirm" role="dialog" aria-modal="true" :aria-label="view.title" aria-describedby="omk-confirm-text">
     <div class="omk-layer-head" :class="{ 'layer-head--danger': view.danger }">
       <span class="omk-layer-title">{{ view.title }}</span>
     </div>
-    <p class="omk-confirm__text omk-secondary">{{ view.text }}</p>
-    <ul class="omk-confirm__choices">
-      <li
+    <p id="omk-confirm-text" class="omk-confirm__text omk-secondary">{{ view.text }}</p>
+    <div class="omk-confirm__choices" role="group">
+      <div
         v-for="choice in view.choices"
         :key="choice.id"
         class="omk-row"
         :class="choiceClasses(choice)"
         role="button"
-        @mouseenter="hover(choice)"
+        @mousemove="hover(choice)"
         @click="choose(choice)"
       >
         <span class="omk-row__label">{{ choice.label }}</span>
-      </li>
-    </ul>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -79,6 +79,5 @@ function choiceClasses(choice: ChoiceView): Record<string, boolean> {
   margin: 0;
   padding: 0;
   background-color: var(--panel);
-  list-style: none;
 }
 </style>

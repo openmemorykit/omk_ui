@@ -65,7 +65,7 @@ describe('appView', () => {
   })
 
   it('is visible for a prompt alone', () => {
-    const state = { ...createInitialState(), prompt: { prompt: prompt(PromptMode.Press), state: null, holdMs: 0 } }
+    const state = { ...createInitialState(), prompt: { prompt: prompt(PromptMode.Press), state: null, holdMs: 0, holdStartedAt: null, heldFraction: 0 } }
     expect(appView(state, translate).visible).toBe(true)
   })
 

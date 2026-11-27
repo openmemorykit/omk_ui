@@ -5,12 +5,13 @@ import type { Dispatch } from '../../../src/page/application/ports'
 import RadialMenu from '../../../src/page/components/RadialMenu.vue'
 import { UI_CONTEXT, type UiContext } from '../../../src/page/components/use-ui'
 import { PageCommandType } from '../../../src/page/domain/page-commands'
-import { pointerVector, RADIAL_SUBRING_OUTER, sectorCenterAngle } from '../../../src/page/domain/radial-geometry'
+import { childCenterAngle, pointerVector, RADIAL_SUBRING_OUTER, sectorCenterAngle } from '../../../src/page/domain/radial-geometry'
 import { createInitialState, RadialLevel } from '../../../src/page/domain/ui-state'
 import { Intent, IntentPhase } from '../../../src/protocol/intents'
 import { radialEntry, radialState, translate } from '../application/views/helpers'
 
 const SECTORS = 6
+const AIM_PRESS_RELEASE = 3
 const PARENT = 1
 const THIRD = 2
 const CHILD_COUNT = 3
@@ -95,9 +96,9 @@ describe('RadialMenu', () => {
 
   it('points the needle at the aimed leaf at level 2', () => {
     const { wrapper } = mountRadial(level2(0))
-    const sector = wrapper.get('.omk-radial__needle').attributes('transform')
-    expect(sector).toContain('rotate(')
-    expect(sector).not.toContain(`rotate(${sectorCenterAngle(PARENT, SECTORS)})`)
+    const angle = childCenterAngle(PARENT, SECTORS, 0, CHILD_COUNT)
+    expect(wrapper.get('.omk-radial__needle').attributes('transform')).toContain(`rotate(${angle})`)
+    expect(angle).not.toBe(sectorCenterAngle(PARENT, SECTORS))
   })
 
   it('shows the name, description and icon of the aimed sector in the center', () => {
@@ -120,15 +121,46 @@ describe('RadialMenu', () => {
     const { wrapper } = mountRadial(radialState(ENTRIES), '<span id="legend">legend</span>')
     expect(wrapper.get('#legend').text()).toBe('legend')
     expect(wrapper.get('[role="menu"]').find('#legend').exists()).toBe(false)
+    const follows = wrapper.get('#legend').element.compareDocumentPosition(wrapper.get('[role="menu"]').element)
+    expect(follows & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('confirms with exactly one press then one release on a click', async () => {
+  it('names the menu, marks the aimed item as current and the sectors that open a sub-ring as popups', () => {
+    const { wrapper } = mountRadial()
+    expect(wrapper.get('[role="menu"]').attributes('aria-label')).toBe('t:ui.radial.label')
+    const items = wrapper.findAll('[role="menuitem"]')
+    expect(items.map((item) => item.attributes('aria-current'))).toEqual(ENTRIES.map((_unused, index) => (index === 0 ? 'true' : undefined)))
+    expect(items.map((item) => item.attributes('aria-haspopup'))).toEqual(ENTRIES.map((_unused, index) => (index === PARENT ? 'menu' : undefined)))
+  })
+
+  it('aims at the point clicked, then confirms with exactly one press and one release', async () => {
     const { wrapper, dispatch } = mountRadial()
-    await wrapper.get('[role="menu"]').trigger('click')
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('click', { clientX: HALF_BOX + RING_OFFSET, clientY: HALF_BOX })
+    const vector = pointerVector({ x: HALF_BOX + RING_OFFSET, y: HALF_BOX }, { x: HALF_BOX, y: HALF_BOX }, 1)
     expect(dispatch.mock.calls.map(([command]) => command)).toEqual([
+      { type: PageCommandType.PointerAim, vector },
       { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Press, fromEscape: false },
       { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Release, fromEscape: false },
     ])
+  })
+
+  it('aims at the sector clicked, not at the one the pointer last moved over, when the click comes without a move', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('pointermove', { clientX: HALF_BOX + RING_OFFSET, clientY: HALF_BOX })
+    dispatch.mockClear()
+    await wrapper.get('[role="menu"]').trigger('click', { clientX: HALF_BOX - RING_OFFSET, clientY: HALF_BOX })
+    const aimed = dispatch.mock.calls[0]?.[0]
+    expect(aimed).toEqual({ type: PageCommandType.PointerAim, vector: pointerVector({ x: HALF_BOX - RING_OFFSET, y: HALF_BOX }, { x: HALF_BOX, y: HALF_BOX }, 1) })
+    expect(dispatch).toHaveBeenCalledTimes(AIM_PRESS_RELEASE)
+  })
+
+  it('confirms nothing on a click in the hole even when no pointer move came first', async () => {
+    const { wrapper, dispatch } = mountRadial()
+    sizeBox(wrapper)
+    await wrapper.get('[role="menu"]').trigger('click', { clientX: HALF_BOX + HOLE_OFFSET, clientY: HALF_BOX })
+    expect(dispatch).not.toHaveBeenCalled()
   })
 
   it('confirms nothing on a click in the central hole', async () => {
@@ -176,6 +208,7 @@ describe('RadialMenu', () => {
     dispatch.mockClear()
     await wrapper.get('[role="menu"]').trigger('click', { clientX: HALF_BOX + RING_OFFSET, clientY: HALF_BOX })
     expect(dispatch.mock.calls.map(([command]) => command)).toEqual([
+      { type: PageCommandType.PointerAim, vector: pointerVector({ x: HALF_BOX + RING_OFFSET, y: HALF_BOX }, { x: HALF_BOX, y: HALF_BOX }, 1) },
       { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Press, fromEscape: false },
       { type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Release, fromEscape: false },
     ])

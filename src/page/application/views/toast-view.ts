@@ -14,9 +14,11 @@ export interface ToastView {
 export interface ToastsView {
   readonly toasts: readonly ToastView[]
   readonly waiting: number
+  readonly waitingLabel: string | null
 }
 
 const FIRST_OCCURRENCE = 0
+const NONE_WAITING = 0
 
 function baseId(toast: Toast): string {
   const { owner, notification } = toast.owned
@@ -38,5 +40,6 @@ export function toastsView(state: UiState, translate: Translate): ToastsView {
       text: notification.text ?? null,
     }
   })
-  return { toasts, waiting: state.toasts.waiting.length }
+  const waiting = state.toasts.waiting.length
+  return { toasts, waiting, waitingLabel: waiting === NONE_WAITING ? null : translate('ui.toast.waiting', { count: waiting }) }
 }
