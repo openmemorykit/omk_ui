@@ -18,6 +18,7 @@ import { traceLine } from './trace'
 
 export const RADIAL_COMMAND_IGNORED_KEY = 'radialCommandIgnored'
 export const RADIAL_COMMAND_IGNORED_LINE = '[omk_ui] +omk_ui_radial ignored: a menu is already open (printed once)'
+const PLUS_COMMAND_KEYBOARD_SOURCE_MODALITY = Modality.KeyboardMouse
 
 export function gestureSettings(input: InputConfig): GestureSettings {
   return { holdMs: input.padHoldMs, padHoldGesture: input.padHoldGesture }
@@ -85,13 +86,13 @@ export function radialPress(ports: ClientPorts, store: SessionStore, input: Inpu
     return
   }
   changeModality(ports, store, readModality(ports))
-  pressGesture(ports, store, input, Modality.KeyboardMouse)
+  pressGesture(ports, store, input, PLUS_COMMAND_KEYBOARD_SOURCE_MODALITY)
 }
 
 export function radialRelease(ports: ClientPorts, store: SessionStore, input: InputConfig): void {
   const session = store.read()
   const gesture = session.gesture
-  if (gesture.phase !== GesturePhase.Held || gesture.modality !== Modality.KeyboardMouse) return
+  if (gesture.phase !== GesturePhase.Held || gesture.modality !== PLUS_COMMAND_KEYBOARD_SOURCE_MODALITY) return
   const step = stepGesture(gesture, { signal: GestureSignal.Release, at: ports.clock.now() }, gestureSettings(input))
   store.write({ ...session, gesture: step.state })
   startOrStopPump(ports, store)
