@@ -4,7 +4,7 @@ export const CONSOLE_PREFIX = '[omk_ui]'
 export const PRINTED_KEYS_MAX = 64
 export const ONE_LINE_PER_SECOND_MS = 1000
 
-export function printLine(context: UseCaseContext, line: string): void {
+export function printConsoleLine(context: UseCaseContext, line: string): void {
   try {
     context.ports.console.print(`${CONSOLE_PREFIX} ${line}`)
   } catch {
@@ -21,11 +21,11 @@ function rememberedAt(printedAt: ReadonlyMap<string, number>, key: string, now: 
   return remembered
 }
 
-export function printLimited(context: UseCaseContext, key: string, line: string, intervalMs: number): void {
+export function printConsoleLimited(context: UseCaseContext, key: string, line: string, intervalMs: number): void {
   const now = context.ports.clock.now()
   const { printedAt } = context.memory.read()
   const lastPrintedAt = printedAt.get(key)
   if (lastPrintedAt !== undefined && now - lastPrintedAt < intervalMs) return
   rememberLink(context, { printedAt: rememberedAt(printedAt, key, now) })
-  printLine(context, line)
+  printConsoleLine(context, line)
 }

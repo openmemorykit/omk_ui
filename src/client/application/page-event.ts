@@ -9,7 +9,7 @@ import { isCommandSeq, type PageEvent, type StackSnapshot } from '../../protocol
 import { ReportKind } from '../../shared/report/report-kind'
 import { closedByPlayer } from '../domain/open-blockers'
 import { reconcileStack, settleConfirm, type RegistryState } from '../domain/owner-registry'
-import { printLimited } from './limited-console'
+import { printConsoleLimited } from './console-lines'
 import { deliverReplies } from './owner-replies'
 import { forceBoot } from './page-link'
 import { reserveForSelectedOwner } from './reservation'
@@ -87,13 +87,13 @@ function settleReply(context: UseCaseContext, { owner, reply }: LocalReply, empt
 export function applyPageEvent(context: UseCaseContext, body: unknown): void {
   const received = readEvent(body)
   if (received === null) {
-    printLimited(context, FromPage.Event, 'unreadable page event ignored', ONE_LINE_PER_MINUTE_MS)
+    printConsoleLimited(context, FromPage.Event, 'unreadable page event ignored', ONE_LINE_PER_MINUTE_MS)
     return
   }
   if (!applyStackSnapshot(context, received.stack)) return
   const replies = received.replies.filter((owned) => v.is(ReplySchema, owned.reply))
   const unread = received.unreadReplies + received.replies.length - replies.length
-  if (unread > 0) printLimited(context, ReportKind.ReplyUndelivered, `unreadable page replies ignored: ${unread}`, ONE_LINE_PER_MINUTE_MS)
+  if (unread > 0) printConsoleLimited(context, ReportKind.ReplyUndelivered, `unreadable page replies ignored: ${unread}`, ONE_LINE_PER_MINUTE_MS)
   const emptiedStack = received.stack !== null && received.stack.entries.length === 0
   replies.forEach((owned) => settleReply(context, owned, emptiedStack))
   deliverReplies(context, replies)
