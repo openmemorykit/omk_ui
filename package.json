@@ -21,7 +21,8 @@
     "sizes": "node tools/sizes.mjs omk_ui/web",
     "css-guard": "node tools/css-guard.mjs omk_ui/web/assets",
     "capture": "node tools/capture.mjs",
-    "release": "npm run check && node tools/release.mjs"
+    "release": "npm run check && node tools/release.mjs",
+    "export-build": "node tools/export-build.mjs"
   },
   "dependencies": {
     "@fontsource/archivo-narrow": "5.3.0",
