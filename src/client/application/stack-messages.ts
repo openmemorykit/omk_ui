@@ -6,7 +6,7 @@ import { UNAPPLIED_COMMANDS_MAX, type ShowConfirmCommand } from '../domain/regis
 import { declinedConfirmReply, deliverReplies, panelClosedReply } from './owner-replies'
 import { withPanelsSentBy } from './panels-on-page'
 import { forceBoot } from './page-link'
-import { rememberLink, type UseCaseContext } from './use-case-context'
+import { updateBookkeeping, type UseCaseContext } from './use-case-context'
 
 function confirmMessage(command: ShowConfirmCommand, registry: RegistryState): ToPageMessage | null {
   const kept = registry.confirms.find((registered) => registered.seq === command.seq)
@@ -49,7 +49,7 @@ export function sendStackCommand(context: UseCaseContext, previous: RegistryStat
     forceBoot(context)
     return
   }
-  rememberLink(context, { panelsOnPage: withPanelsSentBy(context.memory.read().panelsOnPage, registry, command) })
+  updateBookkeeping(context, { panelsOnPage: withPanelsSentBy(context.bookkeeping.read().panelsOnPage, registry, command) })
   const message = stackMessage(command, registry)
   if (message !== null) context.ports.nui.send(message)
 }

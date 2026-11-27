@@ -8,7 +8,7 @@ export interface PendingSnapshot {
   readonly requestedAt: number
 }
 
-export interface LinkMemory {
+export interface PageBookkeeping {
   readonly readyCount: number
   readonly bootCommandSeq: number
   readonly panelsOnPage: PanelsOnPage
@@ -16,20 +16,20 @@ export interface LinkMemory {
   readonly pendingSnapshot: PendingSnapshot | null
 }
 
-export interface LinkMemoryStore {
-  read(): LinkMemory
-  write(next: LinkMemory): void
+export interface PageBookkeepingStore {
+  read(): PageBookkeeping
+  write(next: PageBookkeeping): void
 }
 
 export interface UseCaseContext {
   readonly ports: ClientPorts
   readonly store: SessionStore
-  readonly memory: LinkMemoryStore
+  readonly bookkeeping: PageBookkeepingStore
   readonly limiter: CallLimiter
   readonly kitVersion: string
 }
 
-export const EMPTY_LINK_MEMORY: LinkMemory = Object.freeze({
+export const EMPTY_PAGE_BOOKKEEPING: PageBookkeeping = Object.freeze({
   readyCount: 0,
   bootCommandSeq: 0,
   panelsOnPage: NO_PANELS_ON_PAGE,
@@ -38,16 +38,16 @@ export const EMPTY_LINK_MEMORY: LinkMemory = Object.freeze({
 })
 
 export function createUseCaseContext(ports: ClientPorts, store: SessionStore, kitVersion: string): UseCaseContext {
-  let current = EMPTY_LINK_MEMORY
-  const memory: LinkMemoryStore = {
+  let current = EMPTY_PAGE_BOOKKEEPING
+  const bookkeeping: PageBookkeepingStore = {
     read: () => current,
     write: (next) => {
       current = next
     },
   }
-  return { ports, store, memory, limiter: new CallLimiter(), kitVersion }
+  return { ports, store, bookkeeping, limiter: new CallLimiter(), kitVersion }
 }
 
-export function rememberLink(context: UseCaseContext, change: Partial<LinkMemory>): void {
-  context.memory.write({ ...context.memory.read(), ...change })
+export function updateBookkeeping(context: UseCaseContext, change: Partial<PageBookkeeping>): void {
+  context.bookkeeping.write({ ...context.bookkeeping.read(), ...change })
 }

@@ -12,7 +12,7 @@ import { decideSessionFocus } from './apply-focus'
 import { bindingLabels, currentGlyphSet, requestedLocale } from './boot-message'
 import type { ClientPorts } from './ports'
 import type { ClientSession, PageLink } from './session-state'
-import { rememberLink, type UseCaseContext } from './use-case-context'
+import { updateBookkeeping, type UseCaseContext } from './use-case-context'
 
 export const PAGE_SNAPSHOT_WAIT_MS = 2000
 export const SNAPSHOT_REPORT_MAX_BYTES = 8192
@@ -83,7 +83,7 @@ function clientState(context: UseCaseContext, session: ClientSession): Record<Cl
 
 function sendSnapshot(context: UseCaseContext, page: JsonObject | null): void {
   const { ports, store } = context
-  rememberLink(context, { pendingSnapshot: null })
+  updateBookkeeping(context, { pendingSnapshot: null })
   const session = store.read()
   const at = ports.clock.now()
   const complete = { client: clientState(context, session), page, owners: [...ownerUsages(session.registry)] }
@@ -92,12 +92,12 @@ function sendSnapshot(context: UseCaseContext, page: JsonObject | null): void {
 }
 
 export function requestSnapshot(context: UseCaseContext, requestId: number): void {
-  if (context.memory.read().pendingSnapshot !== null) sendSnapshot(context, null)
+  if (context.bookkeeping.read().pendingSnapshot !== null) sendSnapshot(context, null)
   if (!context.store.read().link.ready) {
     sendSnapshot(context, null)
     return
   }
-  rememberLink(context, { pendingSnapshot: { requestId, requestedAt: context.ports.clock.now() } })
+  updateBookkeeping(context, { pendingSnapshot: { requestId, requestedAt: context.ports.clock.now() } })
   context.ports.nui.send({ type: ToPage.SnapshotRequest, requestId })
 }
 
@@ -107,12 +107,12 @@ function pageState(body: Readonly<Record<string, unknown>>): JsonObject | null {
 }
 
 export function receivePageSnapshot(context: UseCaseContext, body: unknown): void {
-  const pending = context.memory.read().pendingSnapshot
+  const pending = context.bookkeeping.read().pendingSnapshot
   if (pending === null || !isRecord(body) || !hasOwnKey(body, REQUEST_FIELD) || body[REQUEST_FIELD] !== pending.requestId) return
   sendSnapshot(context, pageState(body))
 }
 
 export function expirePageSnapshot(context: UseCaseContext): void {
-  const pending = context.memory.read().pendingSnapshot
+  const pending = context.bookkeeping.read().pendingSnapshot
   if (pending !== null && context.ports.clock.now() - pending.requestedAt >= PAGE_SNAPSHOT_WAIT_MS) sendSnapshot(context, null)
 }
