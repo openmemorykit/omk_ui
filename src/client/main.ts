@@ -97,8 +97,8 @@ function startKit(consolePort: ConsolePort, onFailure: FailureHandler): void {
   const ports = createPorts(link, consolePort, onFailure)
   const startedKit = createClientKit(ports, ports.config.read().config, __OMK_VERSION__)
   kit = startedKit
-  replayEarlyPageMessages(startedKit, onFailure)
   connectEntryPoints(startedKit, link, ports, onFailure)
+  replayEarlyPageMessages(startedKit, onFailure)
 }
 
 function start(): void {
