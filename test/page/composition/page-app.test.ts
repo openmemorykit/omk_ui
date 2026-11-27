@@ -145,6 +145,16 @@ describe('legend placement', () => {
 })
 
 describe('live regions', () => {
+  it('speak the language of the locale as the root does, so that an announcement is not read with the language of the document', async () => {
+    page = mountScripted()
+    expect(page.container.querySelector('[role="status"]')?.getAttribute('lang')).toBeTruthy()
+    page.host.emit({ ...BOOT, locale: { ...BOOT.locale, language: 'en' } })
+    await settle()
+    expect(page.root().getAttribute('lang')).toBe('en')
+    expect(page.container.querySelector('[role="status"]')?.getAttribute('lang')).toBe('en')
+    expect(page.container.querySelector('[role="alert"]')?.getAttribute('lang')).toBe('en')
+  })
+
   it('announces an opened panel in the status region and a form error in the alert region', async () => {
     page = mountScripted()
     page.host.emit(TO_PAGE_SAMPLES[ToPage.OpenPanel])

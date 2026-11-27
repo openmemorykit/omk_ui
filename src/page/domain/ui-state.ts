@@ -57,7 +57,13 @@ export interface RadialState {
   readonly childIndex: number | null
 }
 
-export interface PromptView { readonly prompt: OwnedPrompt; readonly state: PromptState | null; readonly holdMs: number }
+export interface PromptView {
+  readonly prompt: OwnedPrompt
+  readonly state: PromptState | null
+  readonly holdMs: number
+  readonly holdStartedAt: number | null
+  readonly heldFraction: number
+}
 
 export interface UiState {
   readonly mode: UiMode

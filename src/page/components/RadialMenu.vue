@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { radialView } from '../application/views/radial-view'
 import { PageCommandType } from '../domain/page-commands'
 import { CHILD_STEP_DEGREES, pointerVector, RADIAL_RING_OUTER, RADIAL_SUBRING_INNER, RADIAL_SUBRING_OUTER } from '../domain/radial-geometry'
-import { Intent, IntentPhase } from '../../protocol/intents'
+import { Intent, IntentPhase, type StickEvent } from '../../protocol/intents'
 import { ICON_PATHS } from '../theme/icons'
 import RadialSector from './RadialSector.vue'
 import { useUi } from './use-ui'
@@ -29,20 +29,21 @@ const needle = computed(() => {
   return `translate(${NEEDLE_RADIUS * Math.cos(radians)} ${NEEDLE_RADIUS * Math.sin(radians)}) rotate(${angle})`
 })
 
-let aimedNothing = false
-watch(() => view.value === null, () => { aimedNothing = false })
-
-function aim(event: PointerEvent): void {
-  if (!(event.currentTarget instanceof Element)) return
+function aimAt(event: MouseEvent): StickEvent | null {
+  if (!(event.currentTarget instanceof Element)) return null
   const box = event.currentTarget.getBoundingClientRect()
   const center = { x: box.left + box.width * MIDDLE, y: box.top + box.height * MIDDLE }
-  const vector = pointerVector({ x: event.clientX, y: event.clientY }, center, box.width / (RADIAL_SUBRING_OUTER * HALVES), RADIAL_SUBRING_OUTER)
-  aimedNothing = vector === null
-  dispatch({ type: PageCommandType.PointerAim, vector })
+  return pointerVector({ x: event.clientX, y: event.clientY }, center, box.width / (RADIAL_SUBRING_OUTER * HALVES), RADIAL_SUBRING_OUTER)
 }
 
-function confirm(): void {
-  if (aimedNothing) return
+function aim(event: PointerEvent): void {
+  if (event.currentTarget instanceof Element) dispatch({ type: PageCommandType.PointerAim, vector: aimAt(event) })
+}
+
+function confirm(event: MouseEvent): void {
+  const vector = aimAt(event)
+  if (vector === null) return
+  dispatch({ type: PageCommandType.PointerAim, vector })
   dispatch({ type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Press, fromEscape: false })
   dispatch({ type: PageCommandType.LocalIntent, intent: Intent.Confirm, phase: IntentPhase.Release, fromEscape: false })
 }
@@ -51,7 +52,7 @@ function confirm(): void {
 <template>
   <div v-if="view !== null" class="omk-radial-layer">
     <slot name="legend" />
-    <div class="omk-radial omk-anim-zoom" role="menu" @pointermove="aim" @click="confirm">
+    <div class="omk-radial omk-anim-zoom" role="menu" :aria-label="translate('ui.radial.label')" @pointermove="aim" @click="confirm">
       <div class="omk-radial__ring" data-surface="radial-ring" />
       <svg class="omk-radial__svg" viewBox="-424 -424 848 848" role="none">
         <RadialSector

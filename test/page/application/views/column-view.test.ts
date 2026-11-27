@@ -62,8 +62,14 @@ describe('columnView banner and trail', () => {
     expect(column(state).subtitle).toBeNull()
   })
 
+  it('has no trail at one level, where it would repeat the title', () => {
+    expect(column().crumbs).toEqual([])
+    expect(column().depth).toBe(1)
+  })
+
   it('lists the levels of the stack', () => {
     const view = column(pushedState(panelsState()))
+    expect(view.depth).toBe(TWO)
     expect(view.crumbs.map((crumb) => crumb.title)).toEqual(['Whitelist', 'Whitelist'])
     expect(new Set(view.crumbs.map((crumb) => crumb.id)).size).toBe(TWO)
   })
@@ -71,7 +77,7 @@ describe('columnView banner and trail', () => {
   it('skips frames without panel in the trail', () => {
     const state = panelsState()
     const withCover = { ...state, stack: [{ ...topFrameOf(state), panel: null, form: null }, ...state.stack] }
-    expect(column(withCover).crumbs).toHaveLength(1)
+    expect(column(pushedState(withCover)).crumbs).toHaveLength(TWO)
   })
 })
 
@@ -99,6 +105,14 @@ describe('columnView rows', () => {
     expect(view.windowStart).toBe(DEEP_START - RENDER_OVERSCAN)
     expect(view.rows[0]?.id).toBe('row-490')
     expect(view.rowCount).toBe(MANY)
+  })
+
+  it('counts the rows hidden before and after the window, so that the component does no arithmetic', () => {
+    const view = column(withTop(stateOfItems(manyItems(MANY)), { visibleStart: DEEP_START, focusItemId: 'row-505' }))
+    expect(view.hiddenBefore).toBe(view.windowStart)
+    expect(view.hiddenAfter).toBe(MANY - view.windowStart - view.rows.length)
+    const short = column()
+    expect(short).toMatchObject({ hiddenBefore: 0, hiddenAfter: 0 })
   })
 
   it('never renders the submit row of a long form far from its end', () => {

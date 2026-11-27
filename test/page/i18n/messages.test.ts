@@ -12,6 +12,7 @@ import { createTranslator } from '../../../src/page/i18n/translator'
 const PLACEHOLDER = /\{([A-Za-z][A-Za-z0-9]*)\}/g
 const TWO = 2
 const THREE = 3
+const KEYCAP_LABEL_MAX = 8
 const FORMAL_YOU = /\b(vous|votre|vos)\b/i
 const PLURAL_SUFFIX = /\.(one|other)$/
 const KNOWN_PREFIX = /^(ui|log|keybind|glyphs)\./
@@ -51,6 +52,14 @@ describe('locale files', () => {
     expect(Object.values(frMessages).filter((text) => FORMAL_YOU.test(text))).toEqual([])
   })
 
+  it('keep the keycap of the letters and of the space bar short in both languages', () => {
+    for (const messages of [frMessages, enMessages]) {
+      for (const key of ['ui.glyph.key.letters', 'ui.glyph.key.space']) {
+        expect(messages[key]?.length, key).toBeLessThanOrEqual(KEYCAP_LABEL_MAX)
+      }
+    }
+  })
+
   it('has no empty message', () => {
     expect([...Object.values(frMessages), ...Object.values(enMessages)].filter((text) => text.trim().length === 0)).toEqual([])
   })
@@ -69,6 +78,8 @@ describe('vocabulary coverage', () => {
     ['abandonText', ['ui.abandonText.title', 'ui.abandonText.text', 'ui.abandonText.confirm', 'ui.abandonText.cancel']],
     ['form', ['ui.form.errorCount', 'ui.form.noReply', 'ui.form.rejected', 'ui.form.counter']],
     ['prompt', ['ui.prompt.hold']],
+    ['toast', ['ui.toast.waiting']],
+    ['radial', ['ui.radial.label']],
     ['keyboard', ['ui.keyboard.shift', 'ui.keyboard.counter']],
     ['confirm defaults', ['ui.confirm.confirm', 'ui.confirm.cancel']],
   ]
@@ -112,5 +123,10 @@ describe('real bundles through the translator', () => {
     expect(translator.translate('ui.form.errorCount', { count: 1 })).toBe('1 field to fix')
     expect(translator.translate('ui.form.errorCount', { count: TWO })).toBe('2 fields to fix')
     expect(translator.translate('ui.form.counter', { current: 3, total: 12 })).toBe('3/12')
+  })
+
+  it('renders the number of notifications still waiting', () => {
+    expect(load('fr', frMessages).translate('ui.toast.waiting', { count: THREE })).toBe('+3 en attente')
+    expect(load('en', enMessages).translate('ui.toast.waiting', { count: THREE })).toBe('+3 waiting')
   })
 })

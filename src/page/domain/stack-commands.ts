@@ -1,5 +1,6 @@
 import { CloseReason, ReplyKind } from '@openmemorykit/ui/contract'
 import { splitNamespacedId } from '../../protocol/namespaced-id'
+import { UiMode } from '../../protocol/page-vocabulary'
 import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
 import type { OwnedReply } from '../../protocol/stack'
 import type { ToPage } from '../../protocol/to-page'
@@ -72,7 +73,8 @@ export const handleDropOwner: CommandHandler<UiCommandOf<typeof ToPage.DropOwner
 
 export const handleCloseAll: CommandHandler<UiCommandOf<typeof ToPage.CloseAll>> = (state, message) => {
   if (!isNewerStackCommand(state, message.commandSeq)) return unchanged(state)
-  return stackTransition(closeAllFrames({ ...state, appliedCommandSeq: message.commandSeq }, CloseReason.CloseAll))
+  const closed = closeAllFrames({ ...state, appliedCommandSeq: message.commandSeq }, CloseReason.CloseAll)
+  return stackTransition({ ...closed, state: { ...closed.state, mode: UiMode.Idle } })
 }
 
 export function confirmChange(state: UiState, confirm: OwnedConfirm, commandSeq: number): StackChange {

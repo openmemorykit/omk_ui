@@ -39,8 +39,8 @@ const HIDDEN = { display: 'none' }
     <ToastStack />
     <HoldPrompt />
   </div>
-  <div class="omk-sr-only" role="status" aria-live="polite" />
-  <div class="omk-sr-only" role="alert" aria-live="assertive" />
+  <div class="omk-sr-only" role="status" aria-live="polite" :lang="view.lang" />
+  <div class="omk-sr-only" role="alert" aria-live="assertive" :lang="view.lang" />
 </template>
 
 <style>

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { FormStatus } from '../../../../src/page/domain/form'
 import { pressBack } from '../../../../src/page/domain/hold-detector'
 import { transition } from '../../../../src/page/domain/intent-engine'
-import { PageCommandType, TimerKind } from '../../../../src/page/domain/page-commands'
+import { PageCommandType, TimerKind, type UiCommand } from '../../../../src/page/domain/page-commands'
 import { pressHeld } from '../../../../src/page/domain/repeat-policy'
 import { DEFAULT_TOAST_DURATION_MS } from '../../../../src/page/domain/toasts'
 import { UiEffectType } from '../../../../src/page/domain/ui-effects'
@@ -76,9 +76,9 @@ describe('Notify', () => {
 describe('prompt messages', () => {
   it('shows, advances and hides the prompt', () => {
     const shown = transition(initial(), { type: ToPage.ShowPrompt, prompt: OWNED_HOLD_PROMPT }, NOW).state
-    expect(shown.prompt).toEqual({ prompt: OWNED_HOLD_PROMPT, state: null, holdMs: 0 })
+    expect(shown.prompt).toEqual({ prompt: OWNED_HOLD_PROMPT, state: null, holdMs: 0, holdStartedAt: null, heldFraction: 0 })
     const holding = transition(shown, { type: ToPage.PromptProgress, promptId: OWNED_HOLD_PROMPT.prompt.id, state: PromptState.Holding, holdMs: HOLD_MS }, NOW).state
-    expect(holding.prompt).toEqual({ prompt: OWNED_HOLD_PROMPT, state: PromptState.Holding, holdMs: HOLD_MS })
+    expect(holding.prompt).toEqual({ prompt: OWNED_HOLD_PROMPT, state: PromptState.Holding, holdMs: HOLD_MS, holdStartedAt: NOW, heldFraction: 0 })
     expect(transition(holding, { type: ToPage.HidePrompt, promptId: OWNED_HOLD_PROMPT.prompt.id }, NOW).state.prompt).toBeNull()
   })
 
@@ -88,6 +88,59 @@ describe('prompt messages', () => {
     expect(transition(shown, { type: ToPage.PromptProgress, promptId: otherId, state: PromptState.Holding, holdMs: HOLD_MS }, NOW).state).toBe(shown)
     expect(transition(shown, { type: ToPage.HidePrompt, promptId: otherId }, NOW).state).toBe(shown)
     expect(transition(initial(), { type: ToPage.HidePrompt, promptId: otherId }, NOW).state.prompt).toBeNull()
+  })
+})
+
+describe('fraction of the hold kept by the page clock', () => {
+  const PROMPT_ID = OWNED_HOLD_PROMPT.prompt.id
+  const HELD_MS = 600
+  const LONG_HOLD_MS = 1_500
+  const AFTER_TWO_FIFTHS = 0.4
+  const THREE_QUARTERS = 0.75
+  const NOTHING_HELD = 0
+  const WHOLE_HOLD = 1
+  const WAY_PAST_MS = LATER_MS
+  const HALF = 0.5
+  const progress = (state: PromptState, holdMs: number = HOLD_MS): UiCommand => ({ type: ToPage.PromptProgress, promptId: PROMPT_ID, state, holdMs })
+  const shown = (): UiState => transition(initial(), { type: ToPage.ShowPrompt, prompt: OWNED_HOLD_PROMPT }, NOW).state
+  const at = (state: UiState, command: UiCommand, now: number): UiState => transition(state, command, now).state
+
+  it('keeps the fraction held between holding and cancelled, measured with the page clock', () => {
+    const holding = at(shown(), progress(PromptState.Holding, LONG_HOLD_MS), NOW)
+    const cancelled = at(holding, progress(PromptState.Cancelled, LONG_HOLD_MS), NOW + HELD_MS)
+    expect(cancelled.prompt).toMatchObject({ state: PromptState.Cancelled, heldFraction: AFTER_TWO_FIFTHS })
+  })
+
+  it('keeps the first start when holding is repeated', () => {
+    const holding = at(shown(), progress(PromptState.Holding), NOW)
+    const again = at(holding, progress(PromptState.Holding), NOW + HOLD_MS * HALF)
+    expect(again.prompt?.holdStartedAt).toBe(NOW)
+    expect(at(again, progress(PromptState.Cancelled), NOW + HOLD_MS * THREE_QUARTERS).prompt?.heldFraction).toBe(THREE_QUARTERS)
+  })
+
+  it.each([
+    ['without a hold seen first', (): UiState => shown(), NOTHING_HELD],
+    ['past the hold duration', (): UiState => at(shown(), progress(PromptState.Holding), NOW), WHOLE_HOLD],
+  ])('clamps the fraction %s', (_, start, expected) => {
+    const cancelled = at(start(), progress(PromptState.Cancelled), NOW + WAY_PAST_MS)
+    expect(cancelled.prompt?.heldFraction).toBe(expected)
+  })
+
+  it('falls back on the duration of the prompt when the message gives none, and ignores a clock that is not a number', () => {
+    const holding = at(shown(), progress(PromptState.Holding, 0), NOW)
+    expect(at(holding, progress(PromptState.Cancelled, 0), NOW + HOLD_MS).prompt?.heldFraction).toBeGreaterThan(0)
+    expect(at(holding, progress(PromptState.Cancelled), Number.NaN).prompt?.heldFraction).toBe(0)
+  })
+
+  it('counts a completed hold as fully held and forgets the start', () => {
+    const holding = at(shown(), progress(PromptState.Holding), NOW)
+    expect(at(holding, progress(PromptState.Completed), NOW + HOLD_MS).prompt).toMatchObject({ state: PromptState.Completed, heldFraction: WHOLE_HOLD, holdStartedAt: null })
+  })
+
+  it('starts again from nothing on a new hold after a cancel', () => {
+    const cancelled = at(at(shown(), progress(PromptState.Holding), NOW), progress(PromptState.Cancelled), NOW + HELD_MS)
+    const holding = at(cancelled, progress(PromptState.Holding), NOW + HELD_MS + HELD_MS)
+    expect(holding.prompt).toMatchObject({ holdStartedAt: NOW + HELD_MS + HELD_MS, heldFraction: 0 })
   })
 })
 

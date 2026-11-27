@@ -61,6 +61,14 @@ describe('ToastStack', () => {
     expect(render(stateWith(...many)).text()).not.toContain(`Wait ${NOTIFICATIONS_VISIBLE}`)
   })
 
+  it('tells how many notifications are still waiting, and nothing when none is', () => {
+    const many = Array.from({ length: NOTIFICATIONS_VISIBLE + EXTRA }, (_unused, index) => notification(NotificationTone.Info, `Title ${index}`))
+    const waiting = render(stateWith(...many)).get('.omk-toasts__waiting')
+    expect(waiting.text()).toBe(`t:ui.toast.waiting:{"count":${EXTRA}}`)
+    expect(waiting.attributes('data-surface')).toBe('toast-waiting')
+    expect(render(stateWith(notification(NotificationTone.Info, 'Alone'))).find('.omk-toasts__waiting').exists()).toBe(false)
+  })
+
   it('keeps twin notifications as separate toasts', () => {
     const twin = notification(NotificationTone.Error, 'Twin')
     expect(render(stateWith(twin, twin)).findAll('[data-surface="toast"]')).toHaveLength(TWINS)

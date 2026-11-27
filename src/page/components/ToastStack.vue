@@ -37,6 +37,7 @@ function iconPaths(tone: NotificationTone): readonly string[] {
         <p v-if="toast.text !== null" class="omk-secondary omk-toast__text">{{ toast.text }}</p>
       </div>
     </div>
+    <span v-if="view.waitingLabel !== null" class="omk-toasts__waiting omk-surface-deep" data-surface="toast-waiting">{{ view.waitingLabel }}</span>
   </div>
 </template>
 
@@ -115,5 +116,15 @@ function iconPaths(tone: NotificationTone): readonly string[] {
 
 .omk-toast__text {
   margin: 0;
+}
+
+.omk-toasts__waiting {
+  align-self: flex-end;
+  padding: var(--space-2) var(--space-5);
+  color: var(--ink-2);
+  font-size: var(--text-min);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-tight);
 }
 </style>

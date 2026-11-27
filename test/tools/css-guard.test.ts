@@ -11,6 +11,7 @@ const forbidden: readonly (readonly [string, string])[] = [
   ['@container', '@container (min-width:10px){.a{color:red}}'],
   ['backdrop-filter', '.a{backdrop-filter:none}'],
   ['blur(', '.a{filter:blur(2px)}'],
+  ['drop-shadow(', '.a{filter:drop-shadow(0 0 2px red)}'],
   ['dvh', '.a{height:100dvh}'],
   ['svh', '.a{height:50.5svh}'],
   ['lvh', '.a{height:10lvh}'],
