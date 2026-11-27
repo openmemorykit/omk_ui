@@ -3,14 +3,15 @@ import * as v from 'valibot'
 import type { FromPage, FromPageMessageOf } from '../../protocol/from-page'
 import { namespaceId } from '../../protocol/namespaced-id'
 import { ToPage } from '../../protocol/to-page'
-import { JsonObjectSchema, type JsonObject } from '../../shared/report/json-value'
+import { JsonObjectSchema, type JsonObject, type JsonValue } from '../../shared/report/json-value'
 import { ReportKind } from '../../shared/report/report-kind'
 import { SNAPSHOT_MAX_OWNERS, type OwnerUsage } from '../../shared/report/report-payloads'
-import { decideFocus, PushToTalkPolicy } from '../domain/focus-policy'
+import { ClientSnapshotField, LastIntentField, ResolutionField } from '../../shared/report/snapshot-fields'
 import { radialOrder, visiblePrompt, type RegistryState } from '../domain/owner-registry'
-import { guardedControls, GuardKind } from '../domain/release-guard'
+import { decideSessionFocus } from './apply-focus'
 import { bindingLabels, currentGlyphSet, requestedLocale } from './boot-message'
-import type { ClientSession } from './session-state'
+import type { ClientPorts } from './ports'
+import type { ClientSession, PageLink } from './session-state'
 import { rememberLink, type UseCaseContext } from './use-case-context'
 
 export const PAGE_SNAPSHOT_WAIT_MS = 2000
@@ -39,35 +40,44 @@ function shownPromptId(registry: RegistryState): string | null {
   return shown === null ? null : namespaceId(shown.owner, shown.prompt.id)
 }
 
-function clientState(context: UseCaseContext, session: ClientSession): JsonObject {
+function lastIntentState({ lastIntent }: PageLink, now: number): JsonValue {
+  if (lastIntent === null) return null
+  return {
+    [LastIntentField.Intent]: lastIntent.intent,
+    [LastIntentField.Source]: lastIntent.source,
+    [LastIntentField.Seq]: lastIntent.seq,
+    [LastIntentField.AgoMs]: now - lastIntent.at,
+  }
+}
+
+function resolutionState(ports: ClientPorts): JsonValue {
+  const { width, height } = ports.game.resolution()
+  return { [ResolutionField.Width]: width, [ResolutionField.Height]: height }
+}
+
+function clientState(context: UseCaseContext, session: ClientSession): Record<ClientSnapshotField, JsonValue> {
   const { ports } = context
-  const { guard, registry, link } = session
-  const focus = decideFocus({
-    mode: session.mode,
-    modality: session.modality,
-    paused: session.paused,
-    awaitingEscapeRelease: guard.kind === GuardKind.Escape,
-    releaseGuardControls: guardedControls(guard),
-    textEntryActive: session.textEntry,
-    pushToTalk: PushToTalkPolicy.Blocked,
-  })
+  const { registry, link } = session
+  const focus = decideSessionFocus(ports, session)
   const bindings = bindingLabels(ports)
   return {
-    locale: requestedLocale(ports),
-    resolution: { ...ports.game.resolution() },
-    mode: session.mode,
-    paused: session.paused,
-    modality: session.modality,
-    focus: focus.focus,
-    cursor: focus.cursor,
-    keepInput: ports.nui.isKeepingInput(),
-    radialEntries: radialOrder(registry).map(({ entry }) => entry.id),
-    prompt: shownPromptId(registry),
-    notificationsQueued: link.queuedNotifications.length,
-    radialKey: bindings.radial,
-    interactKey: bindings.interact,
-    glyphSet: currentGlyphSet(ports),
-    ackSeq: link.lastAckSeq,
+    [ClientSnapshotField.Locale]: requestedLocale(ports),
+    [ClientSnapshotField.Resolution]: resolutionState(ports),
+    [ClientSnapshotField.Scale]: ports.config.read().config.theme.scale,
+    [ClientSnapshotField.Mode]: session.mode,
+    [ClientSnapshotField.Paused]: session.paused,
+    [ClientSnapshotField.Modality]: session.modality,
+    [ClientSnapshotField.Focus]: focus.focus,
+    [ClientSnapshotField.Cursor]: focus.cursor,
+    [ClientSnapshotField.KeepInput]: ports.nui.isKeepingInput(),
+    [ClientSnapshotField.RadialEntries]: radialOrder(registry).map(({ entry }) => entry.id),
+    [ClientSnapshotField.Prompt]: shownPromptId(registry),
+    [ClientSnapshotField.NotificationsQueued]: link.queuedNotifications.length,
+    [ClientSnapshotField.RadialKey]: bindings.radial,
+    [ClientSnapshotField.InteractKey]: bindings.interact,
+    [ClientSnapshotField.GlyphSet]: currentGlyphSet(ports),
+    [ClientSnapshotField.LastIntent]: lastIntentState(link, ports.clock.now()),
+    [ClientSnapshotField.AckSeq]: link.lastAckSeq,
   }
 }
 

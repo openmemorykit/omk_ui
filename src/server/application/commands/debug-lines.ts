@@ -126,7 +126,7 @@ function radialLine(reading: Reading): string {
   return reading.context.log.translate('log.debug.radial', {
     count: entries.length,
     entries: entries.join(LIST_SEPARATOR),
-    position: shown(numberOf(reading.client, ClientSnapshotField.RadialPosition)),
+    position: shown(numberOf(reading.page, PageSnapshotField.RadialPosition)),
   })
 }
 
@@ -134,7 +134,7 @@ function promptLine(reading: Reading): string {
   const { client, context } = reading
   return context.log.translate('log.debug.prompt', {
     prompt: textOf(client, ClientSnapshotField.Prompt) ?? context.log.translate('log.word.none'),
-    visible: shown(numberOf(client, ClientSnapshotField.NotificationsVisible)),
+    visible: shown(numberOf(reading.page, PageSnapshotField.NotificationsVisible)),
     queued: shown(numberOf(client, ClientSnapshotField.NotificationsQueued)),
   })
 }
@@ -150,7 +150,8 @@ function bindingsLine(reading: Reading): string {
 
 function intentsLine(reading: Reading): string {
   const { client, context } = reading
-  const held = listOrNone(reading, textsOf(client, ClientSnapshotField.HeldIntents) ?? [])
+  const heldIntents = textsOf(reading.page, PageSnapshotField.HeldIntents)
+  const held = heldIntents === null ? UNKNOWN_VALUE : listOrNone(reading, heldIntents)
   const ack = shown(numberOf(client, ClientSnapshotField.AckSeq))
   const last = sectionOf(client, ClientSnapshotField.LastIntent)
   if (last === null) return context.log.translate('log.debug.intentsNone', { held, ack })

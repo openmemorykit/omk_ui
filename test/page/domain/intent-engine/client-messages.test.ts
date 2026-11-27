@@ -230,7 +230,7 @@ describe('SnapshotRequest', () => {
     expect(sentOf(next.effects, FromPage.Snapshot)).toEqual([{
       type: FromPage.Snapshot,
       requestId: FIRST_SNAPSHOT_REQUEST_ID,
-      snapshot: expect.objectContaining({ mode: UiMode.Panels, stack: [OWNED_LIST_PANEL.panel.id], paused: false }) as unknown,
+      snapshot: expect.objectContaining({ mode: UiMode.Panels, panels: [{ id: OWNED_LIST_PANEL.panel.id, focus: expect.any(String) as unknown }], paused: false }) as unknown,
     }])
   })
 })

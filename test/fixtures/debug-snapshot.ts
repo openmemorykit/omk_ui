@@ -12,20 +12,20 @@ export const SECTION_7_4_CLIENT = deepFrozen({
   [ClientSnapshotField.Cursor]: false,
   [ClientSnapshotField.KeepInput]: false,
   [ClientSnapshotField.RadialEntries]: ['garage/main', 'whitelist/main'],
-  [ClientSnapshotField.RadialPosition]: 0,
   [ClientSnapshotField.Prompt]: null,
-  [ClientSnapshotField.NotificationsVisible]: 1,
   [ClientSnapshotField.NotificationsQueued]: 0,
   [ClientSnapshotField.RadialKey]: 'b_170 (F1)',
   [ClientSnapshotField.InteractKey]: 't_E',
   [ClientSnapshotField.GlyphSet]: 'xbox',
-  [ClientSnapshotField.HeldIntents]: [],
   [ClientSnapshotField.LastIntent]: { [LastIntentField.Intent]: 'down', [LastIntentField.Source]: 'pad', [LastIntentField.Seq]: 212, [LastIntentField.AgoMs]: 1200 },
   [ClientSnapshotField.AckSeq]: 212,
 })
 
 export const SECTION_7_4_PAGE = deepFrozen({
   [PageSnapshotField.AppliedCommandSeq]: 14,
+  [PageSnapshotField.RadialPosition]: 0,
+  [PageSnapshotField.NotificationsVisible]: 1,
+  [PageSnapshotField.HeldIntents]: [],
   [PageSnapshotField.Panels]: [
     { [SnapshotPanelField.Id]: 'whitelist/list', [SnapshotPanelField.Focus]: 'enabled' },
     { [SnapshotPanelField.Id]: 'whitelist/add', [SnapshotPanelField.Focus]: 'identifier' },

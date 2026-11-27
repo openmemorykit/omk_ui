@@ -29,7 +29,7 @@ describe('initial client session', () => {
   })
 
   it('starts with a page that is not ready, no token and no intent sent', () => {
-    expect(EMPTY_PAGE_LINK).toStrictEqual({ ready: false, token: null, lastReadyAt: null, intentSeq: 0, lastAckSeq: 0, unackedSince: null, queuedNotifications: [] })
+    expect(EMPTY_PAGE_LINK).toStrictEqual({ ready: false, token: null, lastReadyAt: null, intentSeq: 0, lastAckSeq: 0, unackedSince: null, lastIntent: null, queuedNotifications: [] })
   })
 
   it('starts with the journal off, an empty ring and no limited line', () => {
