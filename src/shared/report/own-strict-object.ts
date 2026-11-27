@@ -1,12 +1,9 @@
+import { isPlainObject } from '@openmemorykit/core/shared'
 import * as v from 'valibot'
 
 export type OwnStrictObjectSchema<Entries extends v.ObjectEntries> = v.SchemaWithPipe<readonly [v.CustomSchema<unknown, undefined>, v.StrictObjectSchema<Entries, undefined>]>
 
-export function isPlainObject(input: unknown): input is object {
-  if (typeof input !== 'object' || input === null) return false
-  const prototype: unknown = Object.getPrototypeOf(input)
-  return prototype === Object.prototype || prototype === null
-}
+export { isPlainObject }
 
 export function ownKeysWithin(allowedKeys: readonly string[]): v.CustomSchema<unknown, undefined> {
   const allowed = new Set(allowedKeys)
