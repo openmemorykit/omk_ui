@@ -54,7 +54,7 @@ describe('columnView banner and trail', () => {
   it('renders the logo and the right side', () => {
     const state = panelsState()
     const view = column({ ...state, settings: { ...state.settings, logo: 'logo.png', side: PanelSide.Right } })
-    expect(view).toMatchObject({ brand: { kind: BrandKind.Logo, logo: 'logo.png' }, side: PanelSide.Right })
+    expect(view).toMatchObject({ brand: { kind: BrandKind.Logo, logo: '../branding/logo.png' }, side: PanelSide.Right })
   })
 
   it('has a null subtitle when the panel has none', () => {

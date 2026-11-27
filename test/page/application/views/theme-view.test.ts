@@ -83,8 +83,8 @@ describe('themeView font, side and branding', () => {
   })
 
   it('passes side, monogram and logo through', () => {
-    const view = themeView(settings({ side: PanelSide.Right, monogram: 'OK', logo: 'branding/logo.png' }), { width: 1920, height: 1080 })
-    expect(view).toMatchObject({ side: PanelSide.Right, monogram: 'OK', logo: 'branding/logo.png' })
+    const view = themeView(settings({ side: PanelSide.Right, monogram: 'OK', logo: 'logo.png' }), { width: 1920, height: 1080 })
+    expect(view).toMatchObject({ side: PanelSide.Right, monogram: 'OK', logo: 'logo.png' })
   })
 
   it('defaults to the O monogram without logo', () => {

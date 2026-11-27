@@ -79,8 +79,8 @@ describe('PanelColumn banner and trail', () => {
 
   it('shows the logo in place of the monogram', () => {
     const state = panelsState()
-    const { wrapper } = mountColumn({ ...state, settings: { ...state.settings, logo: 'nui://res/logo.png' } })
-    expect(wrapper.find('img.omk-logo').attributes('src')).toBe('nui://res/logo.png')
+    const { wrapper } = mountColumn({ ...state, settings: { ...state.settings, logo: 'logo.png' } })
+    expect(wrapper.find('img.omk-logo').attributes('src')).toBe('../branding/logo.png')
     expect(wrapper.find('.omk-monogram').exists()).toBe(false)
   })
 
