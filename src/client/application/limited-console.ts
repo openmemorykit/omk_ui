@@ -7,7 +7,7 @@ export const ONE_LINE_PER_SECOND_MS = 1000
 export const ONCE_PER_KIT_LIFETIME = Number.POSITIVE_INFINITY
 
 const CONSOLE_KEY_PREFIX = 'console:'
-const CONSOLE_PREFIX = '[omk_ui]'
+export const CONSOLE_PREFIX = '[omk_ui]'
 
 export function printLimited(ports: ClientPorts, store: SessionStore, key: string, intervalMs: number, line: string): void {
   const now = ports.clock.now()

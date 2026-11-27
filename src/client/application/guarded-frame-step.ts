@@ -1,4 +1,5 @@
 import type { ValueOf } from '@openmemorykit/core/shared'
+import { describeError } from '../../shared/describe-error'
 import { printLimited } from './limited-console'
 import type { ClientPorts } from './ports'
 import type { SessionStore } from './session-state'
@@ -17,14 +18,6 @@ export const FrameStep = {
 export type FrameStep = ValueOf<typeof FrameStep>
 
 export const FRAME_STEP_FAILED_LINE = '[omk_ui] frame step failed, the loop keeps running'
-
-function describeError(error: unknown): string {
-  try {
-    return error instanceof Error ? error.message : String(error)
-  } catch {
-    return typeof error
-  }
-}
 
 function printStepFailure(ports: ClientPorts, store: SessionStore, step: FrameStep, error: unknown): void {
   try {
