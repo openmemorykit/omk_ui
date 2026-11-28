@@ -1,16 +1,17 @@
 import { ReportDecision, readReport } from '../domain/report-rules'
-import type { SnapshotPayload } from './snapshot-requests'
+import type { PendingSnapshot, SnapshotPayload } from './snapshot-requests'
 import { ReportKind } from '../../shared/report/report-kind'
 import type { ReportEnvelope } from '../../shared/report/report-envelope'
 import { formatReportDetails } from './report-details'
 import type { ServerContext } from './server-context'
 import { prefixBlock, type LogKey } from './server-log'
 
+export function answerNoReply(context: ServerContext, entry: PendingSnapshot): void {
+  prefixBlock([context.log.translate('log.debug.noReply', { player: entry.player })]).forEach(entry.reply)
+}
+
 export function flushExpiredSnapshots(context: ServerContext): void {
-  const { translate } = context.log
-  context.snapshots.expire(context.ports.clock.now()).forEach((entry) => {
-    prefixBlock([translate('log.debug.noReply', { player: entry.player })]).forEach(entry.reply)
-  })
+  context.snapshots.expire(context.ports.clock.now()).forEach((entry) => answerNoReply(context, entry))
 }
 
 export function printIgnoredReports(context: ServerContext, now: number): void {

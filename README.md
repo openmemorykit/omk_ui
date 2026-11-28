@@ -4,7 +4,7 @@ The `omk_ui` FiveM resource of OMK, an open source FiveM suite written in TypeSc
 
 ## Status
 
-Version 0.2.0. The client and server scripts are in the repository, with the pure logic of the three sides (protocol, shared code, domain of the page, the client and the server), the page (Vue 3, built for the Chromium 103 of FiveM) and their tests. The first session in game is still to come: nothing has been verified on a live server yet. There is no SDK for other resources yet (milestone 4); the demos of the `omk_ui demo` command show what the kit does.
+Version 0.2.0. The client and server scripts are in the repository, with the pure logic of the three sides (protocol, shared code, domain of the page, the client and the server), the page (Vue 3, built for the Chromium 103 of FiveM) and their tests. Verified in game on a development server (artifact 38435): see the limits below. There is no SDK for other resources yet (milestone 4); the demos of the `omk_ui demo` command show what the kit does.
 
 ## Server installation
 
@@ -12,7 +12,7 @@ Version 0.2.0. The client and server scripts are in the repository, with the pur
 
 1. Download `omk_ui-<version>.zip` from the releases of the repository.
 2. Unzip it into the `resources/` folder of your server. The archive holds one `omk_ui/` folder, with `fxmanifest.lua`, `config.lua`, `client/`, `server/`, `dist/`, `web/`, `locales/`, `branding/`, `LICENSE` and `THIRD_PARTY.md`.
-3. Keep the folder name `omk_ui`: it is the name of the resource. Under another name, both scripts print "omk_ui refuses to start" and register nothing.
+3. Keep the folder name `omk_ui`: it is the name of the resource. Under another name, the two JS scripts print "omk_ui refuses to start" and register nothing (the Lua config export is still registered).
 4. The minimum server artifact is 38435, the one on which the OMK probe was run. On an older artifact the resource logs a warning and stays started.
 5. Add `ensure omk_ui` to your `server.cfg`.
 6. To update, replace everything except `config.lua`, `locales/overrides/` and `branding/`, which hold your own changes.
@@ -145,7 +145,7 @@ La ressource FiveM `omk_ui` d'OMK, une suite FiveM open source écrite en TypeSc
 
 ## État
 
-Version 0.2.0. Les scripts client et serveur sont dans le dépôt, avec la logique pure des trois côtés (protocole, code partagé, domaine de la page, du client et du serveur), la page (Vue 3, construite pour le Chromium 103 de FiveM) et leurs tests. La première session en jeu reste à faire : rien n'a encore été vérifié sur un serveur en marche. Il n'y a pas encore de SDK pour les autres ressources (jalon 4) ; les démos de la commande `omk_ui demo` montrent ce que fait le kit.
+Version 0.2.0. Les scripts client et serveur sont dans le dépôt, avec la logique pure des trois côtés (protocole, code partagé, domaine de la page, du client et du serveur), la page (Vue 3, construite pour le Chromium 103 de FiveM) et leurs tests. Vérifié en jeu sur un serveur de développement (artifact 38435) : voir les limites plus bas. Il n'y a pas encore de SDK pour les autres ressources (jalon 4) ; les démos de la commande `omk_ui demo` montrent ce que fait le kit.
 
 ## Installation sur un serveur
 
@@ -153,7 +153,7 @@ Version 0.2.0. Les scripts client et serveur sont dans le dépôt, avec la logiq
 
 1. Télécharge `omk_ui-<version>.zip` dans les versions publiées du dépôt.
 2. Décompresse-la dans le dossier `resources/` de ton serveur. L'archive contient un dossier `omk_ui/`, avec `fxmanifest.lua`, `config.lua`, `client/`, `server/`, `dist/`, `web/`, `locales/`, `branding/`, `LICENSE` et `THIRD_PARTY.md`.
-3. Garde le nom de dossier `omk_ui` : c'est le nom de la ressource. Sous un autre nom, les deux scripts écrivent « omk_ui refuses to start » et n'enregistrent rien.
+3. Garde le nom de dossier `omk_ui` : c'est le nom de la ressource. Sous un autre nom, les deux scripts JS écrivent « omk_ui refuses to start » et n'enregistrent rien (l'export Lua de la configuration reste enregistré).
 4. L'artifact serveur minimal est 38435, celui sur lequel la sonde d'OMK a tourné. Sur un artifact plus ancien, la ressource journalise un avertissement et reste démarrée.
 5. Ajoute `ensure omk_ui` à ton `server.cfg`.
 6. Pour mettre à jour, remplace tout sauf `config.lua`, `locales/overrides/` et `branding/`, qui portent tes changements.

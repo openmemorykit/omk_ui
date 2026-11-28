@@ -2,10 +2,9 @@ import { CommandKind } from '../../../shared/net/net-events'
 import { OmkSubcommand } from '../omk-subcommand'
 import { ALL_CLIENTS } from '../ports'
 import type { ServerContext } from '../server-context'
-import { isPlayerId, resolvePlayer, usageLines, type SubcommandHandler } from './command-arguments'
+import { EVERYBODY, isPlayerId, resolvePlayer, usageLines, type SubcommandHandler } from './command-arguments'
 
 const TraceSwitch = { On: 'on', Off: 'off' } as const
-const EVERYBODY = 'all'
 const SWITCH_STATES = new Map<string, boolean>([
   [TraceSwitch.On, true],
   [TraceSwitch.Off, false],

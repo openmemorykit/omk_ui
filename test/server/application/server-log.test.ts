@@ -71,6 +71,10 @@ describe('server log: printable text', () => {
     expect(printable('a\nb\r\nc\td\u0007e')).toBe('a b  c d e')
   })
 
+  it('removes the invisible formatting characters, such as bidirectional controls', () => {
+    expect(printable('a\u202Eb\u200Bc\u2066d')).toBe('a b c d')
+  })
+
   it('neutralises the FiveM colour codes', () => {
     expect(printable('^1red ^9 ^x')).toBe('^ 1red ^ 9 ^x')
   })

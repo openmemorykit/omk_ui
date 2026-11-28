@@ -18,6 +18,11 @@ function isWithinTimeout(entry: PendingSnapshot, now: number): boolean {
   return Number.isFinite(now) && now - entry.requestedAt <= SNAPSHOT_TIMEOUT_MS
 }
 
+export interface OpenedSnapshot {
+  readonly requestId: number
+  readonly replaced: PendingSnapshot | null
+}
+
 export class SnapshotRequests {
   private readonly pending = new Map<number, PendingSnapshot>()
   private lastRequestId = 0
@@ -26,10 +31,11 @@ export class SnapshotRequests {
     return this.pending.size
   }
 
-  open(player: number, now: number, present: SnapshotPresenter, reply: (line: string) => void): number {
+  open(player: number, now: number, present: SnapshotPresenter, reply: (line: string) => void): OpenedSnapshot {
+    const replaced = this.pending.get(player) ?? null
     this.lastRequestId += 1
     this.pending.set(player, { player, requestId: this.lastRequestId, requestedAt: now, present, reply })
-    return this.lastRequestId
+    return { requestId: this.lastRequestId, replaced }
   }
 
   isPending(player: number, now: number): boolean {

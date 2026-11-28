@@ -45,7 +45,7 @@ function receivePageMessage(type: FromPage, body: unknown): void {
   else if (earlyPageMessages.length < EARLY_PAGE_MESSAGES_MAX) earlyPageMessages.push({ type, body })
 }
 
-function createPorts(link: ServerLink, console: ConsolePort, onFailure: FailureHandler): ClientPorts {
+function createPorts(link: ServerLink, consolePort: ConsolePort, onFailure: FailureHandler): ClientPorts {
   const loops = createFrameLoops({ onPumpFrame: () => kit?.pumpFrame(), onIdleFrame: () => kit?.idleFrame(), onFailure })
   const configReading = createConfigSource(onFailure).read()
   return {
@@ -58,9 +58,9 @@ function createPorts(link: ServerLink, console: ConsolePort, onFailure: FailureH
     idle: loops.idle,
     glyphs: createGlyphStore(onFailure),
     config: { read: () => configReading },
-    locales: createClientLocaleSource((warning) => console.print(localeWarningLine(warning)), onFailure),
+    locales: createClientLocaleSource((warning) => consolePort.print(localeWarningLine(warning)), onFailure),
     convars: createClientConvars(),
-    console,
+    console: consolePort,
     server: link.channel,
     events: createLocalEvents(onFailure),
     clock: createGameClock(),

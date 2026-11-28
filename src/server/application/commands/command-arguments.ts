@@ -12,7 +12,8 @@ export type PlayerResolution =
 
 const PLAYER_ID_PATTERN = /^\d{1,9}$/
 const LIST_SEPARATOR = ', '
-const UNKNOWN_NAME_MAX_LENGTH = 64
+export const UNKNOWN_NAME_MAX_LENGTH = 64
+export const EVERYBODY = 'all'
 
 export function usageLines(context: ServerContext, subcommand: OmkSubcommand): readonly string[] {
   const key: LogKey = `log.usage.${subcommand}`

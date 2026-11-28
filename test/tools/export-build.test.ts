@@ -23,6 +23,7 @@ const delivered = [
   'THIRD_PARTY.md',
 ]
 const stray = ['node_modules/vue/index.js', 'src/main.ts', 'web/main.ts', 'dist/client.js.map', 'notes.txt']
+const PRIVATE_BUILD_REPOSITORY_NAME = /omk-[a-z-]+-build/
 
 function project(missing = ''): string {
   const root = mkdtempSync(join(tmpdir(), 'omk-export-source-'))
@@ -128,7 +129,7 @@ describe('tools/export-build', () => {
   it('has no default path and names no private repository', () => {
     const source = readSource('tools/export-build.mjs')
     expect(source).not.toContain('/home/')
-    expect(source).not.toContain('omk-ui-build')
+    expect(source).not.toMatch(PRIVATE_BUILD_REPOSITORY_NAME)
   })
 })
 

@@ -71,7 +71,6 @@
   "ui.abandonText.cancel": "Continuer la saisie",
   "ui.confirm.confirm": "Confirmer",
   "ui.confirm.cancel": "Annuler",
-  "log.wrongResourceName": "Le kit doit tourner sous le nom omk_ui, pas {name} : rien n'est enregistré",
   "log.command.denied": "Commande omk_ui refusée : permission omk_ui.admin requise",
   "log.locale.fileUnreadable": "Langue : fichier {file} illisible",
   "log.locale.fileMalformed": "Langue : fichier {file} mal formé, ignoré",

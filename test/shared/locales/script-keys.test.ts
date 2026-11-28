@@ -13,7 +13,6 @@ const DETAILS = '{details}'
 const KEYBINDS = ['keybind.radial', 'keybind.interact']
 const GLYPH_COMMAND = ['glyphs.suggestion', 'glyphs.usage', 'glyphs.changed']
 const DEBUG_LINES = ['header', 'state', 'stack', 'form', 'radial', 'prompt', 'bindings', 'intents', 'noReply'].map((line) => `log.debug.${line}`)
-const NAME_REFUSAL = 'log.wrongResourceName'
 const COMMAND_DENIED = 'log.command.denied'
 const FILE_PARAMETER = '{file}'
 const KEY_PARAMETER = '{key}'
@@ -36,7 +35,6 @@ describe('locale keys of the client and server scripts', () => {
     ['key bindings', KEYBINDS],
     ['omk_glyphs command', GLYPH_COMMAND],
     ['debug lines of 7.4', DEBUG_LINES],
-    ['name refusal', [NAME_REFUSAL]],
     ['denied command', [COMMAND_DENIED]],
     ['LocaleWarningKind', keysUnder('log.locale', LocaleWarningKind)],
   ])('have a key for every %s member', (_name, keys) => {

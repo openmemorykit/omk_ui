@@ -6,6 +6,9 @@ import { readReport, ReportDecision } from '../../../src/server/domain/report-ru
 const TIMESTAMP = 1234
 const TRACED = true
 const PENDING = true
+const NOT_TRACED = false
+const NOT_PENDING = false
+const NUMBER_ROOT = 1
 const MEGABYTE = 1_048_576
 const LARGE_VIEW_LENGTH = 5_000_000
 const LONG_ARRAY_LENGTH = 5000
@@ -62,6 +65,14 @@ describe('report rules: root', () => {
     readReport(root, TRACED, PENDING)
     const enumerated = [...keys.mock.calls, ...values.mock.calls, ...entries.mock.calls].some(([target]) => target === root)
     expect(enumerated).toBe(false)
+  })
+
+  it('answers not traced to a non-object root of a player whose journal is cut and who asked for nothing', () => {
+    expect(readReport(NUMBER_ROOT, NOT_TRACED, NOT_PENDING)).toEqual({ decision: ReportDecision.NotTraced })
+  })
+
+  it.each(nonPlainRoots)('answers not traced to %s of a player whose journal is cut', (_label, build) => {
+    expect(readReport(build(), NOT_TRACED, NOT_PENDING)).toEqual({ decision: ReportDecision.NotTraced })
   })
 
   it('accepts a null-prototype root', () => {

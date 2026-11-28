@@ -71,7 +71,6 @@
   "ui.abandonText.cancel": "Keep typing",
   "ui.confirm.confirm": "Confirm",
   "ui.confirm.cancel": "Cancel",
-  "log.wrongResourceName": "The kit must run as omk_ui, not {name}: nothing is registered",
   "log.command.denied": "omk_ui command refused: the omk_ui.admin permission is required",
   "log.locale.fileUnreadable": "Language: file {file} is unreadable",
   "log.locale.fileMalformed": "Language: file {file} is malformed, ignored",

@@ -1,5 +1,5 @@
 import type { RejectedEvent } from '@openmemorykit/core/shared'
-import type { KitExport } from '@openmemorykit/ui/contract'
+import type { KitExport, Reply } from '@openmemorykit/ui/contract'
 import type { KitConfig } from '../../shared/config/config-schema'
 import type { ServerToClientCommand } from '../../shared/net/net-events'
 import { cleanupOwner } from './cleanup-owner'
@@ -37,8 +37,11 @@ export interface ClientKit {
 
 export function createClientKit(ports: ClientPorts, config: KitConfig, version: string): ClientKit {
   const store = createSessionStore(INITIAL_CLIENT_SESSION)
-  const replies = divertDemoReplies(ports.replies, (owner, reply) => answerDemoReply(context, owner, reply))
+  const replies = divertDemoReplies(ports.replies, answerDivertedReply)
   const context = createUseCaseContext({ ...ports, replies }, store, version)
+  function answerDivertedReply(owner: string, reply: Reply): void {
+    answerDemoReply(context, owner, reply)
+  }
   const kitPorts = context.ports
   const { input } = config
   startIdleTick(kitPorts, input)

@@ -3,7 +3,7 @@ import { flushExpiredSnapshots } from '../receive-report'
 import type { ServerContext } from '../server-context'
 import { prefixBlock } from '../server-log'
 import { askCommand } from './ask-command'
-import type { SubcommandHandler } from './command-arguments'
+import { UNKNOWN_NAME_MAX_LENGTH, type SubcommandHandler } from './command-arguments'
 import { closeCommand } from './close-command'
 import { configCommand } from './config-command'
 import { debugCommand } from './debug-command'
@@ -28,7 +28,6 @@ const HANDLERS: Readonly<Record<OmkSubcommand, SubcommandHandler>> = {
 }
 const SUBCOMMANDS = new Set<string>(Object.values(OmkSubcommand))
 const SUBCOMMAND_SEPARATOR = ', '
-const UNKNOWN_NAME_MAX_LENGTH = 64
 
 export function parseSubcommand(name: string): OmkSubcommand | null {
   return SUBCOMMANDS.has(name) ? (name as OmkSubcommand) : null
