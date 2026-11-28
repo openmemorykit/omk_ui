@@ -25,13 +25,13 @@ To build the archive yourself, run `npm run release` in Docker: it runs `check`,
 
 The default key of the radial menu is F1. It is a key mapping: each player can change it in the key settings of GTA. The default only applies to players who never had the command (`+omk_ui_radial`): a later change of the default key does not move the key of existing players.
 
-On a gamepad, the radial opens by holding View (control 0; Back is control 244, see the limits below). The kit reads this control directly; it is not a key mapping, so it cannot be reassigned in FiveM. The hold lasts `input.padHoldMs` (300 ms by default).
+On a gamepad, the radial opens by holding View (control 0). The kit reads this control directly; it is not a key mapping, so it cannot be reassigned in FiveM. The hold lasts `input.padHoldMs` (300 ms by default).
 
 Conflicts with other resources:
 
 - F1 already used by another resource: both commands fire. The player reassigns one of them, or you change the key of the other resource.
 - Gamepad bindings on `PAD_DIGITALBUTTONANY`, in another resource, fire even while the kit has the focus and blocks the controls. The kit cannot stop them. As for F1, one of the two resources must change its binding.
-- A menu on a long press of Back: the kit never reads or blocks Back (control 244, a different control from View, control 0, which opens the radial), but if your server already has a menu there, set `input.padHoldGesture = false`. Gamepad players then reach the radial through a key bound by hand.
+- A menu on a long press of Back: the kit never reads or blocks Back (control 244), but if your server already has a menu there, set `input.padHoldGesture = false`. Gamepad players then reach the radial through a key bound by hand.
 - Another resource holds the NUI focus when the player opens the kit: the opening is refused. If it takes the focus while the kit is open, the kit pauses and keeps its state, then comes back when the focus is given back.
 
 Voice (provisional limit). While the kit has the focus, a keyboard push-to-talk bound by a command (pma-voice and similar) does not fire. The test of the game's own push-to-talk was inconclusive, so by default the kit keeps it blocked (`omk_ui_ptt blocked`). The convar `omk_ui_ptt` is for development: `setr omk_ui_ptt reenabled` re-enables it, to try the voice. The first session in game could not judge the voice: a second player is needed to hear it. The limit stays in place until the session that judges it.
@@ -166,13 +166,13 @@ Pour construire l'archive toi-même, lance `npm run release` dans Docker : il la
 
 La touche par défaut du menu radial est F1. C'est une liaison de touche : chaque joueur peut la changer dans les réglages de touches de GTA. La valeur par défaut ne s'applique qu'aux joueurs qui n'ont encore jamais eu la commande (`+omk_ui_radial`) : un changement ultérieur de la touche par défaut ne déplace pas la touche des joueurs existants.
 
-À la manette, le radial s'ouvre en maintenant View (contrôle 0 ; Back est le contrôle 244, voir les limites plus bas). Le kit lit ce contrôle directement ; ce n'est pas une liaison de touche, donc elle ne se réassigne pas dans FiveM. Le maintien dure `input.padHoldMs` (300 ms par défaut).
+À la manette, le radial s'ouvre en maintenant View (contrôle 0). Le kit lit ce contrôle directement ; ce n'est pas une liaison de touche, donc elle ne se réassigne pas dans FiveM. Le maintien dure `input.padHoldMs` (300 ms par défaut).
 
 Conflits avec d'autres ressources :
 
 - F1 déjà utilisé par une autre ressource : les deux commandes se déclenchent. Le joueur réassigne l'une des deux, ou tu changes la touche de l'autre ressource.
 - Les liaisons manette sur `PAD_DIGITALBUTTONANY`, dans une autre ressource, se déclenchent même quand le kit a le focus et bloque les contrôles. Le kit ne peut pas les arrêter. Comme pour F1, l'une des deux ressources doit changer sa liaison.
-- Un menu sur l'appui long de Back : le kit ne lit ni ne bloque jamais Back (contrôle 244, un autre contrôle que View, contrôle 0, qui ouvre le radial), mais si ton serveur a déjà un menu à cet endroit, mets `input.padHoldGesture = false`. Les joueurs manette passent alors par une touche liée à la main.
+- Un menu sur l'appui long de Back : le kit ne lit ni ne bloque jamais Back (contrôle 244), mais si ton serveur a déjà un menu à cet endroit, mets `input.padHoldGesture = false`. Les joueurs manette passent alors par une touche liée à la main.
 - Une autre ressource a le focus NUI quand le joueur ouvre le kit : l'ouverture est refusée. Si elle prend le focus pendant que le kit est ouvert, le kit se met en pause et garde son état, puis revient quand le focus est rendu.
 
 Voix (limite provisoire). Tant que le kit a le focus, un push-to-talk au clavier lié par une commande (pma-voice et semblables) ne part pas. L'essai du push-to-talk du jeu lui-même n'a pas été concluant : par défaut, le kit le garde bloqué (`omk_ui_ptt blocked`). La convar `omk_ui_ptt` sert au développement : `setr omk_ui_ptt reenabled` le réactive, pour essayer la voix. La première session en jeu n'a pas pu juger la voix : il faut un second joueur pour l'entendre. La limite reste en place jusqu'à la session qui la jugera.
