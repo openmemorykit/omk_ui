@@ -70,7 +70,7 @@ function* itemsOf(list: readonly unknown[]): Generator<Child> {
 }
 
 function* propertiesOf(record: object): Generator<Child> {
-  for (const key in record) if (hasOwnKey(record, key)) yield { key, value: ownValue(record, key) }
+  for (const key of Object.keys(record)) yield { key, value: ownValue(record, key) }
 }
 
 function childrenOf(container: object): Iterator<Child> {
