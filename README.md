@@ -34,7 +34,7 @@ Conflicts with other resources:
 - A menu on a long press of Back: the kit never reads or blocks Back (control 244), but if your server already has a menu there, set `input.padHoldGesture = false`. Gamepad players then reach the radial through a key bound by hand.
 - Another resource holds the NUI focus when the player opens the kit: the opening is refused. If it takes the focus while the kit is open, the kit pauses and keeps its state, then comes back when the focus is given back.
 
-Voice (provisional limit). While the kit has the focus, a keyboard push-to-talk bound by a command (pma-voice and similar) does not fire. The test of the game's own push-to-talk was inconclusive, so by default the kit keeps it blocked (`omk_ui_ptt blocked`). The convar `omk_ui_ptt` is for development: `setr omk_ui_ptt reenabled` re-enables it, to try the voice. This section will be updated after the first session in game.
+Voice (provisional limit). While the kit has the focus, a keyboard push-to-talk bound by a command (pma-voice and similar) does not fire. The test of the game's own push-to-talk was inconclusive, so by default the kit keeps it blocked (`omk_ui_ptt blocked`). The convar `omk_ui_ptt` is for development: `setr omk_ui_ptt reenabled` re-enables it, to try the voice. The first session in game could not judge the voice: a second player is needed to hear it. The limit stays in place until the session that judges it.
 
 ## Configuration
 
@@ -175,7 +175,7 @@ Conflits avec d'autres ressources :
 - Un menu sur l'appui long de Back : le kit ne lit ni ne bloque jamais Back (contrôle 244), mais si ton serveur a déjà un menu à cet endroit, mets `input.padHoldGesture = false`. Les joueurs manette passent alors par une touche liée à la main.
 - Une autre ressource a le focus NUI quand le joueur ouvre le kit : l'ouverture est refusée. Si elle prend le focus pendant que le kit est ouvert, le kit se met en pause et garde son état, puis revient quand le focus est rendu.
 
-Voix (limite provisoire). Tant que le kit a le focus, un push-to-talk au clavier lié par une commande (pma-voice et semblables) ne part pas. L'essai du push-to-talk du jeu lui-même n'a pas été concluant : par défaut, le kit le garde bloqué (`omk_ui_ptt blocked`). La convar `omk_ui_ptt` sert au développement : `setr omk_ui_ptt reenabled` le réactive, pour essayer la voix. Cette section sera mise à jour après la première session en jeu.
+Voix (limite provisoire). Tant que le kit a le focus, un push-to-talk au clavier lié par une commande (pma-voice et semblables) ne part pas. L'essai du push-to-talk du jeu lui-même n'a pas été concluant : par défaut, le kit le garde bloqué (`omk_ui_ptt blocked`). La convar `omk_ui_ptt` sert au développement : `setr omk_ui_ptt reenabled` le réactive, pour essayer la voix. La première session en jeu n'a pas pu juger la voix : il faut un second joueur pour l'entendre. La limite reste en place jusqu'à la session qui la jugera.
 
 ## Configuration
 
