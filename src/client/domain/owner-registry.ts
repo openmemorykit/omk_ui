@@ -5,13 +5,13 @@ import * as v from 'valibot'
 import { isNamespaceOwner, namespaceId } from '../../protocol/namespaced-id'
 import { toPagePanel, toPageRadialEntry } from '../../protocol/owned'
 import type { OwnedRadialEntry } from '../../protocol/owned'
-import { findPanel, issueCommand, StackCommandKind, topPanel } from './registry-stack'
+import { findPanel, issueCommand, pageAppliedCommandSeq, StackCommandKind, topPanel } from './registry-stack'
 import type { IssuedCommand, StackCommand, StackState } from './registry-stack'
 
 export { reconcileStack, StackCommandKind } from './registry-stack'
 export type { RegisteredPanel, StackCommand } from './registry-stack'
 
-export interface RegisteredConfirm { readonly owner: string; readonly confirm: ConfirmRequest }
+export interface RegisteredConfirm { readonly owner: string; readonly confirm: ConfirmRequest; readonly seq: number }
 export interface RegisteredPrompt { readonly owner: string; readonly prompt: Prompt }
 export interface RegisteredRadialEntry { readonly owner: string; readonly entry: RadialEntry }
 
@@ -24,6 +24,8 @@ export interface RegistryState extends StackState {
 export type RegistryOutcome =
   | { readonly ok: true; readonly registry: RegistryState; readonly command: StackCommand | null }
   | { readonly ok: false; readonly error: ContractError }
+
+export interface RegistryChange { readonly registry: RegistryState; readonly command: StackCommand | null }
 
 export const RegistryErrorPath = { Root: '', Id: 'id' } as const
 export type RegistryErrorPath = ValueOf<typeof RegistryErrorPath>
@@ -49,6 +51,8 @@ const withoutCommand = (registry: RegistryState): RegistryOutcome => ({ ok: true
 const withCommand = ({ registry, command }: IssuedCommand<RegistryState>): RegistryOutcome => ({ ok: true, registry, command })
 const countOf = (items: readonly Owned[], owner: string): number => items.filter((item) => item.owner === owner).length
 const othersThan = <Item extends Owned>(items: readonly Item[], owner: string): readonly Item[] => items.filter((item) => item.owner !== owner)
+const holdsAnything = (registry: RegistryState, owner: string): boolean =>
+  [registry.radialEntries, registry.stack, registry.confirms, registry.prompts].some((items) => items.some((item) => item.owner === owner))
 
 function identityRefusal(owner: string, localId: string): RegistryOutcome | null {
   if (!isNamespaceOwner(owner)) return refused(ContractErrorCode.BadIdentifier)
@@ -84,7 +88,7 @@ export function openPanel(registry: RegistryState, owner: string, panel: Panel):
   if (invalid !== null) return invalid
   if (isOccupiedFor(registry, owner)) return refused(ContractErrorCode.Occupied)
   const withoutOwnConfirms = { ...registry, confirms: othersThan(registry.confirms, owner) }
-  return withCommand(issueCommand(withoutOwnConfirms, [{ owner, panel }], { kind: StackCommandKind.Open, owner, panel: toPagePanel(owner, panel), panelId: null }))
+  return withCommand(issueCommand(withoutOwnConfirms, [{ owner, panel }], { kind: StackCommandKind.Open, owner, panel: toPagePanel(owner, panel) }))
 }
 
 export function pushPanel(registry: RegistryState, owner: string, panel: Panel, parentId: string): RegistryOutcome {
@@ -94,7 +98,7 @@ export function pushPanel(registry: RegistryState, owner: string, panel: Panel, 
   if (parent === null || parent.owner !== owner || parent.panel.id !== parentId) return refused(ContractErrorCode.NotOwner)
   if (findPanel(registry.stack, owner, panel.id) >= 0) return refused(ContractErrorCode.AlreadyOpen, RegistryErrorPath.Id)
   if (registry.stack.length >= STACK_MAX_DEPTH) return refused(ContractErrorCode.StackFull)
-  const draft = { kind: StackCommandKind.Push, owner, panel: toPagePanel(owner, panel), panelId: namespaceId(owner, parentId) }
+  const draft = { kind: StackCommandKind.Push, owner, panel: toPagePanel(owner, panel), parentId: namespaceId(owner, parentId) } as const
   return withCommand(issueCommand(registry, [...registry.stack, { owner, panel }], draft))
 }
 
@@ -107,7 +111,7 @@ export function updatePanel(registry: RegistryState, owner: string, panel: Panel
 export function closePanel(registry: RegistryState, owner: string, panelId: string): RegistryOutcome {
   const closedAt = findPanel(registry.stack, owner, panelId)
   if (closedAt < 0) return withoutCommand(registry)
-  const draft = { kind: StackCommandKind.Close, owner, panel: null, panelId: namespaceId(owner, panelId) }
+  const draft = { kind: StackCommandKind.Close, owner, panelId: namespaceId(owner, panelId) } as const
   return withCommand(issueCommand(registry, registry.stack.slice(0, closedAt), draft))
 }
 
@@ -121,12 +125,15 @@ export function showConfirm(registry: RegistryState, owner: string, confirm: Con
   if (invalid !== null) return invalid
   if (isOccupiedFor(registry, owner)) return refused(ContractErrorCode.Occupied)
   if (countOf(registry.confirms, owner) >= CONFIRMS_PER_OWNER) return refused(ContractErrorCode.QuotaExceeded)
-  const confirming = { ...registry, confirms: [...registry.confirms, { owner, confirm }] }
-  return withCommand(issueCommand(confirming, registry.stack, { kind: StackCommandKind.ShowConfirm, owner, panel: null, panelId: null }))
+  const issued = issueCommand(registry, registry.stack, { kind: StackCommandKind.ShowConfirm, owner })
+  const confirms = [...registry.confirms, { owner, confirm, seq: issued.command.seq }]
+  return withCommand({ registry: { ...issued.registry, confirms }, command: issued.command })
 }
 
 export function settleConfirm(registry: RegistryState, owner: string, confirmId: string): RegistryState {
-  const confirms = registry.confirms.filter((registered) => registered.owner !== owner || registered.confirm.id !== confirmId)
+  const appliedSeq = pageAppliedCommandSeq(registry)
+  const isAnswered = (registered: RegisteredConfirm): boolean => registered.owner === owner && registered.confirm.id === confirmId && registered.seq <= appliedSeq
+  const confirms = registry.confirms.filter((registered) => !isAnswered(registered))
   return confirms.length === registry.confirms.length ? registry : { ...registry, confirms }
 }
 
@@ -143,14 +150,20 @@ export function hidePrompt(registry: RegistryState, owner: string, promptId: str
   return withoutCommand(prompts.length === registry.prompts.length ? registry : { ...registry, prompts })
 }
 
-export function dropOwner(registry: RegistryState, owner: string): IssuedCommand<RegistryState> {
+export function dropOwner(registry: RegistryState, owner: string): RegistryChange {
+  if (!holdsAnything(registry, owner)) return { registry, command: null }
   const remaining = {
     ...registry,
     radialEntries: othersThan(registry.radialEntries, owner),
     confirms: othersThan(registry.confirms, owner),
     prompts: othersThan(registry.prompts, owner),
   }
-  return issueCommand(remaining, othersThan(registry.stack, owner), { kind: StackCommandKind.DropOwner, owner, panel: null, panelId: null })
+  return issueCommand(remaining, othersThan(registry.stack, owner), { kind: StackCommandKind.DropOwner, owner })
+}
+
+export function closeAll(registry: RegistryState): RegistryChange {
+  if (registry.stack.length === 0 && registry.confirms.length === 0) return { registry, command: null }
+  return issueCommand(registry, [], { kind: StackCommandKind.CloseAll })
 }
 
 const compareText = (left: string, right: string): number => (left < right ? -1 : Number(left > right))

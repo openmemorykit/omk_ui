@@ -1,10 +1,10 @@
-import { CloseReason, ReplyKind } from '@openmemorykit/ui/contract'
+import { CloseReason } from '@openmemorykit/ui/contract'
 import type { OwnedConfirm, OwnedPanel } from '../../protocol/owned'
 import { isCommandSeq, type OwnedReply } from '../../protocol/stack'
 import { ToPage } from '../../protocol/to-page'
 import { bootPanels } from './boot'
 import { isNewerCommand, isRecord, NO_REPLIES } from './guards'
-import { isAddressablePanel } from './navigation'
+import { closeAllFrames, closePanelFrame, discardedReply, dropOwnerFrames, isAddressablePanel, replacedStack, type StackChange } from './navigation'
 import { refusedConfirmReplies } from './stack-commands'
 import { stackEvent, unchanged, withEffects, type Transition } from './ui-effects'
 import type { UiState } from './ui-state'
@@ -12,8 +12,7 @@ import type { UiState } from './ui-state'
 type UnknownRecord = Readonly<Record<string, unknown>>
 
 function discardedReplies(panel: unknown): readonly OwnedReply[] {
-  if (!isAddressablePanel(panel)) return NO_REPLIES
-  return [{ owner: panel.owner, reply: { kind: ReplyKind.PanelClosed, panelId: panel.panel.id, reason: CloseReason.Discarded } }]
+  return isAddressablePanel(panel) ? discardedReply(panel) : NO_REPLIES
 }
 
 function bootReplies(emptied: UiState, command: UnknownRecord): readonly OwnedReply[] {
@@ -22,18 +21,31 @@ function bootReplies(emptied: UiState, command: UnknownRecord): readonly OwnedRe
   return discarded.concat(confirm)
 }
 
-function owedReplies(base: UiState, command: UnknownRecord): readonly OwnedReply[] | null {
+function unchangedStack(base: UiState, replies: readonly OwnedReply[]): StackChange {
+  return { state: base, replies }
+}
+
+function replacedByOpen(base: UiState, panel: unknown): StackChange {
+  const replaced = replacedStack(base)
+  return { state: replaced.state, replies: replaced.replies.concat(discardedReplies(panel)) }
+}
+
+function fallbackChange(base: UiState, command: UnknownRecord): StackChange | null {
   switch (command.type) {
     case ToPage.OpenPanel:
+      return replacedByOpen(base, command.panel)
     case ToPage.PushPanel:
-      return discardedReplies(command.panel)
-    case ToPage.ShowConfirm:
-      return refusedConfirmReplies(base, command.confirm as OwnedConfirm)
+      return unchangedStack(base, discardedReplies(command.panel))
     case ToPage.ClosePanel:
+      return closePanelFrame(base, command.panelId as string, base.appliedCommandSeq)
     case ToPage.DropOwner:
-      return NO_REPLIES
+      return unchangedStack(dropOwnerFrames(base, command.owner as string, base.appliedCommandSeq), NO_REPLIES)
+    case ToPage.CloseAll:
+      return closeAllFrames(base, CloseReason.CloseAll)
+    case ToPage.ShowConfirm:
+      return unchangedStack(base, refusedConfirmReplies(base, command.confirm as OwnedConfirm))
     case ToPage.Boot:
-      return bootReplies(base, command)
+      return unchangedStack(base, bootReplies(base, command))
     default:
       return null
   }
@@ -50,9 +62,9 @@ export function fallbackTransition(state: UiState, command: unknown): Transition
   try {
     if (!isRecord(command)) return unchanged(state)
     const base = fallbackBase(state, command)
-    const replies = base === null ? null : owedReplies(base, command)
-    if (base === null || replies === null) return unchanged(state)
-    return withEffects(base, [stackEvent(base, replies)])
+    const change = base === null ? null : fallbackChange(base, command)
+    if (change === null) return unchanged(state)
+    return withEffects(change.state, [stackEvent(change.state, change.replies)])
   } catch {
     return unchanged(state)
   }

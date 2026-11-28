@@ -144,6 +144,33 @@ describe('keyboard source', () => {
     expect(commands).toEqual([press(Intent.Down, PRESS)])
   })
 
+  it('stops the native repeat of a key it holds, so that a focused button is not clicked again and again', () => {
+    fire('keydown', { code: 'Enter' })
+    const repeated = fire('keydown', { code: 'Enter', repeat: true })
+    expect(repeated.defaultPrevented).toBe(true)
+    expect(commands).toEqual([press(Intent.Confirm, PRESS)])
+  })
+
+  it('leaves the repeat of a held arrow to a text field, so that the caret keeps moving', () => {
+    state = { ...BASE, textFieldFocused: true }
+    fire('keydown', { code: 'ArrowLeft' })
+    const repeated = fire('keydown', { code: 'ArrowLeft', repeat: true })
+    expect(repeated.defaultPrevented).toBe(false)
+    expect(commands).toEqual([press(Intent.Left, PRESS)])
+  })
+
+  it('leaves the repeat of a key it does not hold to the page', () => {
+    const repeated = fire('keydown', { code: 'KeyP', key: 'p', repeat: true })
+    expect(repeated.defaultPrevented).toBe(false)
+    expect(commands).toEqual([])
+  })
+
+  it('does not prevent the repeat of a key it holds once the key is released', () => {
+    fire('keydown', { code: 'Enter' })
+    fire('keyup', { code: 'Enter' })
+    expect(fire('keydown', { code: 'Enter', repeat: true }).defaultPrevented).toBe(false)
+  })
+
   it('releases by the code pressed even if a text field took the focus since', () => {
     fire('keydown', { code: 'KeyW' })
     state = { ...BASE, textFieldFocused: true }

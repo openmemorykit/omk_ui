@@ -11,9 +11,20 @@ import { prompt, translate } from './helpers'
 const HOLD_MS = 1_500
 const CANCEL_MS = 80
 const SUCCESS_MS = 300
+const NOTHING_HELD = 0
+const QUARTER_HELD = 0.25
+const HALF_HELD = 0.5
+const SIXTY_TWO_HELD = 0.62
+const WHOLE_HELD = 1
+const RIGHT_EMPTY = -135
+const RIGHT_FULL = 45
+const LEFT_EMPTY = 45
+const LEFT_AT_SIXTY_TWO = 88.2
+const LEFT_FULL = 225
+const QUARTER_TURN = 90
 
-function stateWith(mode: PromptMode, state: PromptState | null, holdMs?: number, overrides: Partial<UiState> = {}): UiState {
-  return { ...createInitialState(), prompt: { prompt: prompt(mode, holdMs), state, holdMs: holdMs ?? 0 }, ...overrides }
+function stateWith(mode: PromptMode, state: PromptState | null, holdMs?: number, overrides: Partial<UiState> = {}, heldFraction = 0): UiState {
+  return { ...createInitialState(), prompt: { prompt: prompt(mode, holdMs), state, holdMs: holdMs ?? 0, holdStartedAt: null, heldFraction }, ...overrides }
 }
 
 describe('promptView', () => {
@@ -48,6 +59,18 @@ describe('promptView', () => {
     const view = promptView(stateWith(PromptMode.Hold, PromptState.Cancelled, HOLD_MS), translate)
     expect(view).toMatchObject({ state: PromptState.Cancelled, ringMs: PROMPT_CANCEL_MS })
     expect(PROMPT_CANCEL_MS).toBe(CANCEL_MS)
+  })
+
+  it.each([
+    [NOTHING_HELD, RIGHT_EMPTY, LEFT_EMPTY],
+    [QUARTER_HELD, RIGHT_EMPTY + QUARTER_TURN, LEFT_EMPTY],
+    [HALF_HELD, RIGHT_FULL, LEFT_EMPTY],
+    [SIXTY_TWO_HELD, RIGHT_FULL, LEFT_AT_SIXTY_TWO],
+    [WHOLE_HELD, RIGHT_FULL, LEFT_FULL],
+  ])('starts the recede of a ring cancelled at %s of the hold from %s and %s degrees', (heldFraction, right, left) => {
+    const view = promptView(stateWith(PromptMode.Hold, PromptState.Cancelled, HOLD_MS, {}, heldFraction), translate)
+    expect(view?.ringFrom.right).toBeCloseTo(right)
+    expect(view?.ringFrom.left).toBeCloseTo(left)
   })
 
   it('turns the ring to the success tone over 300 ms when completed', () => {

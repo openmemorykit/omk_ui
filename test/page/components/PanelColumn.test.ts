@@ -93,10 +93,10 @@ describe('PanelColumn banner and trail', () => {
     expect(mountColumn(formState()).wrapper.find('.omk-banner__subtitle').exists()).toBe(false)
   })
 
-  it('shows one current crumb at the root', () => {
-    const crumbs = mountColumn().wrapper.findAll('.omk-crumbs__crumb')
-    expect(crumbs.map((crumb) => crumb.text())).toEqual(['Whitelist'])
-    expect(crumbs[0]?.classes()).toContain('is-current')
+  it('shows no trail at the root, where it would repeat the title of the banner', () => {
+    const { wrapper } = mountColumn()
+    expect(wrapper.find('.omk-crumbs').exists()).toBe(false)
+    expect(wrapper.find('.omk-title').text()).toBe('Whitelist')
   })
 
   it('shows the levels with chevrons and the last one current', () => {
@@ -184,9 +184,7 @@ describe('PanelColumn rows', () => {
 describe('PanelColumn foot and description', () => {
   it('shows the position over the total with the scroll arrows', () => {
     const { wrapper } = mountColumn()
-    expect(wrapper.find('.omk-foot__count').text()).toBe('1')
-    expect(wrapper.find('.omk-foot__total').text()).toBe('/ 5')
-    expect(wrapper.find('.omk-foot__position').text()).toBe('1 / 5')
+    expect(wrapper.find('.omk-foot__position').text()).toBe('1/5')
     expect(wrapper.findAll('.omk-foot__arrow').map((arrow) => arrow.classes().includes('is-on'))).toEqual([false, false])
   })
 
@@ -200,7 +198,7 @@ describe('PanelColumn foot and description', () => {
   it('shows no counter without a focusable row but keeps the foot', () => {
     const { wrapper } = mountColumn(stateOfItems([]))
     expect(wrapper.find('.omk-foot').exists()).toBe(true)
-    expect(wrapper.find('.omk-foot__count').exists()).toBe(false)
+    expect(wrapper.find('.omk-foot__position').exists()).toBe(false)
   })
 
   it('shows the description of the focused row', async () => {

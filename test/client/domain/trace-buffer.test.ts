@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ReportKind } from '../../../src/shared/report/report-kind'
 import type { JsonObject } from '../../../src/shared/report/json-value'
 import { appendTrace, drainTrace, EMPTY_TRACE, TRACE_CAPACITY, TRACE_LINE_MAX_BYTES, TRACE_MAX_BYTES, type TraceBuffer, type TraceLine } from '../../../src/client/domain/trace-buffer'
+import { freeFormTraceLine } from './free-form-trace-line'
 
 const HUNDRED = 100
 const SECOND_LINE = 2
@@ -25,7 +26,7 @@ const BIG_LINE_COUNT = 40
 const TIME_BUDGET_MS = 2000
 
 function line(at: number, data: JsonObject = { at }, kind: ReportKind = ReportKind.ModeChanged): TraceLine {
-  return { at, kind, data }
+  return freeFormTraceLine(at, data, kind)
 }
 
 function filled(count: number, make: (index: number) => TraceLine = (index) => line(index, { index })): TraceBuffer {
@@ -182,7 +183,7 @@ describe('trace buffer: byte bound', () => {
   it('freezes the kept line in depth', () => {
     const kept = appendTrace(EMPTY_TRACE, line(1, { inner: { list: [1] } })).lines[0]
     expect(Object.isFrozen(kept?.data)).toBe(true)
-    expect(Object.isFrozen((kept?.data.inner as JsonObject).list)).toBe(true)
+    expect(Object.isFrozen(((kept?.data as JsonObject).inner as JsonObject).list)).toBe(true)
   })
 
   it('holds the byte bound with many small lines then lines of 2000 bytes', () => {

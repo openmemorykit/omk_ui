@@ -31,7 +31,7 @@ describe('Boot', () => {
     const next = transition(initial(), boot, NOW)
     expect(stackIds(next.state)).toEqual(SHARED_STACK_OWNED.map((owned) => owned.panel.id))
     expect(next.state.radial.entries).toEqual([OWNED_GARAGE_RADIAL_ENTRY, OWNED_WHITELIST_RADIAL_ENTRY])
-    expect(next.state.prompt).toEqual({ prompt: OWNED_HOLD_PROMPT, state: null, holdMs: 0 })
+    expect(next.state.prompt).toEqual({ prompt: OWNED_HOLD_PROMPT, state: null, holdMs: 0, holdStartedAt: null, heldFraction: 0 })
     expect(next.state.appliedCommandSeq).toBe(SHARED_STACK_SEQ.Push)
     expect(next.state.mode).toBe(UiMode.Panels)
     expect(next.state).toMatchObject({ glyphSet: GlyphSet.PlayStation, language: FRENCH, binding: BINDING_LABELS })

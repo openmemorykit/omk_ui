@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { serializedByteLength } from '@openmemorykit/core/shared'
 import { createSerializationFake, EmptyTableShape } from '@openmemorykit/core/testing'
 import { ReportKind } from '../../../src/shared/report/report-kind'
+import { PAYLOAD_SAMPLES, sampleReport } from '../../fixtures/reports'
 import { readReport, REPORT_MAX_BYTES, REPORT_SHAPE_LIMITS, ReportDecision, SNAPSHOT_MAX_BYTES } from '../../../src/server/domain/report-rules'
 
 const TIMESTAMP = 1234
@@ -25,9 +26,15 @@ const PLAN_MAX_NODES = 4096
 const BUDGET_MS = 50
 const WIDE_BUDGET_MS = 300
 
-function reportOfBytes(kind: string, bytes: number): unknown {
-  const base = serializedByteLength({ kind, at: TIMESTAMP, data: { text: '' } }) ?? 0
-  return { kind, at: TIMESTAMP, data: { text: PADDING_CHARACTER.repeat(bytes - base) } }
+type Padded = (text: string) => object
+
+const paddedConfig: Padded = (text) => ({ ...PAYLOAD_SAMPLES[ReportKind.ConfigApplied], config: { text } })
+const paddedSnapshot: Padded = (text) => ({ ...PAYLOAD_SAMPLES[ReportKind.Snapshot], client: { text } })
+
+function reportOfBytes(kind: ReportKind, padded: Padded, bytes: number): unknown {
+  const report = (text: string): object => ({ kind, at: TIMESTAMP, data: padded(text) })
+  const base = serializedByteLength(report('')) ?? 0
+  return report(PADDING_CHARACTER.repeat(bytes - base))
 }
 
 function nested(levels: number, wrap: (inner: unknown) => unknown): unknown {
@@ -43,8 +50,11 @@ function measure(action: () => void): number {
   return Date.now() - start
 }
 
-const pageError = { kind: ReportKind.PageError, at: TIMESTAMP, data: { message: 'boom' } }
-const snapshot = { kind: ReportKind.Snapshot, at: TIMESTAMP, data: { panels: 1 } }
+const pageError = sampleReport(ReportKind.PageError)
+const snapshot = sampleReport(ReportKind.Snapshot)
+const PAGE_ERROR_JSON = JSON.stringify(pageError)
+const DATA_OPENING = '"data":{'
+const emptyConfig = { ...sampleReport(ReportKind.ConfigApplied), data: { ...PAYLOAD_SAMPLES[ReportKind.ConfigApplied], config: {} } }
 
 describe('report rules: values', () => {
   it('uses the exact limits of the plan', () => {
@@ -80,28 +90,28 @@ describe('report rules: trace', () => {
 
 describe('report rules: size', () => {
   it('accepts 2 048 bytes and refuses 2 049', () => {
-    expect(readReport(reportOfBytes(ReportKind.PageError, REPORT_MAX_BYTES), TRACED, IDLE).decision).toBe(ReportDecision.Accepted)
-    expect(readReport(reportOfBytes(ReportKind.PageError, REPORT_MAX_BYTES + 1), TRACED, IDLE).decision).toBe(ReportDecision.TooLarge)
+    expect(readReport(reportOfBytes(ReportKind.ConfigApplied, paddedConfig, REPORT_MAX_BYTES), TRACED, IDLE).decision).toBe(ReportDecision.Accepted)
+    expect(readReport(reportOfBytes(ReportKind.ConfigApplied, paddedConfig, REPORT_MAX_BYTES + 1), TRACED, IDLE).decision).toBe(ReportDecision.TooLarge)
   })
 
   it('accepts a snapshot of 8 192 bytes and refuses 8 193', () => {
-    expect(readReport(reportOfBytes(ReportKind.Snapshot, SNAPSHOT_MAX_BYTES), TRACED, PENDING).decision).toBe(ReportDecision.Accepted)
-    expect(readReport(reportOfBytes(ReportKind.Snapshot, SNAPSHOT_MAX_BYTES + 1), TRACED, PENDING).decision).toBe(ReportDecision.TooLarge)
+    expect(readReport(reportOfBytes(ReportKind.Snapshot, paddedSnapshot, SNAPSHOT_MAX_BYTES), TRACED, PENDING).decision).toBe(ReportDecision.Accepted)
+    expect(readReport(reportOfBytes(ReportKind.Snapshot, paddedSnapshot, SNAPSHOT_MAX_BYTES + 1), TRACED, PENDING).decision).toBe(ReportDecision.TooLarge)
   })
 
   it('keeps the 2 048 bytes limit for every other kind', () => {
-    expect(readReport(reportOfBytes(ReportKind.PanelPainted, SNAPSHOT_MAX_BYTES), TRACED, PENDING).decision).toBe(ReportDecision.TooLarge)
+    expect(readReport(reportOfBytes(ReportKind.ConfigApplied, paddedConfig, SNAPSHOT_MAX_BYTES), TRACED, PENDING).decision).toBe(ReportDecision.TooLarge)
   })
 
   it('counts UTF-8 bytes, not characters', () => {
-    const base = serializedByteLength({ kind: ReportKind.PageError, at: TIMESTAMP, data: { text: '' } }) ?? 0
+    const base = serializedByteLength({ ...emptyConfig, data: paddedConfig('') }) ?? 0
     const characters = Math.ceil((REPORT_MAX_BYTES - base) / TWO_BYTES) + 1
-    const report = { kind: ReportKind.PageError, at: TIMESTAMP, data: { text: TWO_BYTE_CHARACTER.repeat(characters) } }
+    const report = { ...emptyConfig, data: paddedConfig(TWO_BYTE_CHARACTER.repeat(characters)) }
     expect(readReport(report, TRACED, IDLE).decision).toBe(ReportDecision.TooLarge)
   })
 
   it('refuses more nodes than the shape limit as too large', () => {
-    const report = { kind: ReportKind.PageError, at: TIMESTAMP, data: { rows: Array.from({ length: TOO_MANY_NODES }, () => 0) } }
+    const report = { ...emptyConfig, data: { ...emptyConfig.data, config: { rows: Array.from({ length: TOO_MANY_NODES }, () => 0) } } }
     expect(readReport(report, TRACED, IDLE).decision).toBe(ReportDecision.TooLarge)
   })
 })
@@ -120,28 +130,28 @@ describe('report rules: envelope', () => {
   })
 
   it('accepts an empty data crossing the serialization fake in the list form', () => {
-    const crossed = createSerializationFake(EmptyTableShape.List).cross({ kind: ReportKind.PageError, at: TIMESTAMP, data: {} })
-    expect(Array.isArray((crossed as { readonly data: unknown }).data)).toBe(true)
-    expect(readReport(crossed, TRACED, IDLE)).toEqual({ decision: ReportDecision.Accepted, report: { kind: ReportKind.PageError, at: TIMESTAMP, data: {} } })
+    const crossed = createSerializationFake(EmptyTableShape.List).cross(emptyConfig)
+    expect(Array.isArray((crossed as { readonly data: { readonly config: unknown } }).data.config)).toBe(true)
+    expect(readReport(crossed, TRACED, IDLE)).toEqual({ decision: ReportDecision.Accepted, report: emptyConfig })
   })
 
   it('refuses an own __proto__ key at the root', () => {
-    const raw: unknown = JSON.parse(`{"__proto__":{"polluted":true},"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{}}`)
+    const raw: unknown = JSON.parse(`{"__proto__":{"polluted":true},${PAGE_ERROR_JSON.slice(1)}`)
     expect(readReport(raw, TRACED, IDLE)).toEqual({ decision: ReportDecision.Invalid })
   })
 
   it.each(['toString', 'constructor', 'hasOwnProperty'])('refuses an own %s key at the root', (key) => {
-    const raw: unknown = JSON.parse(`{"${key}":1,"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{}}`)
+    const raw: unknown = JSON.parse(`{"${key}":1,${PAGE_ERROR_JSON.slice(1)}`)
     expect(readReport(raw, TRACED, IDLE)).toEqual({ decision: ReportDecision.Invalid })
   })
 
   it('refuses an own __proto__ key inside data', () => {
-    const raw: unknown = JSON.parse(`{"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{"__proto__":{"polluted":true}}}`)
+    const raw: unknown = JSON.parse(PAGE_ERROR_JSON.replace(DATA_OPENING, `${DATA_OPENING}"__proto__":{"polluted":true},`))
     expect(readReport(raw, TRACED, IDLE).decision).toBe(ReportDecision.Invalid)
   })
 
   it.each(['toString', 'valueOf'])('refuses an own %s key inside data', (key) => {
-    const raw: unknown = JSON.parse(`{"kind":"${ReportKind.PageError}","at":${String(TIMESTAMP)},"data":{"${key}":1}}`)
+    const raw: unknown = JSON.parse(PAGE_ERROR_JSON.replace(DATA_OPENING, `${DATA_OPENING}"${key}":1,`))
     expect(readReport(raw, TRACED, IDLE).decision).toBe(ReportDecision.Invalid)
   })
 

@@ -5,7 +5,7 @@ const TEXT_TOLERANCE_PX = 0.01
 const MIN_SURFACE_ALPHA = 0.9
 const MAX_DURATION_MS = 120
 const OPAQUE = 1
-const CONTRAST_TARGETS = new Map([['primary', 12], ['secondary', 6], ['accent', 4.5]])
+const CONTRAST_TARGETS = new Map([['primary', 12], ['secondary', 6], ['accent', 4.5], ['other', 3]])
 const COLOR_PATTERN = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)$/
 const BLACK = { red: 0, green: 0, blue: 0, alpha: 1 }
 const WHITE = { red: 255, green: 255, blue: 255, alpha: 1 }
@@ -103,7 +103,7 @@ export function checkColumnVeil(survey) {
   const column = survey.column
   if (survey.radial === null || column === null) return []
   const veil = parseColor(column.veilColor)
-  const veiled = column.dimmed && veil !== null && veil.alpha > 0
+  const veiled = column.dimmed && veil !== null && veil.alpha > 0 && column.veilDisplay !== 'none'
   const problems = veiled ? [] : [failure('column-veil', 'column behind the radial has no --dim-veil')]
   if (column.opacityProduct !== OPAQUE) problems.push(failure('column-opacity', `column behind the radial has opacity ${column.opacityProduct}`))
   return problems

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { admitPlayerReport, drainIgnored, IGNORED_SUMMARY_INTERVAL_MS, isSummaryDue, PLAYER_REPORT_BUCKET, type PlayerReportState } from '../../../src/server/domain/report-limits'
+import { PLAYER_REPORT_BUCKET } from '../../../src/shared/report/report-bucket'
+import { admitPlayerReport, drainIgnored, IGNORED_SUMMARY_INTERVAL_MS, isSummaryDue, type PlayerReportState } from '../../../src/server/domain/report-limits'
 
 const PLAN_CAPACITY = 40
 const PLAN_REFILL_PER_SECOND = 20

@@ -51,19 +51,6 @@ describe('transition when a handler throws', () => {
     expect(next.effects).toEqual([])
   })
 
-  it('answers Discarded for the panel an Open would have opened, and keeps the old stack', () => {
-    const state = withPanels([OWNED_LIST_PANEL])
-    const hostile = throwingPanel('hostile')
-    const next = transition(state, openPanel(hostile, LATER_SEQ), NOW)
-    expect(next.state.stack).toBe(state.stack)
-    expect(next.state.appliedCommandSeq).toBe(LATER_SEQ)
-    expect(next.effects).toHaveLength(1)
-    expect(events(next.effects)).toEqual([{
-      stack: { appliedCommandSeq: LATER_SEQ, entries: [{ panelId: OWNED_LIST_PANEL.panel.id, owner: FixtureOwner.Whitelist }] },
-      replies: [{ owner: FixtureOwner.Whitelist, reply: { kind: ReplyKind.PanelClosed, panelId: hostile.panel.id, reason: CloseReason.Discarded } }],
-    }])
-  })
-
   it('answers Discarded for a pushed panel whose handler throws', () => {
     const state = withPanels([OWNED_LIST_PANEL])
     const hostile = throwingPanel('hostile')

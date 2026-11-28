@@ -8,3 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker run --rm -v "$PWD":/app -w /app -e HOME=/tmp node:22 sh -c 'npx -y npm@11.21.3 ci && npm run check'
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker run --rm -v "$PWD":/w:ro -w /w node:22-alpine sh -c 'apk add -q lua5.4 && luac5.4 -p omk_ui/config.lua omk_ui/client/config_export.lua omk_ui/server/config_export.lua'

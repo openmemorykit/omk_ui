@@ -29,10 +29,13 @@ export interface ColumnView {
   readonly brand: BrandView
   readonly title: string
   readonly subtitle: string | null
+  readonly depth: number
   readonly crumbs: readonly CrumbView[]
   readonly rows: readonly ColumnRow[]
   readonly windowStart: number
   readonly rowCount: number
+  readonly hiddenBefore: number
+  readonly hiddenAfter: number
   readonly counter: CounterView | null
   readonly canScrollUp: boolean
   readonly canScrollDown: boolean
@@ -45,6 +48,7 @@ export interface ColumnView {
 
 const NONE = 0
 const NEXT = 1
+const FIRST_LEVEL_ONLY = 1
 
 function totalRows(panel: Panel): number {
   return panel.items.length + (panel.kind === PanelKind.Form ? NEXT : NONE)
@@ -94,8 +98,8 @@ function brandOf(state: UiState): BrandView {
   return Object.freeze({ kind: logo === null ? BrandKind.Monogram : BrandKind.Logo, logo: logo === null ? null : `${BRANDING_BASE}${logo}`, monogram })
 }
 
-function crumbsOf(state: UiState): readonly CrumbView[] {
-  return Object.freeze(state.stack.flatMap((frame) => (frame.panel === null ? [] : [Object.freeze({ id: frame.panel.panel.id, title: frame.panel.panel.title })])))
+function levelsOf(state: UiState): readonly CrumbView[] {
+  return state.stack.flatMap((frame) => (frame.panel === null ? [] : [Object.freeze({ id: frame.panel.panel.id, title: frame.panel.panel.title })]))
 }
 
 function isShown(state: UiState): boolean {
@@ -110,6 +114,7 @@ export function columnView(state: UiState, translate: Translate): ColumnView | n
   const total = totalRows(panel)
   const first = clampedStart(frame, total)
   const covered = frame.layers.length > NONE
+  const levels = levelsOf(state)
   const focusedRow = rows.find((row) => frame.focusItemId === row.id)
   return Object.freeze({
     panelId: panel.id,
@@ -117,10 +122,13 @@ export function columnView(state: UiState, translate: Translate): ColumnView | n
     brand: brandOf(state),
     title: panel.title,
     subtitle: panel.subtitle ?? null,
-    crumbs: crumbsOf(state),
+    depth: levels.length,
+    crumbs: Object.freeze(levels.length > FIRST_LEVEL_ONLY ? levels : []),
     rows: Object.freeze(rows),
     windowStart: start,
     rowCount: total,
+    hiddenBefore: start,
+    hiddenAfter: total - start - rows.length,
     counter: counterOf(panel, frame, translate),
     canScrollUp: first > NONE,
     canScrollDown: first + VISIBLE_ROWS < total,

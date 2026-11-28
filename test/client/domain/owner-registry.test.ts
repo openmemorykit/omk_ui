@@ -37,7 +37,7 @@ describe('openPanel', () => {
   it('registers the local panel and sends the namespaced one with the first command', () => {
     const outcome = accepted(openPanel(EMPTY_REGISTRY, Whitelist, LIST_PANEL))
     expect(outcome.registry.stack).toStrictEqual([{ owner: Whitelist, panel: LIST_PANEL }])
-    expect(outcome.command).toStrictEqual({ kind: StackCommandKind.Open, seq: 1, owner: Whitelist, panel: OWNED_LIST_PANEL, panelId: null })
+    expect(outcome.command).toStrictEqual({ kind: StackCommandKind.Open, seq: 1, owner: Whitelist, panel: OWNED_LIST_PANEL })
     expect(outcome.registry.commandSeq).toBe(1)
     expect(outcome.registry.unapplied).toStrictEqual([outcome.command])
   })
@@ -59,14 +59,14 @@ describe('openPanel', () => {
     const closed = registryAfter(closePanel(withList, Whitelist, LIST_PANEL.id))
     const garage = accepted(openPanel(closed, Garage, LIST_PANEL))
     expect(garage.registry.stack).toStrictEqual([{ owner: Garage, panel: LIST_PANEL }])
-    expect(garage.command?.panel?.panel.id).toBe('garage/list')
+    expect(garage.command).toMatchObject({ kind: StackCommandKind.Open, panel: { panel: { id: 'garage/list' } } })
   })
 })
 
 describe('pushPanel', () => {
   it('stacks a child on the top panel and names the namespaced parent', () => {
     const command = commandOf(pushPanel(withList, Whitelist, ADD_PANEL, LIST_PANEL.id))
-    expect(command).toStrictEqual({ kind: StackCommandKind.Push, seq: 2, owner: Whitelist, panel: OWNED_ADD_PANEL, panelId: 'whitelist/list' })
+    expect(command).toStrictEqual({ kind: StackCommandKind.Push, seq: 2, owner: Whitelist, panel: OWNED_ADD_PANEL, parentId: 'whitelist/list' })
     expect(withListAndAdd.stack).toStrictEqual([{ owner: Whitelist, panel: LIST_PANEL }, { owner: Whitelist, panel: ADD_PANEL }])
   })
 
@@ -110,7 +110,7 @@ describe('updatePanel', () => {
 describe('closePanel', () => {
   it('closes the panel and the panels above it with one command', () => {
     const outcome = accepted(closePanel(withListAndAdd, Whitelist, LIST_PANEL.id))
-    expect(outcome.command).toStrictEqual({ kind: StackCommandKind.Close, seq: 3, owner: Whitelist, panel: null, panelId: 'whitelist/list' })
+    expect(outcome.command).toStrictEqual({ kind: StackCommandKind.Close, seq: 3, owner: Whitelist, panelId: 'whitelist/list' })
     expect(outcome.registry.stack).toStrictEqual([])
   })
 
@@ -149,7 +149,7 @@ describe('checkFormOwner', () => {
 describe('confirmations', () => {
   it('always carry a command number', () => {
     const command = commandOf(showConfirm(withList, Whitelist, REMOVE_CONFIRM))
-    expect(command).toStrictEqual({ kind: StackCommandKind.ShowConfirm, seq: 2, owner: Whitelist, panel: null, panelId: null })
+    expect(command).toStrictEqual({ kind: StackCommandKind.ShowConfirm, seq: 2, owner: Whitelist })
   })
 
   it('are refused while the stack holds a panel of another owner', () => {
@@ -158,9 +158,10 @@ describe('confirmations', () => {
 
   it('allow one pending confirmation per owner until it is settled', () => {
     const confirming = registryAfter(showConfirm(EMPTY_REGISTRY, Whitelist, REMOVE_CONFIRM))
-    expect(confirming.confirms).toStrictEqual([{ owner: Whitelist, confirm: REMOVE_CONFIRM }])
+    expect(confirming.confirms).toStrictEqual([{ owner: Whitelist, confirm: REMOVE_CONFIRM, seq: confirming.commandSeq }])
     expect(refusal(showConfirm(confirming, Whitelist, { ...REMOVE_CONFIRM, id: 'other' })).code).toBe(ContractErrorCode.QuotaExceeded)
-    const settled = settleConfirm(confirming, Whitelist, REMOVE_CONFIRM.id)
+    const shown = reconcileStack(confirming, { appliedCommandSeq: confirming.commandSeq, entries: [] })
+    const settled = settleConfirm(shown, Whitelist, REMOVE_CONFIRM.id)
     expect(settled.confirms).toStrictEqual([])
     expect(showConfirm(settled, Whitelist, REMOVE_CONFIRM).ok).toBe(true)
   })

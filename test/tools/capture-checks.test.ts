@@ -24,7 +24,7 @@ interface Survey {
   texts: Text[]
   surfaces: Surface[]
   radial: { left: number; top: number; right: number; bottom: number } | null
-  column: { dimmed: boolean; opacityProduct: number; veilColor: string } | null
+  column: { dimmed: boolean; opacityProduct: number; veilColor: string; veilDisplay?: string } | null
   animations: Array<{ selector: string; durationsMs: number[]; exempt: boolean }>
   essentialAnimated: number
 }
@@ -91,7 +91,7 @@ describe('checkRadialFits', () => {
   it('measures the box that carries the radial, never its ring and centre parts', () => {
     expect(RADIAL_SELECTOR).toBe('.omk-radial')
     expect(readFileSync('src/page/components/RadialMenu.vue', 'utf8')).toMatch(/<div class="omk-radial [^"]*" role="menu"/)
-    expect(readFileSync('tools/capture.mjs', 'utf8')).not.toMatch(/radial-ring', 'radial-center'/)
+    expect(readFileSync('tools/capture/page-scripts.mjs', 'utf8')).not.toMatch(/radial-ring', 'radial-center'/)
   })
 
   it('accepts no radial and a radial inside the window', () => {
@@ -165,6 +165,12 @@ describe('checkColumnVeil', () => {
     expect(checksOf(checkColumnVeil(survey({ radial, column: { dimmed: true, opacityProduct: 1, veilColor: 'rgba(0, 0, 0, 0)' } })))).toEqual(['column-veil'])
     expect(checksOf(checkColumnVeil(survey({ radial, column: { dimmed: true, opacityProduct: 0.25, veilColor: veil } })))).toEqual(['column-opacity'])
   })
+
+  it('rejects a veil that has a color but is not displayed', () => {
+    const radial = { left: 0, top: 0, right: 10, bottom: 10 }
+    expect(checksOf(checkColumnVeil(survey({ radial, column: { dimmed: true, opacityProduct: 1, veilColor: veil, veilDisplay: 'none' } })))).toEqual(['column-veil'])
+    expect(checkColumnVeil(survey({ radial, column: { dimmed: true, opacityProduct: 1, veilColor: veil, veilDisplay: 'block' } }))).toEqual([])
+  })
 })
 
 describe('contrastRatio', () => {
@@ -197,9 +203,16 @@ describe('checkContrast', () => {
     expect(checksOf(checkContrast(survey({ texts: [tinted] }), 'day'))).toEqual(['contrast'])
   })
 
-  it('ignores other text roles and does nothing on the night scene', () => {
+  it('holds a text outside the three roles, such as a grey written in a component, to a floor of 3:1', () => {
+    const failures = checkContrast(survey({ texts: [text({ text: 'Grey', role: 'other', color: 'rgb(70, 70, 80)' })] }), 'day')
+    expect(checksOf(failures)).toEqual(['contrast'])
+    expect(failures[0]?.message).toContain('Grey')
     expect(checkContrast(survey({ texts: [text({ role: 'other', color: 'rgb(120, 120, 130)' })] }), 'day')).toEqual([])
+  })
+
+  it('does nothing on the night scene', () => {
     expect(checkContrast(survey({ texts: [text({ color: 'rgb(120, 120, 130)' })] }), 'night')).toEqual([])
+    expect(checkContrast(survey({ texts: [text({ role: 'other', color: 'rgb(70, 70, 80)' })] }), 'night')).toEqual([])
   })
 })
 

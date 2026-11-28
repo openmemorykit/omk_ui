@@ -4,7 +4,7 @@ import { deepFrozen } from './frozen'
 import { ADD_PANEL, LIST_PANEL } from './panels'
 import { GARAGE_RADIAL_ENTRY, HOLD_PROMPT, KEYED_NOTIFICATION, PLAIN_NOTIFICATION, PRESS_PROMPT, REMOVE_CONFIRM, WHITELIST_RADIAL_ENTRY } from './surfaces'
 
-export const FixtureOwner = { Whitelist: 'whitelist', Garage: 'garage' } as const
+export const FixtureOwner = Object.freeze({ Whitelist: 'whitelist', Garage: 'garage' } as const)
 
 export const OWNED_LIST_PANEL: OwnedPanel = deepFrozen({ owner: FixtureOwner.Whitelist, panel: { ...LIST_PANEL, id: 'whitelist/list' } })
 

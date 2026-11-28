@@ -28,17 +28,23 @@ const sideDomain = (side) => `src/${side}/domain/**/*.ts`
 const pureLayers = ['src/{protocol,shared}/**/*.ts']
 const fixtures = 'test/fixtures/lint'
 const sources = (real, mirror) => [`${real}/**/*.{ts,vue}`, `${fixtures}/${mirror}/**`]
-const projects = ['pure', 'test', 'page', 'test.page'].map((name) => `./tsconfig.${name}.json`).concat(`./${fixtures}/tsconfig.json`)
+const projects = ['pure', 'test', 'page', 'test.page', 'client', 'server', 'test.client', 'test.server'].map((name) => `./tsconfig.${name}.json`).concat(`./${fixtures}/tsconfig.json`)
 const pageCode = ['src/{page,protocol,shared}/**/*.ts', 'src/**/*.vue', 'preview/**/*.{ts,vue}', `${fixtures}/**/*.{ts,vue}`]
 const reactiveNames = ['reactive', 'ref', 'shallowReactive']
 const natives = [[citizenfx], 'Les natives restent dans infrastructure, main et les côtés client et serveur.']
 const clientDomainOnlyForPreview = [[...forbidden('client', 'server'), `!${citizenfx}`], 'Seul preview importe client/domain : la page n\'importe ni le client ni le serveur.']
 const sdkAndCore = ['@openmemorykit/ui/sdk*', '@openmemorykit/ui/validation', '@openmemorykit/core/client', '@openmemorykit/core/server', '@openmemorykit/core/testing']
 
+const sidesApplicationAndDomain = ['src/*/{domain,application}/**/*.ts', `${fixtures}/{client,server}-application/**/*.ts`]
+const compiledInClient = ['src/{client,protocol,shared}/**/*.ts', 'preview/{scenarios,runtime}/**/*.ts', `${fixtures}/client-{application,compiled}/**/*.ts`]
+const dateNow = { object: 'Date', property: 'now', message: 'Date.now n\'est jamais une horloge : lis Clock.now() (GetGameTimer).' }
+const performanceNow = { object: 'performance', property: 'now', message: 'performance.now est absent du V8 du jeu côté client : lis Clock.now().' }
+const browserGlobals = ['structuredClone', 'queueMicrotask'].map((name) => ({ name, message: `${name} est absent du V8 du jeu côté client.` }))
+
 const local = { rules: { 'no-comments': noComments, 'no-html-comments': noHtmlComments } }
 
 export default defineConfig(
-  { ignores: ['**/node_modules/', '**/coverage/', '**/tools/', 'eslint.config.js', '**/vitest.config.ts', 'vite.config.ts', 'omk_ui/web/', '.public/', '.preview-dist/', 'test/captures/', 'release/', 'test/guards/fixtures/**', `${fixtures}/**`] },
+  { ignores: ['**/node_modules/', '**/coverage/', '**/tools/', 'eslint.config.js', '**/vitest.config.ts', 'vite.config.ts', 'omk_ui/web/', 'omk_ui/dist/', '.public/', '.preview-dist/', 'test/captures/', 'release/', 'test/guards/fixtures/**', `${fixtures}/**`] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   ...vue.configs['flat/base'],
@@ -105,7 +111,7 @@ export default defineConfig(
       ),
     },
   })),
-  { files: ['src/*/application/**/*.ts'], rules: { 'no-restricted-imports': restrictedImports([citizenfx, ...forbidden('infrastructure', 'components')], 'L\'application n\'importe ni infrastructure ni composants.') } },
+  { files: ['src/*/application/**/*.ts', `${fixtures}/{client,server}-application/**/*.ts`], rules: { 'no-restricted-imports': restrictedImports([citizenfx, ...forbidden('infrastructure', 'components')], 'L\'application n\'importe ni infrastructure ni composants.') } },
   {
     files: sources('src/page/application', 'application'),
     rules: {
@@ -151,6 +157,9 @@ export default defineConfig(
       ),
     },
   })),
+  { files: sidesApplicationAndDomain, rules: { 'no-restricted-properties': ['error', dateNow] } },
+  { files: compiledInClient, rules: { 'no-restricted-properties': ['error', performanceNow], 'no-restricted-globals': ['error', ...browserGlobals] } },
+  { files: ['src/client/{domain,application}/**/*.ts', `${fixtures}/client-application/**/*.ts`], rules: { 'no-restricted-properties': ['error', dateNow, performanceNow] } },
   { ...compat.configs['flat/recommended'], files: pageCode, settings: { lintAllEsApis: true } },
   { files: ['test/**/*.ts'], rules: { 'max-lines-per-function': 'off' } },
 )

@@ -1,3 +1,4 @@
+import { isRecord } from '@openmemorykit/core/shared'
 import { STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import type { Reply } from '@openmemorykit/ui/contract'
 import { fromPageStackEntry } from './owned'
@@ -39,7 +40,7 @@ function hasDistinctPanels(entries: readonly StackEntry[]): boolean {
 }
 
 export function fromPageStackSnapshot(snapshot: StackSnapshot): LocalStackSnapshot | null {
-  if (typeof snapshot !== 'object' || snapshot === null) return null
+  if (!isRecord(snapshot)) return null
   const { appliedCommandSeq, entries } = snapshot
   if (!isCommandSeq(appliedCommandSeq) || !isList(entries) || entries.length > STACK_SNAPSHOT_MAX_ENTRIES) return null
   const owners = entries.map(fromPageStackEntry)

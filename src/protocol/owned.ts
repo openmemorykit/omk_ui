@@ -1,3 +1,4 @@
+import { isRecord } from '@openmemorykit/core/shared'
 import { ReplyKind } from '@openmemorykit/ui/contract'
 import type { ConfirmRequest, Notification, Panel, Prompt, RadialEntry, Reply } from '@openmemorykit/ui/contract'
 import { namespaceId, splitNamespacedId } from './namespaced-id'
@@ -32,8 +33,6 @@ export function toPageNotification(owner: string, notification: Notification): O
   return { owner, notification: key === undefined ? notification : { ...notification, key: namespaceId(owner, key) } }
 }
 
-const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> => typeof value === 'object' && value !== null
-
 function localIdOf(namespacedId: string, owner: string): string | null {
   const parts = splitNamespacedId(namespacedId)
   return parts !== null && parts.owner === owner ? parts.localId : null
@@ -43,6 +42,11 @@ export function fromPageStackEntry(entry: StackEntry): StackEntryOwner | null {
   if (!isRecord(entry)) return null
   const localPanelId = localIdOf(entry.panelId, entry.owner)
   return localPanelId === null ? null : { owner: entry.owner, localPanelId }
+}
+
+function unknownReplyKind(reply: never): null {
+  void reply
+  return null
 }
 
 function localizeReply(reply: Reply, owner: string): Reply | null {
@@ -67,7 +71,7 @@ function localizeReply(reply: Reply, owner: string): Reply | null {
       return promptId === null ? null : { ...reply, promptId }
     }
     default:
-      return null
+      return unknownReplyKind(reply)
   }
 }
 

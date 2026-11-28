@@ -25,7 +25,7 @@ export interface LegendGlyphView {
 export interface LegendEntryView {
   readonly action: ValueOf<typeof LegendAction>
   readonly label: string
-  readonly hold: boolean
+  readonly holdLabel: string | null
   readonly keys: readonly LegendGlyphView[]
   readonly pad: readonly LegendGlyphView[]
 }
@@ -33,6 +33,7 @@ export interface LegendEntryView {
 export interface LegendView {
   readonly glyphSet: GlyphSet
   readonly modality: Modality
+  readonly holdWord: string
   readonly entries: readonly LegendEntryView[]
 }
 
@@ -78,10 +79,11 @@ export function legendView(state: UiState, translate: Translate): LegendView | n
   return {
     glyphSet: state.glyphSet,
     modality: state.modality,
+    holdWord: translate('ui.prompt.hold'),
     entries: legendEntries(context).map((entry) => ({
       action: entry.action,
       label: translate(`ui.legend.${entry.action}`),
-      hold: entry.hold,
+      holdLabel: entry.holdAction === null ? null : translate(`ui.legend.${entry.holdAction}`),
       keys: entry.keys.map((glyph) => keyView(glyph, state, translate, gamepad)),
       pad: entry.pad.map((glyph) => padView(glyph, translate, !gamepad)),
     })),

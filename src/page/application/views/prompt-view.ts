@@ -15,6 +15,11 @@ export interface PromptGlyphView {
   readonly label: string
 }
 
+export interface RingAngles {
+  readonly right: number
+  readonly left: number
+}
+
 export interface HoldPromptView {
   readonly id: string
   readonly label: string
@@ -23,10 +28,27 @@ export interface HoldPromptView {
   readonly holdMs: number
   readonly state: PromptState | null
   readonly ringMs: number
+  readonly ringFrom: RingAngles
   readonly glyph: PromptGlyphView
 }
 
 const NO_RING = 0
+const HALVES = 2
+const HALF_TURN = 180
+const RIGHT_ARC_EMPTY = -135
+const LEFT_ARC_EMPTY = 45
+
+const DEGREE_PRECISION = 100
+
+function roundedDegrees(degrees: number): number {
+  return Math.round(degrees * DEGREE_PRECISION) / DEGREE_PRECISION
+}
+
+function ringFrom(heldFraction: number): RingAngles {
+  const rightShare = Math.min(heldFraction * HALVES, 1)
+  const leftShare = Math.max(heldFraction * HALVES - 1, NO_RING)
+  return { right: roundedDegrees(RIGHT_ARC_EMPTY + HALF_TURN * rightShare), left: roundedDegrees(LEFT_ARC_EMPTY + HALF_TURN * leftShare) }
+}
 
 function ringMs(state: PromptState | null, holdMs: number): number {
   switch (state) {
@@ -59,6 +81,7 @@ export function promptView(state: UiState, translate: Translate): HoldPromptView
     holdMs,
     state: progress,
     ringMs: ringMs(progress, state.prompt.holdMs > NO_RING ? state.prompt.holdMs : holdMs),
+    ringFrom: ringFrom(state.prompt.heldFraction),
     glyph: glyphOf(state, translate),
   }
 }

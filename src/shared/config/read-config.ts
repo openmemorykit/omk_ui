@@ -1,7 +1,7 @@
 import { normalizePayload } from '@openmemorykit/ui/validation'
 import { MAX_REPORTED_ERRORS, type ContractError } from '@openmemorykit/ui/contract'
 import * as v from 'valibot'
-import type { ValueOf } from '@openmemorykit/core/shared'
+import { hasOwnKey, isRecord, type ValueOf } from '@openmemorykit/core/shared'
 import { DEFAULT_CONFIG, INPUT_FIELDS, THEME_FIELDS, TRACE_FIELDS, type KitConfig } from './config-schema'
 
 export const ConfigWarningKind = { Invalid: 'invalid', Unknown: 'unknown', Truncated: 'truncated' } as const
@@ -29,10 +29,6 @@ const SECTIONS = new Map<string, Fields>([
 const ROOT_KEY = ''
 const KEY_SEPARATOR = '.'
 
-function isTable(value: unknown): value is Table {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function isEmptyList(value: unknown): boolean {
   return Array.isArray(value) && value.length === 0
 }
@@ -41,19 +37,15 @@ function warning(key: string, kind: ConfigWarningKind, detail?: string): ConfigW
   return detail === undefined ? { key, kind } : { key, kind, detail }
 }
 
-function hasOwn(table: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(table, key)
-}
-
 function readSection(name: string, fields: Fields, raw: unknown): Section {
   const table = isEmptyList(raw) ? {} : raw
-  if (!isTable(table)) return { values: {}, warnings: [warning(name, ConfigWarningKind.Invalid)] }
+  if (!isRecord(table)) return { values: {}, warnings: [warning(name, ConfigWarningKind.Invalid)] }
   const values: Record<string, unknown> = {}
   const warnings: ConfigWarning[] = []
   for (const key of Object.keys(table)) {
     if (warnings.length > MAX_REPORTED_ERRORS) break
     const path = name + KEY_SEPARATOR + key
-    const schema = hasOwn(fields, key) ? fields[key] : undefined
+    const schema = hasOwnKey(fields, key) ? fields[key] : undefined
     if (schema === undefined) {
       warnings.push(warning(path, ConfigWarningKind.Unknown))
       continue
@@ -68,7 +60,7 @@ function readSection(name: string, fields: Fields, raw: unknown): Section {
 function nullWarnings(raw: unknown): readonly ConfigWarning[] {
   const warnings: ConfigWarning[] = []
   try {
-    if (!isTable(raw)) return warnings
+    if (!isRecord(raw)) return warnings
     for (const key of Object.keys(raw)) {
       if (warnings.length > MAX_REPORTED_ERRORS) break
       const fields = SECTIONS.get(key)
@@ -82,11 +74,11 @@ function nullWarnings(raw: unknown): readonly ConfigWarning[] {
 }
 
 function nullSectionWarnings(name: string, fields: Fields, section: unknown): readonly ConfigWarning[] {
-  if (!isTable(section)) return []
+  if (!isRecord(section)) return []
   return Object.keys(section)
     .filter((key) => section[key] === null)
     .flatMap((key) => {
-      const schema = hasOwn(fields, key) ? fields[key] : undefined
+      const schema = hasOwnKey(fields, key) ? fields[key] : undefined
       if (schema === undefined) return [warning(name + KEY_SEPARATOR + key, ConfigWarningKind.Unknown)]
       return v.safeParse(schema, null).success ? [] : [warning(name + KEY_SEPARATOR + key, ConfigWarningKind.Invalid)]
     })
@@ -139,6 +131,6 @@ export function readConfig(raw: unknown): ConfigReading {
   const normalized = normalizePayload(raw)
   if (!normalized.ok) return defaultReading(refusalWarnings(normalized.errors))
   const root = isEmptyList(normalized.value) ? {} : normalized.value
-  if (!isTable(root)) return defaultReading([warning(ROOT_KEY, ConfigWarningKind.Invalid)])
+  if (!isRecord(root)) return defaultReading([warning(ROOT_KEY, ConfigWarningKind.Invalid)])
   return readSections(root, raw)
 }

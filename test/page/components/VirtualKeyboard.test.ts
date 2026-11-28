@@ -11,6 +11,7 @@ import { openKeyboard, type KeyboardState } from '../../../src/page/domain/virtu
 import keyboardSource from '../../../src/page/components/VirtualKeyboard.vue?raw'
 import { translate } from '../application/views/column-fixtures'
 
+const CURSOR = 3
 const LIMIT = 40
 const ITEM = 'note'
 const SPACE_ROW = 3
@@ -136,7 +137,6 @@ describe('VirtualKeyboard', () => {
 
   it('moves the cursor to the end after a render from the pad', async () => {
     const { wrapper } = render(viewOf({ value: 'ab' }))
-    inputOf(wrapper).value = 'abcd'
     inputOf(wrapper).setSelectionRange(0, 0)
     await wrapper.setProps({ view: viewOf({ value: 'abcd' }) })
     await wrapper.vm.$nextTick()
@@ -144,6 +144,36 @@ describe('VirtualKeyboard', () => {
     expect(input.value).toBe('abcd')
     expect(input.selectionStart).toBe('abcd'.length)
     expect(input.selectionEnd).toBe('abcd'.length)
+  })
+
+  it('leaves the cursor where the player put it when the field already holds the text of the domain', async () => {
+    const { wrapper } = render(viewOf({ value: 'abc' }))
+    const input = inputOf(wrapper)
+    input.value = 'abXc'
+    input.setSelectionRange(CURSOR, CURSOR)
+    await wrapper.setProps({ view: viewOf({ value: 'abXc' }) })
+    await wrapper.vm.$nextTick()
+    expect(input.selectionStart).toBe(CURSOR)
+    expect(input.selectionEnd).toBe(CURSOR)
+  })
+
+  it('names the dialog and the field, and marks the dialog modal', () => {
+    const { wrapper } = render(viewOf(), 'Note du staff')
+    expect(wrapper.attributes('aria-label')).toBe('Note du staff')
+    expect(wrapper.attributes('aria-modal')).toBe('true')
+    expect(wrapper.get('input').attributes('aria-label')).toBe('Note du staff')
+    expect(render(viewOf()).wrapper.attributes('aria-label')).toBe(viewOf().layerName)
+  })
+
+  it('tells that the shift key is pressed, by aria-pressed and not by colour alone', () => {
+    const shifted = render(viewOf({ shift: true })).wrapper
+    const off = render(viewOf({ shift: false })).wrapper
+    const label = viewOf().rows.flat().find((key) => key.action === KeyAction.Shift)?.accessibleLabel
+    const shiftKey = (wrapper: VueWrapper): ReturnType<VueWrapper['findAll']> => wrapper.findAll('.omk-key').filter((key) => key.attributes('aria-label') === label)
+    expect(shiftKey(shifted).map((key) => key.attributes('aria-pressed'))).toEqual(['true'])
+    expect(shiftKey(off).map((key) => key.attributes('aria-pressed'))).toEqual(['false'])
+    const others = shifted.findAll('.omk-key').filter((key) => key.attributes('aria-label') !== label)
+    expect(others.every((key) => key.attributes('aria-pressed') === undefined)).toBe(true)
   })
 
   it('sends ClickKey with the coordinates of the clicked key', async () => {

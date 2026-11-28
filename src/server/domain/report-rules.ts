@@ -1,5 +1,5 @@
-import { inspectShape, serializedByteLength, ShapeRefusal, type ShapeLimits, type ValueOf } from '@openmemorykit/core/shared'
-import { ReportEnvelopeSchema, safeParseReportEnvelope, type ReportEnvelope } from '../../shared/report/report-envelope'
+import { hasOwnKey, inspectShape, isPlainObject, serializedByteLength, ShapeRefusal, type ShapeLimits, type ValueOf } from '@openmemorykit/core/shared'
+import { safeParseReportEnvelope, type ReportEnvelope } from '../../shared/report/report-envelope'
 import { ReportKind } from '../../shared/report/report-kind'
 
 export const REPORT_MAX_BYTES = 2048
@@ -18,29 +18,13 @@ const TOO_LARGE: ReportReading = Object.freeze({ decision: ReportDecision.TooLar
 const INVALID: ReportReading = Object.freeze({ decision: ReportDecision.Invalid })
 
 const KIND_KEY = 'kind'
-const ENVELOPE_KEYS: readonly string[] = Object.freeze(Object.keys(ReportEnvelopeSchema.entries))
 
 function isContainer(value: unknown): value is object {
   return typeof value === 'object' && value !== null
 }
 
-function isPlainObject(value: unknown): value is object {
-  if (!isContainer(value)) return false
-  const prototype: unknown = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
-}
-
-function hasOwnKey(value: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(value, key)
-}
-
-function hasForeignRootKey(raw: object): boolean {
-  return Object.keys(raw).some((key) => !ENVELOPE_KEYS.includes(key))
-}
-
-function claimedKind(raw: object): unknown {
-  if (!hasOwnKey(raw, KIND_KEY)) return undefined
-  return (raw as Readonly<Record<string, unknown>>)[KIND_KEY]
+function claimedKind(raw: Readonly<Record<string, unknown>>): unknown {
+  return hasOwnKey(raw, KIND_KEY) ? raw[KIND_KEY] : undefined
 }
 
 function isWanted(kind: unknown, traceActive: boolean, snapshotPending: boolean): boolean {
@@ -64,7 +48,7 @@ function containsTypedView(root: unknown): boolean {
 function shapeReading(raw: object): ReportReading | null {
   const verdict = inspectShape(raw, REPORT_SHAPE_LIMITS)
   if (!verdict.ok) return verdict.refusal === ShapeRefusal.Nodes ? TOO_LARGE : INVALID
-  if (hasForeignRootKey(raw) || containsTypedView(raw)) return INVALID
+  if (containsTypedView(raw)) return INVALID
   return null
 }
 
@@ -80,9 +64,9 @@ function envelopeReading(raw: unknown): ReportReading {
 }
 
 function readUnguarded(raw: unknown, traceActive: boolean, snapshotPending: boolean): ReportReading {
-  if (!isPlainObject(raw)) return INVALID
-  const kind = claimedKind(raw)
+  const kind = isPlainObject(raw) ? claimedKind(raw) : undefined
   if (!isWanted(kind, traceActive, snapshotPending)) return NOT_TRACED
+  if (!isPlainObject(raw)) return INVALID
   return shapeReading(raw) ?? sizeReading(raw, kind) ?? envelopeReading(raw)
 }
 

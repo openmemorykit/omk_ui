@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ReportKind } from '../../../src/shared/report/report-kind'
+import { sampleReport } from '../../fixtures/reports'
 import { readReport, ReportDecision } from '../../../src/server/domain/report-rules'
 
 const TIMESTAMP = 1234
 const TRACED = true
 const PENDING = true
+const NOT_TRACED = false
+const NOT_PENDING = false
+const NUMBER_ROOT = 1
 const MEGABYTE = 1_048_576
 const LARGE_VIEW_LENGTH = 5_000_000
 const LONG_ARRAY_LENGTH = 5000
@@ -63,8 +67,16 @@ describe('report rules: root', () => {
     expect(enumerated).toBe(false)
   })
 
+  it('answers not traced to a non-object root of a player whose journal is cut and who asked for nothing', () => {
+    expect(readReport(NUMBER_ROOT, NOT_TRACED, NOT_PENDING)).toEqual({ decision: ReportDecision.NotTraced })
+  })
+
+  it.each(nonPlainRoots)('answers not traced to %s of a player whose journal is cut', (_label, build) => {
+    expect(readReport(build(), NOT_TRACED, NOT_PENDING)).toEqual({ decision: ReportDecision.NotTraced })
+  })
+
   it('accepts a null-prototype root', () => {
-    const root: Record<string, unknown> = Object.assign(Object.create(null) as Record<string, unknown>, { kind: ReportKind.PageError, at: TIMESTAMP, data: {} })
+    const root: Record<string, unknown> = Object.assign(Object.create(null) as Record<string, unknown>, sampleReport(ReportKind.PageError))
     expect(readReport(root, TRACED, PENDING).decision).toBe(ReportDecision.Accepted)
   })
 
@@ -78,17 +90,17 @@ describe('report rules: root', () => {
 
 describe('report rules: hostile objects', () => {
   it('refuses a root whose keys cannot be listed, without throwing', () => {
-    const root = new Proxy({ kind: ReportKind.PageError, at: TIMESTAMP, data: {} }, { ownKeys: () => { throw new Error('hostile') } })
+    const root = new Proxy({ ...sampleReport(ReportKind.PageError) }, { ownKeys: () => { throw new Error('hostile') } })
     expect(readReport(root, TRACED, PENDING)).toEqual({ decision: ReportDecision.Invalid })
   })
 
   it('refuses a root whose kind cannot be read, without throwing', () => {
-    const root = Object.defineProperty({ at: TIMESTAMP, data: {} }, 'kind', { enumerable: true, get: () => { throw new Error('hostile') } })
+    const root = Object.defineProperty({ at: TIMESTAMP, data: sampleReport(ReportKind.PageError).data }, 'kind', { enumerable: true, get: () => { throw new Error('hostile') } })
     expect(readReport(root, TRACED, PENDING)).toEqual({ decision: ReportDecision.Invalid })
   })
 
   it('refuses a root whose prototype cannot be read, without throwing', () => {
-    const root = new Proxy({ kind: ReportKind.PageError, at: TIMESTAMP, data: {} }, { getPrototypeOf: () => { throw new Error('hostile') } })
+    const root = new Proxy({ ...sampleReport(ReportKind.PageError) }, { getPrototypeOf: () => { throw new Error('hostile') } })
     expect(readReport(root, TRACED, PENDING)).toEqual({ decision: ReportDecision.Invalid })
   })
 })

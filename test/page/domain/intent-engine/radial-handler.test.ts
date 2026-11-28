@@ -1,4 +1,4 @@
-import { CloseReason, ReplyKind } from '@openmemorykit/ui/contract'
+import { CloseReason, ReplyKind, STACK_MAX_DEPTH } from '@openmemorykit/ui/contract'
 import { describe, expect, it } from 'vitest'
 import { transition } from '../../../../src/page/domain/intent-engine'
 import { PageCommandType, TimerKind, WAITING_TIMEOUT_MS } from '../../../../src/page/domain/page-commands'
@@ -7,8 +7,10 @@ import { RadialLevel, type UiState } from '../../../../src/page/domain/ui-state'
 import { FromPage } from '../../../../src/protocol/from-page'
 import { Intent } from '../../../../src/protocol/intents'
 import { UiMode } from '../../../../src/protocol/page-vocabulary'
+import { PAGE_EVENT_MAX_REPLIES } from '../../../../src/protocol/page-event'
 import { ToPage } from '../../../../src/protocol/to-page'
-import { FixtureOwner, OWNED_ADD_PANEL, OWNED_GARAGE_RADIAL_ENTRY, OWNED_LIST_PANEL, OWNED_WHITELIST_RADIAL_ENTRY } from '../../../fixtures/owned'
+import { FixtureOwner, OWNED_ADD_PANEL, OWNED_GARAGE_RADIAL_ENTRY, OWNED_LIST_PANEL, OWNED_REMOVE_CONFIRM, OWNED_WHITELIST_RADIAL_ENTRY } from '../../../fixtures/owned'
+import { menuPanel } from '../navigation-helpers'
 import { events, initial, NOW, OPEN_RADIAL, press, radialEntries, run, sentOf, withPanels } from './engine-helpers'
 
 const WHITELIST_SECTOR = 0
@@ -113,6 +115,13 @@ describe('radial confirm', () => {
       { type: UiEffectType.Schedule, timer: TimerKind.WaitingTimeout, delayMs: WAITING_TIMEOUT_MS },
       { type: UiEffectType.SendToHost, message: { type: FromPage.ModeChanged, mode: UiMode.Waiting } },
     ])
+  })
+
+  it('sends at most the reply bound of the client when it closes a full stack with a confirmation', () => {
+    const levels = Array.from({ length: STACK_MAX_DEPTH }, (_unused, level) => menuPanel(`level-${level}`))
+    const full = run(withPanels(levels), [{ type: ToPage.ShowConfirm, commandSeq: STACK_MAX_DEPTH + 1, confirm: OWNED_REMOVE_CONFIRM }]).state
+    const selected = transition(run(radialOver(full), [press(Intent.Right)]).state, press(Intent.Confirm), NOW)
+    expect(events(selected.effects)[0]?.replies).toHaveLength(PAGE_EVENT_MAX_REPLIES)
   })
 
   it('enters the sub-ring on a sector with children, then selects the child', () => {

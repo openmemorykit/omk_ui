@@ -14,6 +14,7 @@ const RULES = [
   ['@container', /@container\b/],
   ['backdrop-filter', /backdrop-filter/],
   ['blur(', /blur\(/],
+  ['drop-shadow(', /drop-shadow\(/],
   ['unité dvh/svh/lvh', /\d(?:d|s|l)vh\b/],
   ['text-wrap: balance', /text-wrap\s*:\s*balance/],
   ...LONE_PROPERTIES.map((name) => [`propriété ${name} seule`, new RegExp(String.raw`(?:^|[{;\s])${name}\s*:`)]),

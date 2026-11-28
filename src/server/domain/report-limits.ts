@@ -1,6 +1,6 @@
-import { fullBucket, takeTokens, type BucketSettings, type TokenBucket } from '../../shared/rate-limit/token-bucket'
+import { fullBucket, takeTokens, type TokenBucket } from '../../shared/rate-limit/token-bucket'
+import { PLAYER_REPORT_BUCKET } from '../../shared/report/report-bucket'
 
-export const PLAYER_REPORT_BUCKET: BucketSettings = Object.freeze({ capacity: 40, refillPerSecond: 20 })
 export const IGNORED_SUMMARY_INTERVAL_MS = 1000
 const REPORT_COST = 1
 

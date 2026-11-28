@@ -16,7 +16,7 @@ function stateWith(...notifications: ReturnType<typeof notification>[]): UiState
 
 describe('toastsView', () => {
   it('is empty without notifications', () => {
-    expect(toastsView(createInitialState(), translate)).toEqual({ toasts: [], waiting: 0 })
+    expect(toastsView(createInitialState(), translate)).toEqual({ toasts: [], waiting: 0, waitingLabel: null })
   })
 
   it.each(Object.values(NotificationTone))('translates the %s tone label', (tone) => {
@@ -39,6 +39,7 @@ describe('toastsView', () => {
     const view = toastsView(stateWith(...many), translate)
     expect(view.toasts).toHaveLength(NOTIFICATIONS_VISIBLE)
     expect(view.waiting).toBe(EXTRA)
+    expect(view.waitingLabel).toBe(`t:ui.toast.waiting:{"count":${EXTRA}}`)
   })
 
   it('identifies a keyed toast by owner and key', () => {

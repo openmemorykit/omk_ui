@@ -63,10 +63,31 @@ describe('ConfirmLayer', () => {
     expect(rows.map((row) => row.classes().includes('is-focused'))).toEqual([false, true])
   })
 
-  it('hovers a choice by its identifier', async () => {
+  it('hovers a choice by its identifier when the pointer moves over it', async () => {
     const { wrapper, sent } = render(viewOf())
-    await wrapper.findAll('.omk-row')[1]?.trigger('mouseenter')
+    await wrapper.findAll('.omk-row')[1]?.trigger('mousemove')
     expect(sent).toEqual([{ type: PageCommandType.HoverItem, itemId: ConfirmChoice.Cancel }])
+  })
+
+  it('does not move the choice when a layer opens under a pointer that stays still', async () => {
+    const { wrapper, sent } = render(viewOf({ danger: true }, ConfirmChoice.Cancel))
+    await wrapper.findAll('.omk-row')[0]?.trigger('mouseenter')
+    expect(sent).toEqual([])
+  })
+
+  it('is named by its title attribute and described by its text', () => {
+    const { wrapper } = render(viewOf())
+    expect(wrapper.attributes('aria-label')).toBe('Refuser le dossier')
+    const describedBy = wrapper.attributes('aria-describedby') ?? ''
+    expect(describedBy).not.toBe('')
+    expect(wrapper.get(`#${describedBy}`).text()).toBe('Le dossier sera refusé.')
+  })
+
+  it('groups the choices as buttons, not as a list holding buttons', () => {
+    const { wrapper } = render(viewOf())
+    expect(wrapper.find('ul, li').exists()).toBe(false)
+    expect(wrapper.get('.omk-confirm__choices').attributes('role')).toBe('group')
+    expect(wrapper.findAll('.omk-row').map((row) => row.attributes('role'))).toEqual(['button', 'button'])
   })
 
   it('clicks a choice by its identifier', async () => {

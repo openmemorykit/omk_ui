@@ -1,5 +1,7 @@
-import type { ReportKind } from '../../shared/report/report-kind'
-import { JSON_MAX_DEPTH, type JsonObject } from '../../shared/report/json-value'
+import { isPlainObject } from '@openmemorykit/core/shared'
+import { ReportKind } from '../../shared/report/report-kind'
+import { JSON_MAX_DEPTH } from '../../shared/report/json-value'
+import type { ReportEnvelope } from '../../shared/report/report-envelope'
 
 export const TRACE_CAPACITY = 100
 export const TRACE_MAX_BYTES = 65_536
@@ -17,11 +19,7 @@ const LOW_SURROGATE_START = 0xdc00
 const LOW_SURROGATE_END = 0xdfff
 const SURROGATE_PAIR_BYTES = 4
 
-export interface TraceLine {
-  readonly at: number
-  readonly kind: ReportKind
-  readonly data: JsonObject
-}
+export type TraceLine = ReportEnvelope
 
 export interface TraceBuffer {
   readonly lines: readonly TraceLine[]
@@ -30,6 +28,8 @@ export interface TraceBuffer {
 }
 
 export const EMPTY_TRACE: TraceBuffer = Object.freeze({ lines: Object.freeze([]), sizes: Object.freeze([]), totalBytes: 0 })
+
+const REPORT_KINDS: ReadonlySet<unknown> = new Set(Object.values(ReportKind))
 
 interface TraceDrain {
   readonly lines: readonly TraceLine[]
@@ -46,11 +46,6 @@ class Budget {
     this.characters += characters
     return this.nodes <= TRACE_LINE_MAX_NODES && this.characters <= TRACE_LINE_MAX_BYTES
   }
-}
-
-function isPlainObject(value: object): boolean {
-  const prototype: unknown = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
 }
 
 function ownDataValues(value: object, keys: readonly string[], children: unknown[]): boolean {
@@ -104,9 +99,13 @@ interface Snapshot {
   readonly bytes: number
 }
 
+function hasKnownEnvelope(line: TraceLine): boolean {
+  return Number.isInteger(line.at) && line.at >= 0 && REPORT_KINDS.has(line.kind)
+}
+
 function snapshotOf(line: TraceLine): Snapshot | null {
   try {
-    if (!Number.isFinite(line.at) || typeof line.kind !== 'string' || !acceptable(line.data, 0, new Budget(line.kind.length))) return null
+    if (!hasKnownEnvelope(line) || !acceptable(line.data, 0, new Budget(line.kind.length))) return null
     const text = JSON.stringify({ at: line.at, kind: line.kind, data: line.data })
     const bytes = utf8Bytes(text)
     return bytes > TRACE_LINE_MAX_BYTES ? null : { line: deepFrozen(JSON.parse(text) as TraceLine), bytes }
@@ -123,16 +122,26 @@ function repeatsLast(buffer: TraceBuffer, line: TraceLine): boolean {
   return false
 }
 
+interface Eviction {
+  readonly dropped: number
+  readonly totalBytes: number
+}
+
+function evictionFor(buffer: TraceBuffer, incomingBytes: number): Eviction {
+  let dropped = 0
+  let totalBytes = buffer.totalBytes + incomingBytes
+  for (const size of buffer.sizes) {
+    if (buffer.lines.length - dropped < TRACE_CAPACITY && totalBytes <= TRACE_MAX_BYTES) break
+    totalBytes -= size
+    dropped += 1
+  }
+  return { dropped, totalBytes }
+}
+
 export function appendTrace(buffer: TraceBuffer, line: TraceLine): TraceBuffer {
   const snapshot = snapshotOf(line)
   if (snapshot === null || repeatsLast(buffer, snapshot.line)) return buffer
-  let dropped = 0
-  let totalBytes = buffer.totalBytes + snapshot.bytes
-  while (buffer.lines.length - dropped >= TRACE_CAPACITY || totalBytes > TRACE_MAX_BYTES) {
-    totalBytes -= buffer.sizes[dropped] ?? 0
-    dropped += 1
-    if (dropped >= buffer.lines.length) break
-  }
+  const { dropped, totalBytes } = evictionFor(buffer, snapshot.bytes)
   return { lines: [...buffer.lines.slice(dropped), snapshot.line], sizes: [...buffer.sizes.slice(dropped), snapshot.bytes], totalBytes }
 }
 

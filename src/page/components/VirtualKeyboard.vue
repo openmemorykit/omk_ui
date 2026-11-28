@@ -14,7 +14,8 @@ const KEY_ICONS: ReadonlyMap<KeyAction, string> = new Map([[KeyAction.Shift, SHI
 function place(): void {
   const element = field.value
   if (element === null) return
-  if (element.value !== props.view.value) element.value = props.view.value
+  if (element.value === props.view.value) return
+  element.value = props.view.value
   element.setSelectionRange(element.value.length, element.value.length)
 }
 
@@ -89,6 +90,7 @@ watch(() => props.view.value, place, { flush: 'post' })
             :class="keyClasses(key)"
             :style="{ '--units': key.units }"
             :aria-label="key.accessibleLabel"
+            :aria-pressed="key.action === KeyAction.Shift ? key.active : undefined"
             @mousedown="keepFocus"
             @click="press(key)"
           >

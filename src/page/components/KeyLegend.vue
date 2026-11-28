@@ -10,7 +10,7 @@ const view = computed(() => legendView(ui.state.value, ui.translate))
 
 <template>
   <div v-if="view !== null" class="omk-legend omk-surface-deep" data-surface="legend" :data-modality="view.modality">
-    <div v-for="entry in view.entries" :key="entry.action" class="omk-legend__entry" :data-hold="entry.hold">
+    <div v-for="entry in view.entries" :key="entry.action" class="omk-legend__entry" :data-hold="entry.holdLabel !== null">
       <span class="omk-legend__group omk-legend__group--keys">
         <Glyph v-for="key in entry.keys" :key="`${key.glyph}-${key.label}`" :glyph="key.glyph" :glyph-set="view.glyphSet" :label="key.label" :class="{ 'is-muted': key.muted }" />
       </span>
@@ -18,7 +18,10 @@ const view = computed(() => legendView(ui.state.value, ui.translate))
         <Glyph v-for="pad in entry.pad" :key="pad.glyph" :glyph="pad.glyph" :glyph-set="view.glyphSet" :label="pad.label" :class="{ 'is-muted': pad.muted }" />
       </span>
       <span class="omk-legend__label">{{ entry.label }}</span>
-      <span v-if="entry.hold" class="omk-legend__hold">{{ ui.translate('ui.prompt.hold') }}</span>
+      <template v-if="entry.holdLabel !== null">
+        <span class="omk-legend__hold">{{ view.holdWord }}</span>
+        <span class="omk-legend__label omk-legend__label--hold">{{ entry.holdLabel }}</span>
+      </template>
     </div>
   </div>
 </template>
@@ -65,6 +68,10 @@ const view = computed(() => legendView(ui.state.value, ui.translate))
 
 .omk-legend__label {
   order: 3;
+}
+
+.omk-legend__label--hold {
+  order: 5;
 }
 
 .omk-legend__hold {

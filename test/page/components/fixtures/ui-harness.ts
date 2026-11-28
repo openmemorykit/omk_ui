@@ -18,6 +18,7 @@ export interface MountOptions {
   readonly state?: UiState
   readonly slots?: Record<string, string>
   readonly translate?: Translate
+  readonly attach?: boolean
 }
 
 const FULL_HD = { width: 1920, height: 1080 }
@@ -34,6 +35,7 @@ export function mountWithUi(component: Component, options: MountOptions = {}): H
   const wrapper = mount(component, {
     props: options.props ?? {},
     slots: options.slots ?? {},
+    ...(options.attach === true ? { attachTo: document.body } : {}),
     global: { provide: { [UI_CONTEXT as unknown as symbol]: context } },
   })
   return { wrapper: wrapper as VueWrapper, dispatch, context }
