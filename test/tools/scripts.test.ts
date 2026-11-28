@@ -10,6 +10,7 @@ const BUILD_TIMEOUT = 60_000
 const RESOURCE_NAME = 'omk_ui'
 const WRONG_NAME = 'omk_ui_copy'
 const NATIVE_MISSING = /is not defined/
+const FUNCTION_WRAPPER = /^("use strict";)?\(\(\)=>\{[\s\S]*\}\)\(\);?\s*$/
 
 function temporaryFolder(): string {
   return mkdtempSync(join(tmpdir(), 'omk-scripts-'))
@@ -61,13 +62,13 @@ describe('tools/scripts options', () => {
     })
   })
 
-  it('builds the server as minified commonjs for node', () => {
+  it('builds the server as a minified iife for node', () => {
     expect(server).toEqual({
       entryPoints: ['/repo/src/server/main.ts'],
       outfile: '/repo/omk_ui/dist/server.js',
       bundle: true,
       minify: true,
-      format: 'cjs',
+      format: 'iife',
       platform: 'node',
       target: 'es2020',
       define: { __OMK_VERSION__: '"1.2.3"', __OMK_PREVIEW__: 'false' },
@@ -89,7 +90,12 @@ describe('tools/scripts build', () => {
     expect(client).not.toContain('__commonJS')
   }, BUILD_TIMEOUT)
 
-  it('keeps the server a commonjs script that exports nothing', async () => {
+  it.each(['client', 'server'] as const)('wraps the %s script in a function so it declares nothing in the shared global scope', async (side) => {
+    const built = await buildRepository()
+    expect(built[side]).toMatch(FUNCTION_WRAPPER)
+  }, BUILD_TIMEOUT)
+
+  it('keeps the server a script that exports nothing', async () => {
     const { server } = await buildRepository()
     expect(server).not.toContain('module.exports')
     expect(server).not.toMatch(/(^|[;}\n])(import|export)[\s{*"']/)

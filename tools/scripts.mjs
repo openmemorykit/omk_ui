@@ -10,7 +10,7 @@ const PREVIEW_DEFINE = '__OMK_PREVIEW__'
 
 const SIDES = [
   { entry: 'src/client/main.ts', output: 'client.js', format: 'iife', platform: 'neutral' },
-  { entry: 'src/server/main.ts', output: 'server.js', format: 'cjs', platform: 'node' },
+  { entry: 'src/server/main.ts', output: 'server.js', format: 'iife', platform: 'node' },
 ]
 
 export function readVersion(root) {
