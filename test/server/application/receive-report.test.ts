@@ -13,6 +13,7 @@ const TWO_REPORTS = 2
 const TWO_SUMMARIES = 2
 const OVER_LIMIT = 3000
 const FLOOD = 100
+const NUMBER_PAYLOAD = 1
 const FORGED = 'x\n[omk_ui] 00:00.000 · joueur 9 · faux ^1rouge\r\tfin'
 const VERY_LONG_VALUE = 5000
 const MAX_FRAME = 100
@@ -32,6 +33,12 @@ describe('receive report: who may send', () => {
     const { ports, context } = createServerHarness()
     receiveReport(context, PLAYER, sampleReport(ReportKind.ModeChanged))
     expect(ports.console.lines).toStrictEqual([])
+  })
+
+  it('prints no invalid-shape line for non-object reports of a player whose journal is cut', () => {
+    const { ports, context } = createServerHarness()
+    for (let sent = 0; sent < FLOOD; sent += 1) receiveReport(context, PLAYER, NUMBER_PAYLOAD)
+    expect(ports.console.lines.filter((line) => line.includes('forme invalide'))).toStrictEqual([])
   })
 
   it('refuses it when the journal is on for another player only', () => {

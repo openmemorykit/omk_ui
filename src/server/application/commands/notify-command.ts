@@ -2,9 +2,8 @@ import { CallStatus, ContractVersion, NotificationTone } from '@openmemorykit/ui
 import { ALL_CLIENTS } from '../ports'
 import { OmkSubcommand } from '../omk-subcommand'
 import { relayNotification } from '../server-notify'
-import { isPlayerId, resolvePlayer, usageLines, type SubcommandHandler } from './command-arguments'
+import { EVERYBODY, isPlayerId, resolvePlayer, usageLines, type SubcommandHandler } from './command-arguments'
 
-const EVERYBODY = 'all'
 const WORD_SEPARATOR = ' '
 const ERROR_SEPARATOR = ', '
 const MIN_ARGUMENTS = 3
@@ -22,6 +21,6 @@ export const notifyCommand: SubcommandHandler = (context, args) => {
   if (target.player === undefined) return target.refusal
   const result = relayNotification(context, target.player, { version: ContractVersion.V1, tone, title: words.join(WORD_SEPARATOR) })
   const { translate } = context.log
-  if (result.status === CallStatus.Refused) return [translate('log.command.notifyRefused', { errors: result.errors.map((error) => error.path).join(ERROR_SEPARATOR) })]
+  if (result.status === CallStatus.Refused) return [translate('log.command.notifyRefused', { errors: result.errors.map((error) => `${error.path} (${error.code})`).join(ERROR_SEPARATOR) })]
   return [translate('log.command.notify', { tone, target: isEverybody ? translate('log.trace.allPlayers') : String(target.player) })]
 }

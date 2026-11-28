@@ -25,6 +25,14 @@ describe('omk_ui owners', () => {
     ])
   })
 
+  it('neutralises colour codes and line breaks in the owner names the client sends', () => {
+    const harness = createServerHarness()
+    const lines = run(harness, OmkSubcommand.Owners, String(PLAYER))
+    const hostile = [{ ...OWNERS[0], owner: '^1x\nforged' }]
+    receiveReport(harness.context, PLAYER, { kind: ReportKind.Snapshot, at: REPORT_AT, data: { ...PAYLOAD_SAMPLES[ReportKind.Snapshot], owners: hostile } })
+    expect(lines.slice(1)).toStrictEqual([`${LOG_PREFIX} ^ 1x forged : entrées radiales 1/2 · panneaux 2 · invites 0/4 · confirmations 0/1`])
+  })
+
   it('says nothing is registered when the client has no owner', () => {
     const harness = createServerHarness()
     const lines = run(harness, OmkSubcommand.Owners, String(PLAYER))
@@ -38,6 +46,14 @@ describe('omk_ui owners', () => {
     harness.ports.clock.advance(AFTER_TIMEOUT_MS)
     run(harness, OmkSubcommand.Version)
     expect(lines).toContain(`${LOG_PREFIX} Pas de réponse de joueur ${PLAYER} sous 3 s`)
+  })
+
+  it('says "no answer" to the first request when a second one replaces it', () => {
+    const harness = createServerHarness()
+    const first = run(harness, OmkSubcommand.Owners, String(PLAYER))
+    const second = run(harness, OmkSubcommand.Owners, String(PLAYER))
+    expect(first).toContain(`${LOG_PREFIX} Pas de réponse de joueur ${PLAYER} sous 3 s`)
+    expect(second).not.toContain(`${LOG_PREFIX} Pas de réponse de joueur ${PLAYER} sous 3 s`)
   })
 
   it('names a player who is not there, and shows the usage without an id', () => {

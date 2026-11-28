@@ -64,9 +64,9 @@ function envelopeReading(raw: unknown): ReportReading {
 }
 
 function readUnguarded(raw: unknown, traceActive: boolean, snapshotPending: boolean): ReportReading {
-  if (!isPlainObject(raw)) return INVALID
-  const kind = claimedKind(raw)
+  const kind = isPlainObject(raw) ? claimedKind(raw) : undefined
   if (!isWanted(kind, traceActive, snapshotPending)) return NOT_TRACED
+  if (!isPlainObject(raw)) return INVALID
   return shapeReading(raw) ?? sizeReading(raw, kind) ?? envelopeReading(raw)
 }
 

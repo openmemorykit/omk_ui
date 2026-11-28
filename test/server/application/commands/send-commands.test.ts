@@ -86,7 +86,7 @@ describe('omk_ui notify', () => {
 
   it('says why the contract refuses a title that is too long', () => {
     const harness = createServerHarness()
-    expect(run(harness, OmkSubcommand.Notify, 'all', 'info', 'x'.repeat(TITLE_TOO_LONG))).toStrictEqual(prefixed('Notification refusée : title'))
+    expect(run(harness, OmkSubcommand.Notify, 'all', 'info', 'x'.repeat(TITLE_TOO_LONG))).toStrictEqual(prefixed('Notification refusée : title (tooLong)'))
     expect(harness.ports.clients.sent).toStrictEqual([])
   })
 

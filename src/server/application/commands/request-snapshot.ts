@@ -1,4 +1,5 @@
 import { CommandKind } from '../../../shared/net/net-events'
+import { answerNoReply } from '../receive-report'
 import type { OmkSubcommand } from '../omk-subcommand'
 import type { ServerContext } from '../server-context'
 import type { SnapshotPresenter } from '../snapshot-requests'
@@ -14,7 +15,8 @@ export function requestSnapshot(
   if (args.length !== 1) return usageLines(context, subcommand)
   const target = resolvePlayer(context, subcommand, args[0])
   if (target.player === undefined) return target.refusal
-  const requestId = context.snapshots.open(target.player, context.ports.clock.now(), presenterFor(target.player), reply)
+  const { requestId, replaced } = context.snapshots.open(target.player, context.ports.clock.now(), presenterFor(target.player), reply)
+  if (replaced !== null) answerNoReply(context, replaced)
   context.ports.clients.send(target.player, { kind: CommandKind.Snapshot, requestId })
   return [context.log.translate('log.command.debug', { player: target.player })]
 }

@@ -34,15 +34,22 @@ describe('snapshot requests', () => {
     const requests = new SnapshotRequests()
     const first = requests.open(PLAYER, START, present, reply)
     const second = requests.open(OTHER_PLAYER, START, present, reply)
-    expect(second).toBe(first + 1)
+    expect(second.requestId).toBe(first.requestId + 1)
   })
 
   it('replaces the request of a player who is asked again', () => {
     const requests = new SnapshotRequests()
     requests.open(PLAYER, START, present, reply)
     const second = requests.open(PLAYER, START + 1, present, reply)
-    expect(requests.take(PLAYER)?.requestId).toBe(second)
+    expect(requests.take(PLAYER)?.requestId).toBe(second.requestId)
     expect(requests.trackedCount).toBe(0)
+  })
+
+  it('hands back the request it replaces, and nothing for a first request', () => {
+    const requests = new SnapshotRequests()
+    const first = requests.open(PLAYER, START, present, reply)
+    const second = requests.open(PLAYER, START + 1, present, reply)
+    expect([first.replaced, second.replaced?.requestId]).toStrictEqual([null, first.requestId])
   })
 
   it('hands out the requests that timed out, once, and keeps the others', () => {

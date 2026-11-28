@@ -80,6 +80,12 @@ describe('server notify: call by another resource', () => {
     expect(ports.console.lines).toStrictEqual([`${JOURNAL}notify appelé par inconnu vers ${PLAYER}`])
   })
 
+  it('neutralises colour codes and line breaks in the name of the caller', () => {
+    const { ports, context } = createServerHarness()
+    notifyFromResource(context, PLAYER, NOTIFICATION, '^1x\nfake')
+    expect(ports.console.lines).toStrictEqual([`${JOURNAL}notify appelé par ^ 1x fake vers ${PLAYER}`])
+  })
+
   it('never refuses the caller itself, whoever it is, and cuts a very long name', () => {
     const { ports, context } = createServerHarness()
     const result = notifyFromResource(context, PLAYER, NOTIFICATION, 'x'.repeat(VERY_LONG_NAME))

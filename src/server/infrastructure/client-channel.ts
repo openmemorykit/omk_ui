@@ -6,7 +6,8 @@ import type { KitServerEvents } from './server-events'
 export function createClientChannel(events: KitServerEvents, onFailure: FailureHandler): ClientChannel {
   return {
     send(target, command) {
-      const event = netEventOf(command)
+      const event = guardedCall(onFailure, 'name the net event of a command', () => netEventOf(command), null)
+      if (event === null) return
       guardedCall(onFailure, `emitNet ${event}`, () => events.emitToClient(target, event, command), undefined)
     },
   }

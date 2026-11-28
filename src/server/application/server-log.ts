@@ -16,7 +16,7 @@ const SECOND_DIGITS = 2
 const MILLISECOND_DIGITS = 3
 const ZERO = '0'
 export const PRINTABLE_MAX_LENGTH = 200
-const CONTROL_CHARACTERS = /[\p{Cc}\u2028\u2029]/gu
+const CONTROL_CHARACTERS = /[\p{Cc}\p{Cf}\u2028\u2029]/gu
 const COLOUR_CODE = /\^(?=\d)/g
 
 export type LogKey = Extract<keyof typeof french, `log.${string}`>

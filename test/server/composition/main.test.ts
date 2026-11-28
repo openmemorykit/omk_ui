@@ -14,6 +14,8 @@ const PLAYER_SOURCE = 7
 const NOTIFY_EXPORT = 'notify'
 const DENIED_LINE = 'omk_ui.admin'
 const KIT_MODULE = '../../../src/server/application/server-kit'
+const NOTIFY_EXPORT_MODULE = '../../../src/server/infrastructure/notify-export'
+const REGISTRATION_FAILURE = 'the export could not be registered'
 const KIT_FAILURE = 'the kit could not be built'
 const NO_REPLY_KEY = 'log.debug.noReply'
 
@@ -82,6 +84,7 @@ async function startServer(resourceName = RESOURCE_NAME): Promise<StartedServer>
 
 afterEach(() => {
   vi.doUnmock(KIT_MODULE)
+  vi.doUnmock(NOTIFY_EXPORT_MODULE)
   started?.natives.restore()
   started = null
   vi.unstubAllGlobals()
@@ -131,6 +134,15 @@ describe('server main', () => {
     const server = await startServer()
     expect(server.lines.filter((line) => line.includes(KIT_FAILURE))).toHaveLength(1)
     expect(server.commands.size).toBe(0)
+  })
+
+  it('keeps registering the other entry points when one registration throws, and reports it once', async () => {
+    vi.doMock(NOTIFY_EXPORT_MODULE, () => ({ registerNotifyExport: () => { throw new Error(REGISTRATION_FAILURE) } }))
+    const server = await startServer()
+    expect([...server.commands.keys()]).toStrictEqual([KIT_COMMAND])
+    expect(server.netHandlers.size).toBe(1)
+    expect(server.lines.filter((line) => line.includes(REGISTRATION_FAILURE))).toHaveLength(1)
+    expect(server.lines.some((line) => line.includes(KIT_VERSION))).toBe(true)
   })
 
   it('answers an unknown subcommand with the list of subcommands', async () => {

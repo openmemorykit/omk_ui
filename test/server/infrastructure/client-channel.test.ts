@@ -57,4 +57,12 @@ describe('client channel', () => {
     expect(() => channel.send(PLAYER, CLOSE)).not.toThrow()
     expect(failures).toStrictEqual([[`emitNet ${NetEvent.Command}`, failure]])
   })
+
+  it('keeps a command it cannot name inside the channel and reports it', () => {
+    const failures: unknown[][] = []
+    const channel = channelWith({}, failures)
+    expect(() => channel.send(PLAYER, null as never)).not.toThrow()
+    expect(failures).toHaveLength(1)
+    expect(natives?.recorder.callsOf('emitNet')).toStrictEqual([])
+  })
 })

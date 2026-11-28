@@ -1,6 +1,7 @@
 import { CONFIRMS_PER_OWNER, PROMPTS_PER_OWNER, RADIAL_ENTRIES_PER_OWNER } from '@openmemorykit/ui/contract'
 import { OmkSubcommand } from '../omk-subcommand'
 import type { ServerContext } from '../server-context'
+import { printable } from '../server-log'
 import type { SnapshotPayload } from '../snapshot-requests'
 import type { SubcommandHandler } from './command-arguments'
 import { requestSnapshot } from './request-snapshot'
@@ -10,7 +11,7 @@ export function ownersLines(context: ServerContext, player: number, snapshot: Sn
   if (snapshot.owners.length === 0) return [translate('log.command.ownersEmpty', { player })]
   return snapshot.owners.map((usage) =>
     translate('log.command.owners', {
-      owner: usage.owner,
+      owner: printable(usage.owner),
       radialEntries: usage.radialEntries,
       radialQuota: RADIAL_ENTRIES_PER_OWNER,
       panels: usage.panels,

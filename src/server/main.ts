@@ -36,17 +36,17 @@ function createPorts(onFailure: FailureHandler): ServerPorts {
 }
 
 function connectEntryPoints(startedKit: ServerKit, onFailure: FailureHandler): void {
-  registerKitCommand({
+  guardedCall(onFailure, 'register the kit command', () => registerKitCommand({
     run: (subcommand, args, reply) => {
       startedKit.command(subcommand, args, reply)
       armTimer(SNAPSHOT_TIMER_MS, () => startedKit.flushExpired(), onFailure)
     },
     unknownSubcommand: (name, reply) => startedKit.unknownSubcommand(name, reply),
     denied: (source, reply) => startedKit.denied(source, reply),
-  }, onFailure)
-  registerRawReportEvent((source, raw) => startedKit.report(source, raw), onFailure)
-  registerNotifyExport((target, notification, caller) => startedKit.notifyExport(target, notification, caller), onFailure)
-  registerPlayerDropped((source) => startedKit.playerDropped(source), onFailure)
+  }, onFailure), undefined)
+  guardedCall(onFailure, 'register the report event', () => registerRawReportEvent((source, raw) => startedKit.report(source, raw), onFailure), undefined)
+  guardedCall(onFailure, 'register the notify export', () => registerNotifyExport((target, notification, caller) => startedKit.notifyExport(target, notification, caller), onFailure), undefined)
+  guardedCall(onFailure, 'register the player dropped event', () => registerPlayerDropped((source) => startedKit.playerDropped(source), onFailure), undefined)
 }
 
 function startKit(onFailure: FailureHandler): void {

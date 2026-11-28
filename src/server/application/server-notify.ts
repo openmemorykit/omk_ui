@@ -28,7 +28,7 @@ function describeTarget(context: ServerContext, target: unknown): string {
 
 function journalCall(context: ServerContext, target: unknown, caller: string | null, result: CallResult): void {
   const { translate, printStamped } = context.log
-  const name = caller === null ? translate('log.notify.noCaller') : caller.slice(0, OWNER_MAX_LENGTH)
+  const name = caller === null ? translate('log.notify.noCaller') : printable(caller.slice(0, OWNER_MAX_LENGTH))
   const where = describeTarget(context, target)
   if (result.status === CallStatus.Done) printStamped(translate('log.notify.called', { caller: name, target: where }))
   else printStamped(translate('log.notify.refused', { caller: name, target: where, errors: result.errors.map((error) => error.path).join(ERROR_SEPARATOR) }))
