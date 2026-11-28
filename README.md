@@ -4,7 +4,7 @@ The `omk_ui` FiveM resource of OMK, an open source FiveM suite written in TypeSc
 
 ## Status
 
-Version 0.2.0. The client and server scripts are in the repository, with the pure logic of the three sides (protocol, shared code, domain of the page, the client and the server), the page (Vue 3, built for the Chromium 103 of FiveM) and their tests. Verified in game on a development server (artifact 38435): see the limits below. There is no SDK for other resources yet (milestone 4); the demos of the `omk_ui demo` command show what the kit does.
+Version 0.3.0. The client and server scripts are in the repository, with the pure logic of the three sides (protocol, shared code, domain of the page, the client and the server), the page (Vue 3, built for the Chromium 103 of FiveM) and their tests. Verified in game on a development server (artifact 38435): see the limits below. There is no SDK for other resources yet (milestone 4); the demos of the `omk_ui demo` command show what the kit does.
 
 ## Server installation
 
@@ -145,7 +145,7 @@ La ressource FiveM `omk_ui` d'OMK, une suite FiveM open source écrite en TypeSc
 
 ## État
 
-Version 0.2.0. Les scripts client et serveur sont dans le dépôt, avec la logique pure des trois côtés (protocole, code partagé, domaine de la page, du client et du serveur), la page (Vue 3, construite pour le Chromium 103 de FiveM) et leurs tests. Vérifié en jeu sur un serveur de développement (artifact 38435) : voir les limites plus bas. Il n'y a pas encore de SDK pour les autres ressources (jalon 4) ; les démos de la commande `omk_ui demo` montrent ce que fait le kit.
+Version 0.3.0. Les scripts client et serveur sont dans le dépôt, avec la logique pure des trois côtés (protocole, code partagé, domaine de la page, du client et du serveur), la page (Vue 3, construite pour le Chromium 103 de FiveM) et leurs tests. Vérifié en jeu sur un serveur de développement (artifact 38435) : voir les limites plus bas. Il n'y a pas encore de SDK pour les autres ressources (jalon 4) ; les démos de la commande `omk_ui demo` montrent ce que fait le kit.
 
 ## Installation sur un serveur
 
